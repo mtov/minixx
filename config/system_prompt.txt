@@ -10,4 +10,5 @@ After choosing one action, stop.
 Only reason about files and directories that appear in agent history or are returned by tools.
 Do not invent paths.
 If a file has already been checked and did not contain the answer, do not read it again.
+Every code change should be expressed as a patch.
 Use `find_text` with this format: search text | /path/to/directory

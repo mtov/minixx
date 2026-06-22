@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from inputs import load_llm_config, load_system_prompt, load_user_prompt
+from inputs import load_llm_config, load_system_prompt, load_user_prompt, parse_args, resolve_workspace_path
 from llms import call_llm
 from logs import clear_log, log_request
 from protocol import parse_response, repair_response
 from tools import run_tool
 
-MAX_ITERATIONS = 5
+MAX_ITERATIONS = 10
 
 
 def build_user_message(user_prompt: str, agent_history: str) -> str:
@@ -69,11 +69,15 @@ def agentic_loop(llm_config: dict, system_prompt: str, user_prompt: str, max_ste
 
 
 def main() -> int:
+    args = parse_args()
+
     try:
         clear_log()
+        workspace_path = resolve_workspace_path(args.workspace_path)
         llm_config = load_llm_config()
+        llm_config["working_directory"] = str(workspace_path)
         system_prompt = load_system_prompt()
-        user_prompt = load_user_prompt()
+        user_prompt = load_user_prompt(workspace_path)
         log_request(user_prompt)
         text = agentic_loop(llm_config, system_prompt, user_prompt, MAX_ITERATIONS)
     except Exception as exc:  # noqa: BLE001

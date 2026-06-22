@@ -1,0 +1,1 @@
+Read the Python files in this scenario and identify all places where the function old_name should be renamed to new_name.

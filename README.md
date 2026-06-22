@@ -9,7 +9,7 @@ Create a small, clear, and easy-to-understand foundation.
 ## Run
 
 ```bash
-python3 main.py
+python3 main.py ./test_workspace/test-find-secret-key
 ```
 
 ## Backend
@@ -45,7 +45,7 @@ If `python3 main.py` fails with a message like `Codex CLI not found in PATH`, th
 - a configurable Codex command
 - a configurable working directory
 - a separate system prompt file
-- a separate user prompt file
+- a local prompt file per scenario
 - a minimal ReAct-style loop
 - direct output to the terminal
 
@@ -53,7 +53,6 @@ If `python3 main.py` fails with a message like `Codex CLI not found in PATH`, th
 
 - `config/config.json` stores runtime settings for the Codex CLI backend.
 - `config/system_prompt.txt` stores the agent's behavior instructions.
-- `config/prompt.txt` stores the current user prompt.
 - `inputs.py` loads the configuration and prompt files.
 - `llms.py` selects the active backend and performs the LLM request.
 - `protocol.py` parses and repairs model responses.
@@ -91,10 +90,13 @@ search text | /path/to/directory
 
 ## Test Workspace
 
-The default backend working directory is:
+Each scenario directory contains its own `prompt.txt` and test files.
+
+Example scenarios:
 
 ```text
-./test_workspace
+./test_workspace/test-find-secret-key
+./test_workspace/test-rename-refactoring
 ```
 
-This keeps agent runs focused on a small controlled set of files during testing.
+The scenario path is passed on the command line and also becomes the backend working directory for the run.
