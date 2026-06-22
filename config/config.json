@@ -1,6 +1,6 @@
 {
   "backend": "codex",
   "codex_command": "codex",
-  "working_directory": "/Users/mtov/minixx/test_workspace",
+  "working_directory": "/Users/mtov/minixx/test_workspace/test-find-secret-key",
   "timeout_seconds": 600
 }
