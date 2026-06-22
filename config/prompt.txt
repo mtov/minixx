@@ -1,0 +1,1 @@
+List the files in /Users/mtov/minixx/test_workspace, find the file that contains the secret code, read it, and return only the secret code.
