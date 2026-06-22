@@ -16,7 +16,7 @@ Do not rely on previous conversation state or hidden context.
 {user_prompt}"""
 
 
-def call_llm(llm_config: dict, system_prompt: str, user_prompt: str) -> str:
+def call_codex(llm_config: dict, system_prompt: str, user_prompt: str) -> str:
     codex_command = llm_config["codex_command"]
     working_directory = Path(llm_config["working_directory"])
     prompt = build_codex_prompt(system_prompt, user_prompt)
@@ -42,5 +42,16 @@ def call_llm(llm_config: dict, system_prompt: str, user_prompt: str) -> str:
     if not content:
         raise ValueError("Codex returned an empty response.")
 
-    log_response(content)
     return content
+
+
+def call_llm(llm_config: dict, system_prompt: str, user_prompt: str) -> str:
+    backend = llm_config["backend"]
+
+    if backend == "codex":
+        response = call_codex(llm_config, system_prompt, user_prompt)
+    else:
+        raise ValueError(f"Unsupported backend: {backend}")
+
+    log_response(response)
+    return response

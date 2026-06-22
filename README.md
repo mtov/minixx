@@ -31,6 +31,7 @@ The backend configuration lives in:
 
 The current settings include:
 
+- `backend`
 - `codex_command`
 - `working_directory`
 - `timeout_seconds`
@@ -54,7 +55,7 @@ If `python3 main.py` fails with a message like `Codex CLI not found in PATH`, th
 - `config/system_prompt.txt` stores the agent's behavior instructions.
 - `config/prompt.txt` stores the current user prompt.
 - `inputs.py` loads the configuration and prompt files.
-- `llms.py` handles the headless Codex request.
+- `llms.py` selects the active backend and performs the LLM request.
 - `protocol.py` parses and repairs model responses.
 - `tools.py` executes agent tools.
 - `logs.py` writes request and response traces to `agent.log`.
