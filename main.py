@@ -46,8 +46,7 @@ def handle_finish(llm_config: dict, system_prompt: str, user_prompt: str, user_m
         thought, action, action_input = repair_finish_output(llm_config, system_prompt, user_message)
         validate_finish_output(action, action_input, user_prompt)
 
-    print()
-    print()
+    print("\n")
     return action_input
 
 
@@ -66,22 +65,26 @@ def agentic_loop(llm_config: dict, system_prompt: str, user_prompt: str, max_ste
         tool_result = run_tool(action, action_input)
         agent_history = update_agent_history(agent_history, iteration, thought, action, action_input, tool_result)
 
-    print()
-    print()
+    print("\n")
     raise ValueError("Agent stopped after reaching the maximum number of steps.")
+
+
+def prepare_run(workspace_path_arg: str) -> tuple[dict, str, str]:
+    clear_log()
+    workspace_path = resolve_workspace_path(workspace_path_arg)
+    llm_config = load_llm_config()
+    llm_config["working_directory"] = str(workspace_path)
+    system_prompt = load_system_prompt()
+    user_prompt = load_user_prompt(workspace_path)
+    log_request(user_prompt)
+    return llm_config, system_prompt, user_prompt
 
 
 def main() -> int:
     args = parse_args()
 
     try:
-        clear_log()
-        workspace_path = resolve_workspace_path(args.workspace_path)
-        llm_config = load_llm_config()
-        llm_config["working_directory"] = str(workspace_path)
-        system_prompt = load_system_prompt()
-        user_prompt = load_user_prompt(workspace_path)
-        log_request(user_prompt)
+        llm_config, system_prompt, user_prompt = prepare_run(args.workspace_path)
         text = agentic_loop(llm_config, system_prompt, user_prompt, MAX_ITERATIONS)
     except Exception as exc:  # noqa: BLE001
         print(f"Error executing Codex: {exc}")
