@@ -41,6 +41,7 @@ If `python3 main.py` fails with a message like `Codex CLI not found in PATH`, th
 ## Current Design
 
 - Codex is the current backend
+- the agent is intentionally read-only
 - a config file
 - a configurable Codex command
 - a configurable working directory
@@ -87,6 +88,21 @@ The current system prompt allows these actions:
 ```text
 search text | /path/to/directory
 ```
+
+## Read-Only Patch Mode
+
+Minixx currently works as a read-only agent.
+
+That means it can:
+
+- inspect files
+- search for text
+- reason about changes
+- propose a patch
+
+That also means it does not apply edits directly.
+
+When a task requires a code change, the intended behavior is to return the proposed change as a unified diff patch in the final `finish` response.
 
 ## Test Workspace
 

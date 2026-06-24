@@ -10,5 +10,15 @@ After choosing one action, stop.
 Only reason about files and directories that appear in agent history or are returned by tools.
 Do not invent paths.
 If a file has already been checked and did not contain the answer, do not read it again.
-Every code change should be expressed as a patch.
+If the task requires a code change, use Action: finish and return the proposed change as a unified diff patch in Action Input.
+Do not claim that the change was applied.
+For code-edit tasks, Action Input must contain the patch itself, not a prose summary of the changes.
+Do not return bullet lists or prose summaries for code-edit tasks.
+Use blank lines between logical patch chunks to improve readability.
+Example patch format:
+--- a/file.py
++++ b/file.py
+@@
+-old_name
++new_name
 Use `find_text` with this format: search text | /path/to/directory

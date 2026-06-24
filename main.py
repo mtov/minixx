@@ -3,7 +3,7 @@ from __future__ import annotations
 from inputs import load_llm_config, load_system_prompt, load_user_prompt, parse_args, resolve_workspace_path
 from llms import call_llm
 from logs import clear_log, log_request
-from protocol import parse_response, repair_response
+from protocol import parse_response, repair_finish_output, repair_response, validate_finish_output
 from tools import run_tool
 
 MAX_ITERATIONS = 10
@@ -17,14 +17,7 @@ Agent history:
 {agent_history}"""
 
 
-def update_agent_history(
-    agent_history: str,
-    iteration: int,
-    thought: str,
-    action: str,
-    action_input: str,
-    tool_result: str,
-) -> str:
+def update_agent_history(agent_history: str, iteration: int, thought: str, action: str, action_input: str, tool_result: str) -> str:
     iteration_history = (
         f"Iteration {iteration}\n"
         f"Thought: {thought}\n"
@@ -46,6 +39,18 @@ def get_valid_response(llm_config: dict, system_prompt: str, user_message: str) 
         return repair_response(llm_config, system_prompt, user_message)
 
 
+def handle_finish(llm_config: dict, system_prompt: str, user_prompt: str, user_message: str, action: str, action_input: str) -> str:
+    try:
+        validate_finish_output(action, action_input, user_prompt)
+    except ValueError:
+        thought, action, action_input = repair_finish_output(llm_config, system_prompt, user_message)
+        validate_finish_output(action, action_input, user_prompt)
+
+    print()
+    print()
+    return action_input
+
+
 def agentic_loop(llm_config: dict, system_prompt: str, user_prompt: str, max_steps: int) -> str:
     agent_history = "No previous steps."
     print("Iteration:", end=" ", flush=True)
@@ -56,14 +61,12 @@ def agentic_loop(llm_config: dict, system_prompt: str, user_prompt: str, max_ste
         thought, action, action_input = get_valid_response(llm_config, system_prompt, user_message)
 
         if action == "finish":
-            print()
-            return action_input
+            return handle_finish(llm_config, system_prompt, user_prompt, user_message, action, action_input)
 
         tool_result = run_tool(action, action_input)
-        agent_history = update_agent_history(
-            agent_history, iteration, thought, action, action_input, tool_result
-        )
+        agent_history = update_agent_history(agent_history, iteration, thought, action, action_input, tool_result)
 
+    print()
     print()
     raise ValueError("Agent stopped after reaching the maximum number of steps.")
 
