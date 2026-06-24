@@ -1,1 +1,1 @@
-Read the Python files in this scenario and identify all places where the function old_name should be renamed to new_name.
+Rename the function old_name to new_name in all relevant files and return the result as a unified diff patch. Do not return a prose explanation or a bullet list.
