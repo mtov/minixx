@@ -27,21 +27,21 @@ def parse_response(text: str) -> tuple[str, str, str]:
     thought = ""
     action = ""
     action_input_lines: list[str] = []
-    capturing_action_input = False
+    current_section = None
 
     for line in text.splitlines():
         if line.startswith("Thought:"):
             thought = line.removeprefix("Thought:").strip()
-            capturing_action_input = False
+            current_section = None
         elif line.startswith("Action:"):
             action = line.removeprefix("Action:").strip()
-            capturing_action_input = False
+            current_section = None
         elif line.startswith("Action Input:"):
             action_input_lines = [line.removeprefix("Action Input:").strip()]
-            capturing_action_input = True
+            current_section = "action_input"
         elif line.startswith("Observation:"):
             raise ValueError("Model response must not contain Observation.")
-        elif capturing_action_input:
+        elif current_section == "action_input":
             action_input_lines.append(line)
 
     if not action:
