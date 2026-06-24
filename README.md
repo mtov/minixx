@@ -16,6 +16,12 @@ python3 main.py ./test_workspace/test-find-secret-key
 
 Minixx currently uses Codex as its backend.
 
+```mermaid
+flowchart LR
+    Minixx --> Codex
+    Codex --> LLM
+```
+
 The project runs Codex in headless mode through the local CLI, so these requirements matter:
 
 - the Codex desktop app or CLI must be installed
