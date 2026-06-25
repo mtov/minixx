@@ -20,13 +20,13 @@ Each workspace should contain:
 Example `prompt.txt`:
 
 ```text
-Find where MAX_RETRIES is defined and return only the file path and line number.
+Rename the function old_name to new_name in all relevant files and return a unified diff patch.
 ```
 
 Run command:
 
 ```bash
-python3 main.py ./test_workspace/test-find-secret-key
+python3 main.py ./test_workspace/test-rename-refactoring
 ```
 
 The selected workspace path becomes the backend working directory for the run.
