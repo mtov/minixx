@@ -1,6 +1,7 @@
 # Minixx
 
-Minixx is a didactic Python project for studying how to build a simple code agent.
+Minixx is a didactic Python project for studying how to build simple code agents.
+It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc.ufmg.br/).
 
 ## Design Principles
 

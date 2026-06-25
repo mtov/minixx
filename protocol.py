@@ -18,6 +18,15 @@ PATCH_REPAIR_PROMPT = (
     "Action Input: a unified diff patch "
     "Do not include Observation."
 )
+PRECONDITION_REPAIR_PROMPT = (
+    "Your previous response was invalid. "
+    "For bug-fixing tasks, you must use run_tests before finish. "
+    "Respond using only: "
+    "Thought: ... "
+    "Action: ... "
+    "Action Input: ... "
+    "Do not include Observation."
+)
 
 
 # Parse one model turn in the ReAct-style protocol used by Minixx.
@@ -56,8 +65,22 @@ def is_code_change_task(user_prompt: str) -> bool:
     return any(keyword in prompt for keyword in ("rename", "refactor", "change", "update", "modify", "fix", "create", "implement"))
 
 
+def is_bug_fix_task(user_prompt: str) -> bool:
+    prompt = user_prompt.lower()
+    return any(keyword in prompt for keyword in ("bug", "fix", "failing test", "tests pass"))
+
+
 def looks_like_patch(text: str) -> bool:
     return "--- " in text and "+++ " in text and "@@" in text
+
+
+def validate_finish_preconditions(action: str, user_prompt: str, agent_history: str) -> None:
+    if action != "finish":
+        return
+    if not is_bug_fix_task(user_prompt):
+        return
+    if "Action: run_tests" not in agent_history:
+        raise ValueError("Bug-fixing tasks must use run_tests before finish.")
 
 
 def validate_finish_output(action: str, action_input: str, user_prompt: str) -> None:
@@ -77,5 +100,11 @@ def repair_response(llm_config: dict, system_prompt: str, user_message: str) -> 
 
 def repair_finish_output(llm_config: dict, system_prompt: str, user_message: str) -> tuple[str, str, str]:
     repair_message = f"{user_message}\n\n{PATCH_REPAIR_PROMPT}"
+    repair_response = call_llm(llm_config, system_prompt, repair_message)
+    return parse_response(repair_response)
+
+
+def repair_finish_preconditions(llm_config: dict, system_prompt: str, user_message: str) -> tuple[str, str, str]:
+    repair_message = f"{user_message}\n\n{PRECONDITION_REPAIR_PROMPT}"
     repair_response = call_llm(llm_config, system_prompt, repair_message)
     return parse_response(repair_response)

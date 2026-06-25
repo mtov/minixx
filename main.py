@@ -4,7 +4,7 @@ from context import AgentContext
 from inputs import load_llm_config, load_system_prompt, load_user_prompt, parse_args, resolve_workspace_path
 from llms import call_llm
 from logs import clear_log, log_request
-from protocol import parse_response, repair_finish_output, repair_response, validate_finish_output
+from protocol import parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
 from tools import run_tool
 
 
@@ -38,6 +38,23 @@ def get_valid_response(context: AgentContext, user_message: str) -> tuple[str, s
         return repair_response(context.llm_config, context.system_prompt, user_message)
 
 
+def get_valid_finish_response(
+    context: AgentContext,
+    user_message: str,
+    agent_history: str,
+    thought: str,
+    action: str,
+    action_input: str,
+) -> tuple[str, str, str]:
+    try:
+        validate_finish_preconditions(action, context.user_prompt, agent_history)
+    except ValueError:
+        thought, action, action_input = repair_finish_preconditions(context.llm_config, context.system_prompt, user_message)
+        validate_finish_preconditions(action, context.user_prompt, agent_history)
+
+    return thought, action, action_input
+
+
 def handle_finish(context: AgentContext, user_message: str, action: str, action_input: str) -> str:
     try:
         validate_finish_output(action, action_input, context.user_prompt)
@@ -60,6 +77,9 @@ def agentic_loop(context: AgentContext) -> str:
         thought, action, action_input = get_valid_response(context, user_message)
 
         if action == "finish":
+            thought, action, action_input = get_valid_finish_response(
+                context, user_message, agent_history, thought, action, action_input
+            )
             return handle_finish(context, user_message, action, action_input)
 
         tool_result = run_tool(action, action_input, context.workspace_path)
