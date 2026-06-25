@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from context import AgentContext
 from logs import log_response
 
 
@@ -23,10 +24,10 @@ def require_config_value(llm_config: dict, key: str, backend_name: str) -> str:
     return value
 
 
-def call_codex(llm_config: dict, system_prompt: str, user_prompt: str) -> str:
-    codex_command = require_config_value(llm_config, "codex_command", "Codex")
-    working_directory = Path(llm_config["working_directory"])
-    prompt = build_codex_prompt(system_prompt, user_prompt)
+def call_codex(context: AgentContext, user_prompt: str) -> str:
+    codex_command = require_config_value(context.llm_config, "codex_command", "Codex")
+    working_directory = Path(context.llm_config["working_directory"])
+    prompt = build_codex_prompt(context.system_prompt, user_prompt)
 
     if shutil.which(codex_command) is None:
         raise RuntimeError(f"Codex CLI not found in PATH: {codex_command}")
@@ -37,7 +38,7 @@ def call_codex(llm_config: dict, system_prompt: str, user_prompt: str) -> str:
             cwd=working_directory,
             capture_output=True,
             text=True,
-            timeout=llm_config["timeout_seconds"],
+            timeout=context.llm_config["timeout_seconds"],
         )
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Could not execute Codex in {working_directory}.") from exc
@@ -68,21 +69,21 @@ def extract_ollama_content(response: object) -> str:
     raise ValueError("Ollama returned a response without message content.")
 
 
-def call_ollama(llm_config: dict, system_prompt: str, user_prompt: str) -> str:
+def call_ollama(context: AgentContext, user_prompt: str) -> str:
     try:
         from ollama import Client
     except ImportError as exc:
         raise RuntimeError("Ollama Python package not installed. Run pip install -r requirements.txt.") from exc
 
-    ollama_url = require_config_value(llm_config, "ollama_url", "Ollama")
-    ollama_model = require_config_value(llm_config, "ollama_model", "Ollama")
+    ollama_url = require_config_value(context.llm_config, "ollama_url", "Ollama")
+    ollama_model = require_config_value(context.llm_config, "ollama_model", "Ollama")
     client = Client(host=ollama_url)
 
     try:
         response = client.chat(
             model=ollama_model,
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": context.system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
         )
@@ -92,13 +93,13 @@ def call_ollama(llm_config: dict, system_prompt: str, user_prompt: str) -> str:
     return extract_ollama_content(response)
 
 
-def call_llm(llm_config: dict, system_prompt: str, user_prompt: str) -> str:
-    backend = llm_config["backend"]
+def call_llm(context: AgentContext, user_prompt: str) -> str:
+    backend = context.llm_config["backend"]
 
     if backend == "codex":
-        response = call_codex(llm_config, system_prompt, user_prompt)
+        response = call_codex(context, user_prompt)
     elif backend == "ollama":
-        response = call_ollama(llm_config, system_prompt, user_prompt)
+        response = call_ollama(context, user_prompt)
     else:
         raise ValueError(f"Unsupported backend: {backend}")
 

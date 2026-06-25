@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from context import AgentContext, AgentResponse
 from llms import call_llm
 
 REPAIR_PROMPT = (
@@ -32,7 +33,7 @@ PRECONDITION_REPAIR_PROMPT = (
 # Parse one model turn in the ReAct-style protocol used by Minixx.
 # The model must return a single action decision, not a simulated multi-step trace,
 # so this parser rejects responses that include Observation or more than one action block.
-def parse_response(text: str) -> tuple[str, str, str]:
+def parse_response(text: str) -> AgentResponse:
     thought = ""
     action = ""
     action_input_lines: list[str] = []
@@ -57,7 +58,7 @@ def parse_response(text: str) -> tuple[str, str, str]:
         raise ValueError("Model response is missing the required Action field.")
 
     action_input = "\n".join(action_input_lines).strip()
-    return thought, action, action_input
+    return AgentResponse(thought=thought, action=action, action_input=action_input)
 
 
 def is_code_change_task(user_prompt: str) -> bool:
@@ -74,8 +75,8 @@ def looks_like_patch(text: str) -> bool:
     return "--- " in text and "+++ " in text and "@@" in text
 
 
-def validate_finish_preconditions(action: str, user_prompt: str, agent_history: str) -> None:
-    if action != "finish":
+def validate_finish_preconditions(agent_response: AgentResponse, user_prompt: str, agent_history: str) -> None:
+    if agent_response.action != "finish":
         return
     if not is_bug_fix_task(user_prompt):
         return
@@ -83,28 +84,28 @@ def validate_finish_preconditions(action: str, user_prompt: str, agent_history: 
         raise ValueError("Bug-fixing tasks must use run_tests before finish.")
 
 
-def validate_finish_output(action: str, action_input: str, user_prompt: str) -> None:
-    if action != "finish":
+def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> None:
+    if agent_response.action != "finish":
         return
     if not is_code_change_task(user_prompt):
         return
-    if not looks_like_patch(action_input):
+    if not looks_like_patch(agent_response.action_input):
         raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
 
 
-def repair_response(llm_config: dict, system_prompt: str, user_message: str) -> tuple[str, str, str]:
+def repair_response(context: AgentContext, user_message: str) -> AgentResponse:
     repair_message = f"{user_message}\n\n{REPAIR_PROMPT}"
-    repair_response = call_llm(llm_config, system_prompt, repair_message)
+    repair_response = call_llm(context, repair_message)
     return parse_response(repair_response)
 
 
-def repair_finish_output(llm_config: dict, system_prompt: str, user_message: str) -> tuple[str, str, str]:
+def repair_finish_output(context: AgentContext, user_message: str) -> AgentResponse:
     repair_message = f"{user_message}\n\n{PATCH_REPAIR_PROMPT}"
-    repair_response = call_llm(llm_config, system_prompt, repair_message)
+    repair_response = call_llm(context, repair_message)
     return parse_response(repair_response)
 
 
-def repair_finish_preconditions(llm_config: dict, system_prompt: str, user_message: str) -> tuple[str, str, str]:
+def repair_finish_preconditions(context: AgentContext, user_message: str) -> AgentResponse:
     repair_message = f"{user_message}\n\n{PRECONDITION_REPAIR_PROMPT}"
-    repair_response = call_llm(llm_config, system_prompt, repair_message)
+    repair_response = call_llm(context, repair_message)
     return parse_response(repair_response)

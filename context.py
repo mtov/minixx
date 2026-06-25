@@ -10,3 +10,10 @@ class AgentContext:
     system_prompt: str
     user_prompt: str
     workspace_path: Path
+
+
+@dataclass
+class AgentResponse:
+    thought: str
+    action: str
+    action_input: str
