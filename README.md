@@ -61,25 +61,24 @@ If `python3 main.py` fails with a message like `Codex CLI not found in PATH`, th
 
 ```mermaid
 flowchart TD
-    A["minixx/"] --> B["config/"]
-    A --> C["test_workspace/"]
-    A --> D["main.py"]
-    A --> E["inputs.py"]
-    A --> F["llms.py"]
-    A --> G["protocol.py"]
-    A --> H["tools.py"]
-    A --> I["logs.py"]
+    A["main.py"]
+    B["inputs.py"]
+    C["llms.py"]
+    D["protocol.py"]
+    E["tools.py"]
+    F["logs.py"]
+    G["config/"]
+    H["test_workspace/"]
+    I["OpenAI's Codex"]
 
-    B --> B1["config.json"]
-    B --> B2["system_prompt.txt"]
-
-    D --> E
-    D --> F
-    D --> G
-    D --> H
-    D --> I
-    E --> B
-    F --> J["OpenAI's Codex"]
+    A --> B
+    A --> C
+    A --> D
+    A --> E
+    A --> F
+    B --> G
+    B --> H
+    C --> I
 ```
 
 - `config/config.json` stores backend settings.
