@@ -64,29 +64,32 @@ If `python3 main.py` fails with a message like `Codex CLI not found in PATH`, th
 ```mermaid
 flowchart TD
     A["main.py"]
-    B["inputs.py"]
-    C["llms.py"]
-    D["protocol.py"]
-    E["tools.py"]
-    F["logs.py"]
-    G["guards.py"]
-    H["config/"]
-    I["test_workspace/"]
-    J["OpenAI's Codex"]
+    B["context.py"]
+    C["inputs.py"]
+    D["llms.py"]
+    E["protocol.py"]
+    F["tools.py"]
+    G["logs.py"]
+    H["guards.py"]
+    I["config/"]
+    J["test_workspace/"]
+    K["OpenAI's Codex"]
 
     A --> B
     A --> C
     A --> D
     A --> E
     A --> F
-    E --> G
-    B --> H
-    B --> I
+    A --> G
+    F --> H
+    C --> I
     C --> J
+    D --> K
 ```
 
 - `config/config.json` stores backend settings.
 - `config/system_prompt.txt` stores the agent's behavior instructions.
+- `context.py` stores the execution context for a single agent run.
 - `guards.py` validates and resolves tool paths inside the workspace.
 - `inputs.py` loads configuration and workspace prompts.
 - `llms.py` selects the backend and performs the LLM request.

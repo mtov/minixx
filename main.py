@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
-
+from context import AgentContext
 from inputs import load_llm_config, load_system_prompt, load_user_prompt, parse_args, resolve_workspace_path
 from llms import call_llm
 from logs import clear_log, log_request
 from protocol import parse_response, repair_finish_output, repair_response, validate_finish_output
 from tools import run_tool
-
-MAX_ITERATIONS = 10
 
 
 def build_user_message(user_prompt: str, agent_history: str) -> str:
@@ -32,46 +29,47 @@ def update_agent_history(agent_history: str, iteration: int, thought: str, actio
     return f"{agent_history}\n{iteration_history}"
 
 
-def get_valid_response(llm_config: dict, system_prompt: str, user_message: str) -> tuple[str, str, str]:
-    response = call_llm(llm_config, system_prompt, user_message)
+def get_valid_response(context: AgentContext, user_message: str) -> tuple[str, str, str]:
+    response = call_llm(context.llm_config, context.system_prompt, user_message)
 
     try:
         return parse_response(response)
     except ValueError:
-        return repair_response(llm_config, system_prompt, user_message)
+        return repair_response(context.llm_config, context.system_prompt, user_message)
 
 
-def handle_finish(llm_config: dict, system_prompt: str, user_prompt: str, user_message: str, action: str, action_input: str) -> str:
+def handle_finish(context: AgentContext, user_message: str, action: str, action_input: str) -> str:
     try:
-        validate_finish_output(action, action_input, user_prompt)
+        validate_finish_output(action, action_input, context.user_prompt)
     except ValueError:
-        thought, action, action_input = repair_finish_output(llm_config, system_prompt, user_message)
-        validate_finish_output(action, action_input, user_prompt)
+        thought, action, action_input = repair_finish_output(context.llm_config, context.system_prompt, user_message)
+        validate_finish_output(action, action_input, context.user_prompt)
 
     print("\n")
     return action_input
 
 
-def agentic_loop(llm_config: dict, system_prompt: str, user_prompt: str, workspace_path: Path, max_steps: int) -> str:
+def agentic_loop(context: AgentContext) -> str:
+    max_iterations = 10
     agent_history = "No previous steps."
     print("Iteration:", end=" ", flush=True)
 
-    for iteration in range(1, max_steps + 1):
+    for iteration in range(1, max_iterations + 1):
         print(iteration, end=" ", flush=True)
-        user_message = build_user_message(user_prompt, agent_history)
-        thought, action, action_input = get_valid_response(llm_config, system_prompt, user_message)
+        user_message = build_user_message(context.user_prompt, agent_history)
+        thought, action, action_input = get_valid_response(context, user_message)
 
         if action == "finish":
-            return handle_finish(llm_config, system_prompt, user_prompt, user_message, action, action_input)
+            return handle_finish(context, user_message, action, action_input)
 
-        tool_result = run_tool(action, action_input, workspace_path)
+        tool_result = run_tool(action, action_input, context.workspace_path)
         agent_history = update_agent_history(agent_history, iteration, thought, action, action_input, tool_result)
 
     print("\n")
     raise ValueError("Agent stopped after reaching the maximum number of steps.")
 
 
-def prepare_run(workspace_path_arg: str) -> tuple[dict, str, str, Path]:
+def prepare_run(workspace_path_arg: str) -> AgentContext:
     clear_log()
     workspace_path = resolve_workspace_path(workspace_path_arg)
     llm_config = load_llm_config()
@@ -79,15 +77,15 @@ def prepare_run(workspace_path_arg: str) -> tuple[dict, str, str, Path]:
     system_prompt = load_system_prompt()
     user_prompt = load_user_prompt(workspace_path)
     log_request(user_prompt)
-    return llm_config, system_prompt, user_prompt, workspace_path
+    return AgentContext(llm_config=llm_config, system_prompt=system_prompt, user_prompt=user_prompt, workspace_path=workspace_path)
 
 
 def main() -> int:
     args = parse_args()
 
     try:
-        llm_config, system_prompt, user_prompt, workspace_path = prepare_run(args.workspace_path)
-        text = agentic_loop(llm_config, system_prompt, user_prompt, workspace_path, MAX_ITERATIONS)
+        context = prepare_run(args.workspace_path)
+        text = agentic_loop(context)
     except Exception as exc:  # noqa: BLE001
         print(f"Error executing Codex: {exc}")
         return 1
