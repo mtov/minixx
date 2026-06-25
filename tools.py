@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from guards import resolve_tool_path
 
 MAX_FIND_TEXT_MATCHES = 20
 SKIPPED_DIRECTORIES = {".git", ".venv", "__pycache__"}
+TEST_COMMAND = (sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider")
+TEST_TIMEOUT_SECONDS = 30
 
 
 def list_files(action_input: str, workspace_path: Path) -> str:
@@ -98,6 +103,32 @@ def find_text(action_input: str, workspace_path: Path) -> str:
     return "\n".join(matches)
 
 
+def run_tests(workspace_path: Path) -> str:
+    environment = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+
+    try:
+        result = subprocess.run(
+            TEST_COMMAND,
+            cwd=workspace_path,
+            capture_output=True,
+            text=True,
+            timeout=TEST_TIMEOUT_SECONDS,
+            env=environment,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return f"Could not run tests: {exc}"
+
+    output_parts = [result.stdout.strip(), result.stderr.strip()]
+    output = "\n".join(part for part in output_parts if part).strip()
+
+    if not output and result.returncode == 0:
+        return "Tests passed."
+    if not output:
+        return f"Tests failed with exit code {result.returncode}."
+
+    return output
+
+
 def run_tool(action: str, action_input: str, workspace_path: Path) -> str:
     if action == "list_files":
         return list_files(action_input, workspace_path)
@@ -105,5 +136,7 @@ def run_tool(action: str, action_input: str, workspace_path: Path) -> str:
         return read_file(action_input, workspace_path)
     if action == "find_text":
         return find_text(action_input, workspace_path)
+    if action == "run_tests":
+        return run_tests(workspace_path)
 
-    return f"Unsupported action '{action}'. Use list_files, read_file, find_text, or finish."
+    return f"Unsupported action '{action}'. Use list_files, read_file, find_text, run_tests, or finish."

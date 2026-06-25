@@ -39,6 +39,7 @@ Tool paths are also restricted to that workspace.
 - `./test_workspace/test-find-symbol`: symbol search and precise location reporting
 - `./test_workspace/test-rename-refactoring`: cross-file refactoring and patch generation
 - `./test_workspace/test-create-program`: program creation and test generation as a unified diff patch
+- `./test_workspace/test-fix-failing-test`: test execution, bug diagnosis, and patch generation
 
 ## Model used by the Agent
 
@@ -56,6 +57,7 @@ Requirements:
 - the Codex desktop app or CLI must be installed
 - the `codex` executable must be available in your shell `PATH`
 - the backend configuration lives in `./config/config.json`
+- `pytest` must be available in the Python environment used to run Minixx
 
 If `python3 main.py` fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment.
 
@@ -103,6 +105,7 @@ flowchart TD
 - `list_files`
 - `read_file`
 - `find_text`
+- `run_tests`
 - `finish`
 
 Minixx can inspect files, search for text, reason about changes, and propose patches.
@@ -117,10 +120,13 @@ The model responds with `Thought`, `Action`, and `Action Input`.
 search text | /path/to/directory
 ```
 
+`run_tests` runs the workspace test suite using a fixed `pytest` command.
+
 When a task requires a code change, the intended behavior is to return a unified diff patch in the final `finish` response.
 
 ## Security
 
 Minixx is designed to run against a selected workspace.
 Tool paths are validated by `guards.py`, which prevents file and directory access outside that workspace.
+The `run_tests` tool uses a fixed test command instead of accepting an arbitrary shell command.
 This is a simple safety mechanism for local agent experiments, not a complete sandbox.

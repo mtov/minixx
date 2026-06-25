@@ -53,7 +53,7 @@ def parse_response(text: str) -> tuple[str, str, str]:
 
 def is_code_change_task(user_prompt: str) -> bool:
     prompt = user_prompt.lower()
-    return any(keyword in prompt for keyword in ("rename", "refactor", "change", "update", "modify"))
+    return any(keyword in prompt for keyword in ("rename", "refactor", "change", "update", "modify", "fix", "create", "implement"))
 
 
 def looks_like_patch(text: str) -> bool:
