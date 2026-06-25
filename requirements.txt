@@ -1,2 +1,1 @@
-# This project uses the external Codex CLI.
-# No Python runtime dependencies are required right now.
+ollama>=0.5.0

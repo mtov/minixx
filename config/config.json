@@ -1,5 +1,7 @@
 {
   "backend": "codex",
   "codex_command": "codex",
-  "timeout_seconds": 600
+  "timeout_seconds": 600,
+  "ollama_url": "http://localhost:11434",
+  "ollama_model": "qwen3-coder:30b"
 }

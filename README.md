@@ -41,7 +41,8 @@ The selected workspace path becomes the backend working directory for the run.
 
 ## Model used by the Agent
 
-Minixx currently uses Codex as its backend in read-only mode.
+Minixx currently uses OpenAI's Codex as its default backend in read-only mode.
+It can also be configured to use other models through different backends, such as local models served by Ollama.
 
 ```mermaid
 flowchart LR
