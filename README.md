@@ -118,3 +118,9 @@ search text | /path/to/directory
 ```
 
 When a task requires a code change, the intended behavior is to return a unified diff patch in the final `finish` response.
+
+## Security
+
+Minixx is designed to run against a selected workspace.
+Tool paths are validated by `guards.py`, which prevents file and directory access outside that workspace.
+This is a simple safety mechanism for local agent experiments, not a complete sandbox.
