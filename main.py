@@ -80,7 +80,8 @@ def agentic_loop(context: AgentContext) -> str:
             thought, action, action_input = get_valid_finish_response(
                 context, user_message, agent_history, thought, action, action_input
             )
-            return handle_finish(context, user_message, action, action_input)
+            if action == "finish":
+                return handle_finish(context, user_message, action, action_input)
 
         tool_result = run_tool(action, action_input, context.workspace_path)
         agent_history = update_agent_history(agent_history, iteration, thought, action, action_input, tool_result)
