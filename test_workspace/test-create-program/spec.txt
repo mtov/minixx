@@ -1,0 +1,9 @@
+Create a Python program called palindrome.py.
+
+Requirements:
+- define a function is_palindrome(text: str) -> bool
+- ignore case
+- ignore spaces
+- return True if the normalized text is a palindrome, otherwise False
+
+Also create a test file called test_palindrome.py with a few simple test cases.

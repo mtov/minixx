@@ -1,0 +1,1 @@
+Read the requirement and return a unified diff patch that creates the requested Python program and its tests. Do not return a prose explanation or a bullet list.
