@@ -2,13 +2,44 @@
 
 Minixx is a didactic Python project for studying how to build a simple code agent.
 
+## Design Principles
+
+- Minixx is intended for learning, experimentation, and research.
+- Minixx favors a simple architecture that is easy to understand and extend.
+- Minixx currently uses OpenAI's Codex as its backend, but the design can be extended to support other models, including Small Language Models.
+
 ## Run
+
+Minixx runs against a workspace passed on the command line.
+
+Each workspace should contain:
+
+- a `prompt.txt` file
+- the files that the agent is allowed to inspect
+
+Example `prompt.txt`:
+
+```text
+Find where MAX_RETRIES is defined and return only the file path and line number.
+```
+
+Run command:
 
 ```bash
 python3 main.py ./test_workspace/test-find-secret-key
 ```
 
-## Backend
+The selected workspace path becomes the backend working directory for the run.
+
+
+## Demo Workspaces
+
+- `./test_workspace/test-find-secret-key`: file discovery and secret lookup
+- `./test_workspace/test-find-symbol`: symbol search and precise location reporting
+- `./test_workspace/test-rename-refactoring`: cross-file refactoring and patch generation
+- `./test_workspace/test-create-program`: program creation and test generation as a unified diff patch
+
+## Model used by the Agent
 
 Minixx currently uses Codex as its backend in read-only mode.
 
@@ -26,7 +57,30 @@ Requirements:
 
 If `python3 main.py` fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment.
 
-## Structure
+## Architecture
+
+```mermaid
+flowchart TD
+    A["minixx/"] --> B["config/"]
+    A --> C["test_workspace/"]
+    A --> D["main.py"]
+    A --> E["inputs.py"]
+    A --> F["llms.py"]
+    A --> G["protocol.py"]
+    A --> H["tools.py"]
+    A --> I["logs.py"]
+
+    B --> B1["config.json"]
+    B --> B2["system_prompt.txt"]
+
+    D --> E
+    D --> F
+    D --> G
+    D --> H
+    D --> I
+    E --> B
+    F --> J["OpenAI's Codex"]
+```
 
 - `config/config.json` stores backend settings.
 - `config/system_prompt.txt` stores the agent's behavior instructions.
@@ -57,23 +111,3 @@ search text | /path/to/directory
 Minixx can inspect files, search for text, reason about changes, and propose patches.
 It does not apply edits directly.
 When a task requires a code change, the intended behavior is to return a unified diff patch in the final `finish` response.
-
-## Workspaces
-
-Each workspace contains its own `prompt.txt` and test files.
-
-Examples:
-
-```text
-./test_workspace/test-find-secret-key
-./test_workspace/test-find-symbol
-./test_workspace/test-rename-refactoring
-```
-
-The workspace path is passed on the command line and becomes the backend working directory for the run.
-
-Purposes:
-
-- `test-find-secret-key`: file discovery and secret lookup
-- `test-find-symbol`: symbol search and precise location reporting
-- `test-rename-refactoring`: cross-file refactoring and patch generation
