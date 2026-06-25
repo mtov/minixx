@@ -73,9 +73,6 @@ flowchart TD
     F["tools.py"]
     G["logs.py"]
     H["guards.py"]
-    I["config/"]
-    J["test_workspace/"]
-    K["OpenAI's Codex"]
 
     A --> B
     A --> C
@@ -84,9 +81,6 @@ flowchart TD
     A --> F
     A --> G
     F --> H
-    C --> I
-    C --> J
-    D --> K
 ```
 
 - `config/config.json` stores backend settings.
