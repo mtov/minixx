@@ -30,6 +30,7 @@ python3 main.py ./test_workspace/test-find-secret-key
 ```
 
 The selected workspace path becomes the backend working directory for the run.
+Tool paths are also restricted to that workspace.
 
 
 ## Demo Workspaces
@@ -68,22 +69,25 @@ flowchart TD
     D["protocol.py"]
     E["tools.py"]
     F["logs.py"]
-    G["config/"]
-    H["test_workspace/"]
-    I["OpenAI's Codex"]
+    G["guards.py"]
+    H["config/"]
+    I["test_workspace/"]
+    J["OpenAI's Codex"]
 
     A --> B
     A --> C
     A --> D
     A --> E
     A --> F
-    B --> G
+    E --> G
     B --> H
-    C --> I
+    B --> I
+    C --> J
 ```
 
 - `config/config.json` stores backend settings.
 - `config/system_prompt.txt` stores the agent's behavior instructions.
+- `guards.py` validates and resolves tool paths inside the workspace.
 - `inputs.py` loads configuration and workspace prompts.
 - `llms.py` selects the backend and performs the LLM request.
 - `protocol.py` parses and repairs model responses.
@@ -100,6 +104,7 @@ flowchart TD
 
 Minixx can inspect files, search for text, reason about changes, and propose patches.
 It does not apply edits directly.
+Tool file and directory paths must stay inside the selected workspace.
 
 The model responds with `Thought`, `Action`, and `Action Input`.
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from inputs import load_llm_config, load_system_prompt, load_user_prompt, parse_args, resolve_workspace_path
 from llms import call_llm
 from logs import clear_log, log_request
@@ -50,7 +52,7 @@ def handle_finish(llm_config: dict, system_prompt: str, user_prompt: str, user_m
     return action_input
 
 
-def agentic_loop(llm_config: dict, system_prompt: str, user_prompt: str, max_steps: int) -> str:
+def agentic_loop(llm_config: dict, system_prompt: str, user_prompt: str, workspace_path: Path, max_steps: int) -> str:
     agent_history = "No previous steps."
     print("Iteration:", end=" ", flush=True)
 
@@ -62,14 +64,14 @@ def agentic_loop(llm_config: dict, system_prompt: str, user_prompt: str, max_ste
         if action == "finish":
             return handle_finish(llm_config, system_prompt, user_prompt, user_message, action, action_input)
 
-        tool_result = run_tool(action, action_input)
+        tool_result = run_tool(action, action_input, workspace_path)
         agent_history = update_agent_history(agent_history, iteration, thought, action, action_input, tool_result)
 
     print("\n")
     raise ValueError("Agent stopped after reaching the maximum number of steps.")
 
 
-def prepare_run(workspace_path_arg: str) -> tuple[dict, str, str]:
+def prepare_run(workspace_path_arg: str) -> tuple[dict, str, str, Path]:
     clear_log()
     workspace_path = resolve_workspace_path(workspace_path_arg)
     llm_config = load_llm_config()
@@ -77,15 +79,15 @@ def prepare_run(workspace_path_arg: str) -> tuple[dict, str, str]:
     system_prompt = load_system_prompt()
     user_prompt = load_user_prompt(workspace_path)
     log_request(user_prompt)
-    return llm_config, system_prompt, user_prompt
+    return llm_config, system_prompt, user_prompt, workspace_path
 
 
 def main() -> int:
     args = parse_args()
 
     try:
-        llm_config, system_prompt, user_prompt = prepare_run(args.workspace_path)
-        text = agentic_loop(llm_config, system_prompt, user_prompt, MAX_ITERATIONS)
+        llm_config, system_prompt, user_prompt, workspace_path = prepare_run(args.workspace_path)
+        text = agentic_loop(llm_config, system_prompt, user_prompt, workspace_path, MAX_ITERATIONS)
     except Exception as exc:  # noqa: BLE001
         print(f"Error executing Codex: {exc}")
         return 1
