@@ -98,6 +98,9 @@ flowchart TD
 - `find_text`
 - `finish`
 
+Minixx can inspect files, search for text, reason about changes, and propose patches.
+It does not apply edits directly.
+
 The model responds with `Thought`, `Action`, and `Action Input`.
 
 `find_text` expects this input format:
@@ -106,8 +109,4 @@ The model responds with `Thought`, `Action`, and `Action Input`.
 search text | /path/to/directory
 ```
 
-## Read-Only Patch Mode
-
-Minixx can inspect files, search for text, reason about changes, and propose patches.
-It does not apply edits directly.
 When a task requires a code change, the intended behavior is to return a unified diff patch in the final `finish` response.
