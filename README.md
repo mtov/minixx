@@ -80,15 +80,18 @@ flowchart TD
     A --> D
     A --> E
     A --> F
-    A --> G
+    C --> B
+    C --> G
+    D --> B
+    E --> B
     F --> H
 ```
 
 - `config/config.json` stores backend settings.
 - `config/system_prompt.txt` stores the agent's behavior instructions.
-- `context.py` stores the execution context for a single agent run.
+- `context.py` defines `AgentContext` and `AgentResponse`.
 - `guards.py` validates and resolves tool paths inside the workspace.
-- `inputs.py` loads configuration and workspace prompts.
+- `inputs.py` parses arguments and prepares the run context.
 - `llms.py` selects the backend and performs the LLM request.
 - `protocol.py` parses and repairs model responses.
 - `tools.py` executes agent tools.
