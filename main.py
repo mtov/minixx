@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from context import AgentContext, AgentResponse
-from inputs import parse_args
+from inputs import parse_args, prepare_run
 from llms import call_llm
 from protocol import parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
-from setup import prepare_run
 from tools import run_tool
+
+NO_PREVIOUS_STEPS = "No previous steps."
 
 
 def build_user_message(user_prompt: str, agent_history: str) -> str:
@@ -24,7 +25,7 @@ def update_agent_history(agent_history: str, iteration: int, agent_response: Age
         f"Action Input: {agent_response.action_input}\n"
         f"Observation: {tool_result}\n"
     )
-    if agent_history == "No previous steps.":
+    if agent_history == NO_PREVIOUS_STEPS:
         return iteration_history
     return f"{agent_history}\n{iteration_history}"
 
@@ -38,61 +39,47 @@ def get_response(context: AgentContext, user_message: str) -> AgentResponse:
         return repair_response(context, user_message)
 
 
-def get_valid_finish_response(
-    context: AgentContext,
-    user_message: str,
-    agent_history: str,
-    agent_response: AgentResponse,
-) -> AgentResponse:
+def handle_finish_action(context: AgentContext, user_message: str, agent_history: str, agent_response: AgentResponse) -> AgentResponse:
     try:
         validate_finish_preconditions(agent_response, context.user_prompt, agent_history)
     except ValueError:
         agent_response = repair_finish_preconditions(context, user_message)
         validate_finish_preconditions(agent_response, context.user_prompt, agent_history)
 
-    return agent_response
+    if agent_response.action != "finish":
+        return agent_response
 
-
-def handle_finish(context: AgentContext, user_message: str, agent_response: AgentResponse) -> str:
     try:
         validate_finish_output(agent_response, context.user_prompt)
     except ValueError:
         agent_response = repair_finish_output(context, user_message)
         validate_finish_output(agent_response, context.user_prompt)
 
-    print("\n")
-    return agent_response.action_input
-
-
-def handle_finish_action(context: AgentContext, user_message: str, agent_history: str, agent_response: AgentResponse) -> tuple[AgentResponse, str | None]:
-    if agent_response.action != "finish":
-        return agent_response, None
-
-    agent_response = get_valid_finish_response(context, user_message, agent_history, agent_response)
-    if agent_response.action == "finish":
-        return agent_response, handle_finish(context, user_message, agent_response)
-
-    return agent_response, None
+    return agent_response
 
 
 def agentic_loop(context: AgentContext) -> str:
     max_iterations = 10
-    agent_history = "No previous steps."
+    agent_history = NO_PREVIOUS_STEPS
     print("Iteration:", end=" ", flush=True)
 
     for iteration in range(1, max_iterations + 1):
         print(iteration, end=" ", flush=True)
         user_message = build_user_message(context.user_prompt, agent_history)
         agent_response = get_response(context, user_message)
-        agent_response, finish_output = handle_finish_action(context, user_message, agent_history, agent_response)
-        if finish_output is not None:
-            return finish_output
+
+        if agent_response.action == "finish":
+            agent_response = handle_finish_action(context, user_message, agent_history, agent_response)
+            if agent_response.action == "finish":
+                print("\n")
+                return agent_response.action_input
 
         tool_result = run_tool(agent_response.action, agent_response.action_input, context.workspace_path)
         agent_history = update_agent_history(agent_history, iteration, agent_response, tool_result)
 
     print("\n")
     raise ValueError("Agent stopped after reaching the maximum number of steps.")
+
 
 def main() -> int:
     args = parse_args()

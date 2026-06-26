@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 import shutil
 import subprocess
 from pathlib import Path
@@ -80,13 +81,18 @@ def call_ollama(context: AgentContext, user_prompt: str) -> str:
     client = Client(host=ollama_url)
 
     try:
-        response = client.chat(
-            model=ollama_model,
-            messages=[
-                {"role": "system", "content": context.system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-        )
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                client.chat,
+                model=ollama_model,
+                messages=[
+                    {"role": "system", "content": context.system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            response = future.result(timeout=context.llm_config["timeout_seconds"])
+    except FuturesTimeoutError as exc:
+        raise RuntimeError(f"Ollama request timed out after {context.llm_config['timeout_seconds']} seconds.") from exc
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Could not connect to Ollama at {ollama_url}.") from exc
 

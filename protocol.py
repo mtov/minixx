@@ -76,8 +76,6 @@ def looks_like_patch(text: str) -> bool:
 
 
 def validate_finish_preconditions(agent_response: AgentResponse, user_prompt: str, agent_history: str) -> None:
-    if agent_response.action != "finish":
-        return
     if not is_bug_fix_task(user_prompt):
         return
     if "Action: run_tests" not in agent_history:
@@ -85,27 +83,25 @@ def validate_finish_preconditions(agent_response: AgentResponse, user_prompt: st
 
 
 def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> None:
-    if agent_response.action != "finish":
-        return
     if not is_code_change_task(user_prompt):
         return
     if not looks_like_patch(agent_response.action_input):
         raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
 
 
+def repair_with_prompt(context: AgentContext, user_message: str, repair_prompt: str) -> AgentResponse:
+    repair_message = f"{user_message}\n\n{repair_prompt}"
+    response = call_llm(context, repair_message)
+    return parse_response(response)
+
+
 def repair_response(context: AgentContext, user_message: str) -> AgentResponse:
-    repair_message = f"{user_message}\n\n{REPAIR_PROMPT}"
-    repair_response = call_llm(context, repair_message)
-    return parse_response(repair_response)
+    return repair_with_prompt(context, user_message, REPAIR_PROMPT)
 
 
 def repair_finish_output(context: AgentContext, user_message: str) -> AgentResponse:
-    repair_message = f"{user_message}\n\n{PATCH_REPAIR_PROMPT}"
-    repair_response = call_llm(context, repair_message)
-    return parse_response(repair_response)
+    return repair_with_prompt(context, user_message, PATCH_REPAIR_PROMPT)
 
 
 def repair_finish_preconditions(context: AgentContext, user_message: str) -> AgentResponse:
-    repair_message = f"{user_message}\n\n{PRECONDITION_REPAIR_PROMPT}"
-    repair_response = call_llm(context, repair_message)
-    return parse_response(repair_response)
+    return repair_with_prompt(context, user_message, PRECONDITION_REPAIR_PROMPT)
