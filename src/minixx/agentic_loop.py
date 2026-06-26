@@ -30,7 +30,7 @@ def update_agent_history(agent_history: str, iteration: int, agent_response: Age
     return f"{agent_history}\n{iteration_history}"
 
 
-def get_response(context: AgentContext, user_message: str) -> AgentResponse:
+def get_agent_response(context: AgentContext, user_message: str) -> AgentResponse:
     response = call_llm(context, user_message)
 
     try:
@@ -66,7 +66,7 @@ def agentic_loop(context: AgentContext) -> str:
     for iteration in range(1, max_iterations + 1):
         print(iteration, end=" ", flush=True)
         user_message = build_user_message(context.user_prompt, agent_history)
-        agent_response = get_response(context, user_message)
+        agent_response = get_agent_response(context, user_message)
 
         if agent_response.action == "finish":
             agent_response = handle_finish_action(context, user_message, agent_history, agent_response)
@@ -93,7 +93,3 @@ def main() -> int:
 
     print(result)
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
