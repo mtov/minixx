@@ -1,6 +1,6 @@
 # Minixx
 
-Minixx is a didactic Python project for studying how to build simple code agents.
+Minixx is a didactic Python project for studying how to build a simple code agent.
 It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc.ufmg.br/).
 
 ## Design Principles
@@ -12,13 +12,16 @@ It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc
 ## Run
 
 Minixx runs against a workspace passed on the command line.
+Run the command from the project root.
 
 Each workspace should contain:
 
 - a `prompt.txt` file
-- the files that the agent is allowed to inspect
+- the project files and tests that the agent is allowed to inspect
 
-Example `prompt.txt`:
+### Example
+
+`prompt.txt`:
 
 ```text
 Rename the function old_name to new_name in all relevant files and return a unified diff patch.
@@ -42,14 +45,15 @@ Tool paths are also restricted to that workspace.
 - `./test_workspace/test-create-program`: program creation and test generation as a unified diff patch
 - `./test_workspace/test-fix-failing-test`: test execution, bug diagnosis, and patch generation
 
-## Model used by the Agent
+## Backend and Model
 
 Minixx currently uses OpenAI's Codex as its default backend layer in read-only mode, acting as a bridge to the underlying model.
-It can also be configured to use other models through different backends, such as local models served by Ollama.
+It can also be configured to use other backend integrations, such as local models served by Ollama.
 
 ```mermaid
 flowchart LR
     Minixx --> Codex["OpenAI's Codex"]
+    Codex --> GPT["GPT Model"]
     Minixx --> Ollama["Ollama backend"]
     Ollama --> Other["Other LLMs"]
 ```
@@ -61,7 +65,22 @@ Requirements:
 - the backend configuration lives in `./config/config.json`
 - `pytest` must be available in the Python environment used to run Minixx
 
-If `PYTHONPATH=src python3 -m minixx` fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment.
+If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment.
+
+## How One Run Works
+
+1. Minixx loads the backend configuration and the system prompt.
+2. Minixx loads `prompt.txt` from the selected workspace.
+3. Minixx sends the request to the configured backend.
+4. The agent chooses a tool, receives the tool result, and updates its history.
+5. The loop ends when the agent returns a final `finish` output.
+
+## What to Inspect First
+
+- Start with `agentic_loop.py` to understand the main loop.
+- Then read `context.py` to see the core data structures.
+- Then read `llms.py` to see how the backend request is made.
+- Then read `tools.py` to understand what actions the agent can perform.
 
 ## Architecture
 
@@ -99,6 +118,13 @@ flowchart TD
 - `logs.py` writes traces to `agent.log`.
 - `agentic_loop.py` runs the agent loop.
 
+## Current Limitations
+
+- Minixx runs in read-only patch mode and does not apply edits directly.
+- The toolset is intentionally small.
+- Output validation is simple and protocol-driven.
+- File access is restricted to the selected workspace.
+
 ## Data Classes
 
 - `LLMConfig` stores the typed backend configuration used by one run.
@@ -128,7 +154,12 @@ search text | /path/to/directory
 
 `run_tests` runs the workspace test suite using a fixed `pytest` command.
 
-When a task requires a code change, the intended behavior is to return a unified diff patch in the final `finish` response.
+When a task requires a code change, the agent is expected to return a unified diff patch in the final `finish` response.
+
+## Logging
+
+Minixx writes execution traces to `agent.log`.
+Because the project is didactic, users are encouraged to inspect this log to better understand how the agent reasons, chooses actions, and reacts to tool results.
 
 ## Security
 
@@ -136,8 +167,3 @@ Minixx is designed to run against a selected workspace.
 Tool paths are validated by `guards.py`, which prevents file and directory access outside that workspace.
 The `run_tests` tool uses a fixed test command instead of accepting an arbitrary shell command.
 This is a simple safety mechanism for local agent experiments, not a complete sandbox.
-
-## Logging
-
-Minixx writes execution traces to `agent.log`.
-Because the project is didactic, users are encouraged to inspect this log to better understand how the agent reasons, chooses actions, and reacts to tool results.
