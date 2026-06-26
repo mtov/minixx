@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .context import AgentContext, AgentResponse
+from .context import AgentContext, AgentHistory, AgentResponse
 from .llms import call_llm
 
 REPAIR_PROMPT = (
@@ -75,10 +75,10 @@ def looks_like_patch(text: str) -> bool:
     return "--- " in text and "+++ " in text and "@@" in text
 
 
-def validate_finish_preconditions(agent_response: AgentResponse, user_prompt: str, agent_history: str) -> None:
+def validate_finish_preconditions(agent_response: AgentResponse, user_prompt: str, agent_history: AgentHistory) -> None:
     if not is_bug_fix_task(user_prompt):
         return
-    if "Action: run_tests" not in agent_history:
+    if not agent_history.contains_action("run_tests"):
         raise ValueError("Bug-fixing tasks must use run_tests before finish.")
 
 

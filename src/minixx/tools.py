@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from .context import AgentResponse
 from .guards import resolve_tool_path
 
 MAX_FIND_TEXT_MATCHES = 20
@@ -129,14 +130,14 @@ def run_tests(workspace_path: Path) -> str:
     return output
 
 
-def run_tool(action: str, action_input: str, workspace_path: Path) -> str:
-    if action == "list_files":
-        return list_files(action_input, workspace_path)
-    if action == "read_file":
-        return read_file(action_input, workspace_path)
-    if action == "find_text":
-        return find_text(action_input, workspace_path)
-    if action == "run_tests":
+def run_tool(agent_response: AgentResponse, workspace_path: Path) -> str:
+    if agent_response.action == "list_files":
+        return list_files(agent_response.action_input, workspace_path)
+    if agent_response.action == "read_file":
+        return read_file(agent_response.action_input, workspace_path)
+    if agent_response.action == "find_text":
+        return find_text(agent_response.action_input, workspace_path)
+    if agent_response.action == "run_tests":
         return run_tests(workspace_path)
 
-    return f"Unsupported action '{action}'. Use list_files, read_file, find_text, run_tests, or finish."
+    return f"Unsupported action '{agent_response.action}'. Use list_files, read_file, find_text, run_tests, or finish."
