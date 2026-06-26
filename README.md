@@ -68,14 +68,14 @@ If `PYTHONPATH=src python3 -m minixx` fails with a message like `Codex CLI not f
 
 ```mermaid
 flowchart TD
-    A["src/minixx/agentic_loop.py"]
-    B["src/minixx/context.py"]
-    C["src/minixx/inputs.py"]
-    D["src/minixx/llms.py"]
-    E["src/minixx/protocol.py"]
-    F["src/minixx/tools.py"]
-    G["src/minixx/logs.py"]
-    H["src/minixx/guards.py"]
+    A["agentic_loop.py"]
+    B["context.py"]
+    C["inputs.py"]
+    D["llms.py"]
+    E["protocol.py"]
+    F["tools.py"]
+    G["logs.py"]
+    H["guards.py"]
 
     A --> B
     A --> C
