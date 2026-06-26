@@ -100,6 +100,12 @@ flowchart TD
 - `logs.py` writes traces to `agent.log`.
 - `agentic_loop.py` runs the agent loop.
 
+## Data Classes
+
+- `AgentContext` stores the configuration and stable inputs for one agent run.
+- `AgentResponse` stores one parsed model decision: `thought`, `action`, and `action_input`.
+- `AgentHistory` stores the accumulated iteration history used in the ReAct loop.
+
 ## Tools
 
 - `list_files`
