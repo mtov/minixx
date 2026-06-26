@@ -79,17 +79,22 @@ If the run command fails with a message like `Codex CLI not found in PATH`, the 
 sequenceDiagram
     participant User
     participant Minixx
-    participant Backend
+    participant BackendLayer as Backend Layer
+    participant LLM
     participant Workspace
 
     User->>Minixx: run with workspace path
     Minixx->>Workspace: load prompt.txt and project files
-    Minixx->>Backend: request next action
-    Backend-->>Minixx: Thought / Action / Action Input
+    Minixx->>BackendLayer: request next action
+    BackendLayer->>LLM: send prompt
+    LLM-->>BackendLayer: generate response
+    BackendLayer-->>Minixx: Thought / Action / Action Input
     Minixx->>Workspace: run tool
     Workspace-->>Minixx: tool result
-    Minixx->>Backend: send updated request
-    Backend-->>Minixx: finish
+    Minixx->>BackendLayer: send updated request
+    BackendLayer->>LLM: send updated prompt
+    LLM-->>BackendLayer: generate finish response
+    BackendLayer-->>Minixx: finish
 ```
 
 ## Architecture
