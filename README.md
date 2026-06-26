@@ -1,7 +1,9 @@
 # Minixx
 
+![Minixx logo](minixx.png)
+
 Minixx is a didactic Python project for studying how to build a simple code agent.
-It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc.ufmg.br/).
+It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc.ufmg.br/) at DCC/UFMG.
 
 ## Design Principles
 
