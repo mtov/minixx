@@ -4,10 +4,11 @@ import argparse
 import json
 from pathlib import Path
 
-from context import AgentContext
-from logs import clear_log, log_request
+from .context import AgentContext
+from .logs import clear_log, log_request
 
-CONFIG_DIR = Path("config")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CONFIG_DIR = PROJECT_ROOT / "config"
 CONFIG_PATH = CONFIG_DIR / "config.json"
 SYSTEM_PROMPT_PATH = CONFIG_DIR / "system_prompt.txt"
 

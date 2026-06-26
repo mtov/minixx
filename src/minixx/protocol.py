@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from context import AgentContext, AgentResponse
-from llms import call_llm
+from .context import AgentContext, AgentResponse
+from .llms import call_llm
 
 REPAIR_PROMPT = (
     "Your previous response was invalid. "

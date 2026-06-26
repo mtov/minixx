@@ -27,7 +27,7 @@ Rename the function old_name to new_name in all relevant files and return a unif
 Run command:
 
 ```bash
-python3 main.py ./test_workspace/test-rename-refactoring
+PYTHONPATH=src python3 -m minixx ./test_workspace/test-rename-refactoring
 ```
 
 The selected workspace path becomes the backend working directory for the run.
@@ -60,20 +60,22 @@ Requirements:
 - the backend configuration lives in `./config/config.json`
 - `pytest` must be available in the Python environment used to run Minixx
 
-If `python3 main.py` fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment.
+After installation, the equivalent CLI command is `minixx ./test_workspace/test-rename-refactoring`.
+
+If `PYTHONPATH=src python3 -m minixx` fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    A["main.py"]
-    B["context.py"]
-    C["inputs.py"]
-    D["llms.py"]
-    E["protocol.py"]
-    F["tools.py"]
-    G["logs.py"]
-    H["guards.py"]
+    A["src/minixx/agentic_loop.py"]
+    B["src/minixx/context.py"]
+    C["src/minixx/inputs.py"]
+    D["src/minixx/llms.py"]
+    E["src/minixx/protocol.py"]
+    F["src/minixx/tools.py"]
+    G["src/minixx/logs.py"]
+    H["src/minixx/guards.py"]
 
     A --> B
     A --> C
@@ -96,7 +98,7 @@ flowchart TD
 - `protocol.py` parses and repairs model responses.
 - `tools.py` executes agent tools.
 - `logs.py` writes traces to `agent.log`.
-- `main.py` runs the agent loop.
+- `agentic_loop.py` runs the agent loop.
 
 ## Tools
 

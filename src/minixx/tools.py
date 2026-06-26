@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from guards import resolve_tool_path
+from .guards import resolve_tool_path
 
 MAX_FIND_TEXT_MATCHES = 20
 SKIPPED_DIRECTORIES = {".git", ".venv", "__pycache__"}

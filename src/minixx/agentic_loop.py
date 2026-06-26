@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from context import AgentContext, AgentResponse
-from inputs import parse_args, prepare_run
-from llms import call_llm
-from protocol import parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
-from tools import run_tool
+from .context import AgentContext, AgentResponse
+from .inputs import parse_args, prepare_run
+from .llms import call_llm
+from .protocol import parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
+from .tools import run_tool
 
 NO_PREVIOUS_STEPS = "No previous steps."
 
@@ -86,12 +86,12 @@ def main() -> int:
 
     try:
         context = prepare_run(args.workspace_path)
-        text = agentic_loop(context)
+        result = agentic_loop(context)
     except Exception as exc:  # noqa: BLE001
         print(f"Error executing Codex: {exc}")
         return 1
 
-    print(text)
+    print(result)
     return 0
 
 
