@@ -7,9 +7,9 @@ from .protocol import parse_response, repair_finish_output, repair_finish_precon
 from .tools import run_tool
 
 
-def build_user_message(user_prompt: str, agent_history: str) -> str:
+def build_user_message(context: AgentContext, agent_history: str) -> str:
     return f"""User task:
-{user_prompt}
+{context.user_prompt}
 
 Agent history:
 {agent_history}"""
@@ -58,7 +58,7 @@ def agentic_loop(context: AgentContext) -> str:
 
     for iteration in range(1, max_iterations + 1):
         print_iteration(iteration)
-        user_message = build_user_message(context.user_prompt, agent_history.to_text())
+        user_message = build_user_message(context, agent_history.to_text())
         agent_response = get_agent_response(context, user_message)
 
         if agent_response.action == "finish":

@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .context import AgentContext
+from .context import AgentContext, LLMConfig
 from .logs import clear_log, log_request
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -19,14 +19,23 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_llm_config() -> dict:
+def load_llm_config(working_directory: Path) -> LLMConfig:
     try:
         with CONFIG_PATH.open("r", encoding="utf-8") as file:
-            return json.load(file)
+            raw_config = json.load(file)
     except FileNotFoundError as exc:
         raise FileNotFoundError(f"Config file not found: {CONFIG_PATH}") from exc
     except OSError as exc:
         raise OSError(f"Could not read config file: {CONFIG_PATH}") from exc
+
+    return LLMConfig(
+        backend=raw_config["backend"],
+        timeout_seconds=raw_config["timeout_seconds"],
+        codex_command=raw_config.get("codex_command"),
+        ollama_url=raw_config.get("ollama_url"),
+        ollama_model=raw_config.get("ollama_model"),
+        working_directory=working_directory,
+    )
 
 
 def load_system_prompt() -> str:
@@ -69,8 +78,7 @@ def load_user_prompt(workspace_path: Path) -> str:
 def prepare_run(workspace_path_arg: str) -> AgentContext:
     clear_log()
     workspace_path = resolve_workspace_path(workspace_path_arg)
-    llm_config = load_llm_config()
-    llm_config["working_directory"] = str(workspace_path)
+    llm_config = load_llm_config(workspace_path)
     system_prompt = load_system_prompt()
     user_prompt = load_user_prompt(workspace_path)
     log_request(user_prompt)

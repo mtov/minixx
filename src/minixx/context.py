@@ -5,8 +5,18 @@ from pathlib import Path
 
 
 @dataclass
+class LLMConfig:
+    backend: str
+    timeout_seconds: int
+    codex_command: str | None
+    ollama_url: str | None
+    ollama_model: str | None
+    working_directory: Path
+
+
+@dataclass
 class AgentContext:
-    llm_config: dict
+    llm_config: LLMConfig
     system_prompt: str
     user_prompt: str
     workspace_path: Path

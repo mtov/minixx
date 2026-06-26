@@ -44,13 +44,14 @@ Tool paths are also restricted to that workspace.
 
 ## Model used by the Agent
 
-Minixx currently uses OpenAI's Codex as its default backend in read-only mode.
+Minixx currently uses OpenAI's Codex as its default backend layer in read-only mode, acting as a bridge to the underlying model.
 It can also be configured to use other models through different backends, such as local models served by Ollama.
 
 ```mermaid
 flowchart LR
-    Minixx --> Codex
-    Codex --> LLM
+    Minixx --> Codex["OpenAI's Codex"]
+    Minixx --> Ollama["Ollama backend"]
+    Ollama --> Other["Other LLMs"]
 ```
 
 Requirements:
@@ -59,8 +60,6 @@ Requirements:
 - the `codex` executable must be available in your shell `PATH`
 - the backend configuration lives in `./config/config.json`
 - `pytest` must be available in the Python environment used to run Minixx
-
-After installation, the equivalent CLI command is `minixx ./test_workspace/test-rename-refactoring`.
 
 If `PYTHONPATH=src python3 -m minixx` fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment.
 
@@ -102,6 +101,7 @@ flowchart TD
 
 ## Data Classes
 
+- `LLMConfig` stores the typed backend configuration used by one run.
 - `AgentContext` stores the configuration and stable inputs for one agent run.
 - `AgentResponse` stores one parsed model decision: `thought`, `action`, and `action_input`.
 - `AgentHistory` stores the accumulated iteration history used in the ReAct loop.
@@ -136,3 +136,8 @@ Minixx is designed to run against a selected workspace.
 Tool paths are validated by `guards.py`, which prevents file and directory access outside that workspace.
 The `run_tests` tool uses a fixed test command instead of accepting an arbitrary shell command.
 This is a simple safety mechanism for local agent experiments, not a complete sandbox.
+
+## Logging
+
+Minixx writes execution traces to `agent.log`.
+Because the project is didactic, users are encouraged to inspect this log to better understand how the agent reasons, chooses actions, and reacts to tool results.
