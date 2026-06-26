@@ -77,13 +77,11 @@ If the run command fails with a message like `Codex CLI not found in PATH`, the 
 
 ```mermaid
 sequenceDiagram
-    participant User
     participant Minixx
     participant BackendLayer as Backend Layer
     participant LLM
     participant Workspace
 
-    User->>Minixx: run with workspace path
     Minixx->>Workspace: load prompt.txt and project files
     Minixx->>BackendLayer: request next action
     BackendLayer->>LLM: send prompt
@@ -133,13 +131,6 @@ flowchart TD
 - `logs.py` writes traces to `agent.log`.
 - `agentic_loop.py` runs the agent loop.
 
-## What to Inspect First
-
-- Start with `agentic_loop.py` to understand the main loop.
-- Then read `context.py` to see the core data structures.
-- Then read `llms.py` to see how the backend request is made.
-- Then read `tools.py` to understand what actions the agent can perform.
-
 ## Data Classes
 
 - `LLMConfig` stores the typed backend configuration used by one run.
@@ -182,6 +173,13 @@ Minixx is designed to run against a selected workspace.
 Tool paths are validated by `guards.py`, which prevents file and directory access outside that workspace.
 The `run_tests` tool uses a fixed test command instead of accepting an arbitrary shell command.
 This is a simple safety mechanism for local agent experiments, not a complete sandbox.
+
+## What to Inspect First
+
+- Start with `agentic_loop.py` to understand the main loop.
+- Then read `context.py` to see the core data structures.
+- Then read `llms.py` to see how the backend request is made.
+- Then read `tools.py` to understand what actions the agent can perform.
 
 ## Current Limitations
 
