@@ -75,12 +75,22 @@ If the run command fails with a message like `Codex CLI not found in PATH`, the 
 4. The agent chooses a tool, receives the tool result, and updates its history.
 5. The loop ends when the agent returns a final `finish` output.
 
-## What to Inspect First
+```mermaid
+sequenceDiagram
+    participant User
+    participant Minixx
+    participant Backend
+    participant Workspace
 
-- Start with `agentic_loop.py` to understand the main loop.
-- Then read `context.py` to see the core data structures.
-- Then read `llms.py` to see how the backend request is made.
-- Then read `tools.py` to understand what actions the agent can perform.
+    User->>Minixx: run with workspace path
+    Minixx->>Workspace: load prompt.txt and project files
+    Minixx->>Backend: request next action
+    Backend-->>Minixx: Thought / Action / Action Input
+    Minixx->>Workspace: run tool
+    Workspace-->>Minixx: tool result
+    Minixx->>Backend: send updated request
+    Backend-->>Minixx: finish
+```
 
 ## Architecture
 
@@ -118,12 +128,12 @@ flowchart TD
 - `logs.py` writes traces to `agent.log`.
 - `agentic_loop.py` runs the agent loop.
 
-## Current Limitations
+## What to Inspect First
 
-- Minixx runs in read-only patch mode and does not apply edits directly.
-- The toolset is intentionally small.
-- Output validation is simple and protocol-driven.
-- File access is restricted to the selected workspace.
+- Start with `agentic_loop.py` to understand the main loop.
+- Then read `context.py` to see the core data structures.
+- Then read `llms.py` to see how the backend request is made.
+- Then read `tools.py` to understand what actions the agent can perform.
 
 ## Data Classes
 
@@ -167,3 +177,10 @@ Minixx is designed to run against a selected workspace.
 Tool paths are validated by `guards.py`, which prevents file and directory access outside that workspace.
 The `run_tests` tool uses a fixed test command instead of accepting an arbitrary shell command.
 This is a simple safety mechanism for local agent experiments, not a complete sandbox.
+
+## Current Limitations
+
+- Minixx runs in read-only patch mode and does not apply edits directly.
+- The toolset is intentionally small.
+- Output validation is simple and protocol-driven.
+- File access is restricted to the selected workspace.
