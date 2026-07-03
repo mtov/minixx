@@ -15,12 +15,8 @@ Agent history:
 {agent_history}"""
 
 
-def print_iteration(iteration: int) -> None:
-    print(iteration, end=" ", flush=True)
-
-
-def print_iteration_header() -> None:
-    print("Iteration:", end=" ", flush=True)
+def print_iteration_action(iteration: int, action_description: str) -> None:
+    print(f"[{iteration}] {action_description}", flush=True)
 
 
 def get_agent_response(context: AgentContext, user_message: str) -> AgentResponse:
@@ -54,23 +50,24 @@ def handle_finish_action(context: AgentContext, user_message: str, agent_history
 def agentic_loop(context: AgentContext) -> str:
     max_iterations = 10
     agent_history = AgentHistory()
-    print_iteration_header()
 
     for iteration in range(1, max_iterations + 1):
-        print_iteration(iteration)
         user_message = build_user_message(context, agent_history.to_text())
         agent_response = get_agent_response(context, user_message)
 
         if agent_response.action == "finish":
             agent_response = handle_finish_action(context, user_message, agent_history, agent_response)
-            if agent_response.action == "finish":
-                print("\n")
-                return agent_response.action_input
+
+        print_iteration_action(iteration, agent_response.action_description)
+
+        if agent_response.action == "finish":
+            print()
+            return agent_response.action_input
 
         tool_result = run_tool(agent_response, context.workspace_path)
         agent_history.append(iteration, agent_response, tool_result)
 
-    print("\n")
+    print()
     raise ValueError("Agent stopped after reaching the maximum number of steps.")
 
 

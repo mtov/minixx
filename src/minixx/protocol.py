@@ -9,6 +9,7 @@ REPAIR_PROMPT = (
     "Thought: ... "
     "Action: ... "
     "Action Input: ... "
+    "Action Description: ... "
     "Do not include Observation."
 )
 PATCH_REPAIR_PROMPT = (
@@ -17,6 +18,7 @@ PATCH_REPAIR_PROMPT = (
     "Thought: ... "
     "Action: finish "
     "Action Input: a unified diff patch "
+    "Action Description: ... "
     "Do not include Observation."
 )
 PRECONDITION_REPAIR_PROMPT = (
@@ -26,6 +28,7 @@ PRECONDITION_REPAIR_PROMPT = (
     "Thought: ... "
     "Action: ... "
     "Action Input: ... "
+    "Action Description: ... "
     "Do not include Observation."
 )
 
@@ -37,6 +40,7 @@ def parse_response(text: str) -> AgentResponse:
     thought = ""
     action = ""
     action_input_lines: list[str] = []
+    action_description = ""
     current_section = None
 
     for line in text.splitlines():
@@ -49,6 +53,9 @@ def parse_response(text: str) -> AgentResponse:
         elif line.startswith("Action Input:"):
             action_input_lines = [line.removeprefix("Action Input:").strip()]
             current_section = "action_input"
+        elif line.startswith("Action Description:"):
+            action_description = line.removeprefix("Action Description:").strip()
+            current_section = None
         elif line.startswith("Observation:"):
             raise ValueError("Model response must not contain Observation.")
         elif current_section == "action_input":
@@ -56,9 +63,16 @@ def parse_response(text: str) -> AgentResponse:
 
     if not action:
         raise ValueError("Model response is missing the required Action field.")
+    if not action_description:
+        raise ValueError("Model response is missing the required Action Description field.")
 
     action_input = "\n".join(action_input_lines).strip()
-    return AgentResponse(thought=thought, action=action, action_input=action_input)
+    return AgentResponse(
+        thought=thought,
+        action=action,
+        action_input=action_input,
+        action_description=action_description,
+    )
 
 
 def is_code_change_task(user_prompt: str) -> bool:
