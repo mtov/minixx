@@ -98,7 +98,7 @@ def call_ollama(context: AgentContext, user_prompt: str) -> str:
     return extract_ollama_content(response)
 
 
-def call_llm(context: AgentContext, user_prompt: str) -> str:
+def call_llm(context: AgentContext, user_prompt: str, response_label: str = "Response") -> str:
     backend = context.llm_config.backend
 
     if backend == "codex":
@@ -108,5 +108,5 @@ def call_llm(context: AgentContext, user_prompt: str) -> str:
     else:
         raise ValueError(f"Unsupported backend: {backend}")
 
-    log_response(response)
+    log_response(response, response_label)
     return response

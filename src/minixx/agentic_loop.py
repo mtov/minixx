@@ -3,7 +3,7 @@ from __future__ import annotations
 from .context import AgentContext, AgentHistory, AgentResponse
 from .inputs import parse_args, prepare_run
 from .llms import call_llm
-from .protocol import parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
+from .protocol import log_response_validation_error, parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
 from .tools import run_tool
 
 
@@ -19,20 +19,31 @@ def print_iteration_action(iteration: int, action_description: str) -> None:
     print(f"[{iteration}] {action_description}", flush=True)
 
 
+def format_agent_response(agent_response: AgentResponse) -> str:
+    return (
+        f"Thought: {agent_response.thought}\n"
+        f"Action: {agent_response.action}\n"
+        f"Action Input: {agent_response.action_input}\n"
+        f"Action Description: {agent_response.action_description}"
+    )
+
+
 def get_agent_response(context: AgentContext, user_message: str) -> AgentResponse:
     response = call_llm(context, user_message)
 
     try:
         return parse_response(response)
-    except ValueError:
-        return repair_response(context, user_message)
+    except ValueError as exc:
+        log_response_validation_error(str(exc), response)
+        return repair_response(context, user_message, str(exc))
 
 
 def handle_finish_action(context: AgentContext, user_message: str, agent_history: AgentHistory, agent_response: AgentResponse) -> AgentResponse:
     try:
         validate_finish_preconditions(agent_response, context.user_prompt, agent_history)
-    except ValueError:
-        agent_response = repair_finish_preconditions(context, user_message)
+    except ValueError as exc:
+        log_response_validation_error(str(exc), format_agent_response(agent_response))
+        agent_response = repair_finish_preconditions(context, user_message, str(exc))
         validate_finish_preconditions(agent_response, context.user_prompt, agent_history)
 
     if agent_response.action != "finish":
@@ -40,8 +51,9 @@ def handle_finish_action(context: AgentContext, user_message: str, agent_history
 
     try:
         validate_finish_output(agent_response, context.user_prompt)
-    except ValueError:
-        agent_response = repair_finish_output(context, user_message)
+    except ValueError as exc:
+        log_response_validation_error(str(exc), format_agent_response(agent_response))
+        agent_response = repair_finish_output(context, user_message, str(exc))
         validate_finish_output(agent_response, context.user_prompt)
 
     return agent_response

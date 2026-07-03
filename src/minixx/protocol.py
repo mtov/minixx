@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .context import AgentContext, AgentHistory, AgentResponse
 from .llms import call_llm
+from .logs import log_repair_attempt, log_validation_error
 
 REPAIR_PROMPT = (
     "Your previous response was invalid. "
@@ -103,19 +104,24 @@ def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> N
         raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
 
 
-def repair_with_prompt(context: AgentContext, user_message: str, repair_prompt: str) -> AgentResponse:
+def repair_with_prompt(context: AgentContext, user_message: str, repair_prompt: str, repair_kind: str, reason: str) -> AgentResponse:
+    log_repair_attempt(repair_kind, reason)
     repair_message = f"{user_message}\n\n{repair_prompt}"
-    response = call_llm(context, repair_message)
+    response = call_llm(context, repair_message, "Repair Response")
     return parse_response(response)
 
 
-def repair_response(context: AgentContext, user_message: str) -> AgentResponse:
-    return repair_with_prompt(context, user_message, REPAIR_PROMPT)
+def log_response_validation_error(reason: str, response: str) -> None:
+    log_validation_error(reason, response)
 
 
-def repair_finish_output(context: AgentContext, user_message: str) -> AgentResponse:
-    return repair_with_prompt(context, user_message, PATCH_REPAIR_PROMPT)
+def repair_response(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
+    return repair_with_prompt(context, user_message, REPAIR_PROMPT, "Protocol repair", reason)
 
 
-def repair_finish_preconditions(context: AgentContext, user_message: str) -> AgentResponse:
-    return repair_with_prompt(context, user_message, PRECONDITION_REPAIR_PROMPT)
+def repair_finish_output(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
+    return repair_with_prompt(context, user_message, PATCH_REPAIR_PROMPT, "Finish output repair", reason)
+
+
+def repair_finish_preconditions(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
+    return repair_with_prompt(context, user_message, PRECONDITION_REPAIR_PROMPT, "Finish precondition repair", reason)

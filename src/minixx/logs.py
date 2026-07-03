@@ -21,10 +21,25 @@ def log_request(user_prompt: str) -> None:
         file.write("\n===\n\n")
 
 
-def log_response(response: str) -> None:
+def log_response(response: str, label: str = "Response") -> None:
     global CALL_COUNT
     CALL_COUNT += 1
 
     with LOG_PATH.open("a", encoding="utf-8") as file:
-        file.write(f"Response {CALL_COUNT}\n")
+        file.write(f"{label} {CALL_COUNT}\n")
         file.write(f"{response}\n\n")
+
+
+def log_validation_error(reason: str, response: str) -> None:
+    with LOG_PATH.open("a", encoding="utf-8") as file:
+        file.write("Validation Error\n")
+        file.write(f"Reason: {reason}\n")
+        file.write("Response:\n")
+        file.write(f"{response}\n\n")
+
+
+def log_repair_attempt(repair_kind: str, reason: str) -> None:
+    with LOG_PATH.open("a", encoding="utf-8") as file:
+        file.write("Repair Attempt\n")
+        file.write(f"Kind: {repair_kind}\n")
+        file.write(f"Reason: {reason}\n\n")
