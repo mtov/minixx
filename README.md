@@ -45,6 +45,7 @@ Tool paths are also restricted to that workspace.
 - `./test_workspace/test-create-program`: program creation and test generation as a unified diff patch
 - `./test_workspace/test-fix-failing-test`: test execution, bug diagnosis, and patch generation
 - `./test_workspace/test-fix-misleading-bug`: cross-file bug fixing with a misleading first suspicion
+- `./test_workspace/test-build-stopwatch`: create a small browser-based JavaScript stopwatch app from prompt only
 
 ## Backend and Model
 
