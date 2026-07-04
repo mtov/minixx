@@ -161,7 +161,7 @@ It does not apply edits directly.
 Tool file and directory paths must stay inside the selected workspace.
 
 The model responds with `Thought`, `Action`, and `Action Input`.
-It also returns `Action Description`, a short didactic explanation of the current step.
+It also returns `Action Description`, a short didactic explanation of the current step and its immediate purpose.
 
 `find_text` expects this input format:
 

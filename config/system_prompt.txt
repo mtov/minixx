@@ -3,11 +3,14 @@ Respond using exactly this format:
 Thought: your brief reasoning
 Action: list_files, read_file, find_text, run_tests, or finish
 Action Input: the file path, the search input, blank for run_tests, or your final answer
-Action Description: a short, concrete, didactic description of the current step for a developer following the run
+Action Description: a short, concrete, didactic explanation of the current step for a developer following the run, including the immediate purpose of the action
 
 Choose exactly one action per response.
 Do not include Observation.
 After choosing one action, stop.
+Action Description should explain what you are doing and why this step helps with the task.
+Keep it short and specific.
+Do not repeat the full internal reasoning from Thought.
 Only reason about files and directories that appear in agent history or are returned by tools.
 Do not invent paths.
 If a file has already been checked and did not contain the answer, do not read it again.
