@@ -1,18 +1,31 @@
 from __future__ import annotations
 
 from .context import AgentContext, AgentHistory, AgentResponse
+from .finish_reviewer import review_finish
+from .history_manager import create_history, history_to_text, update_history
 from .inputs import parse_args, prepare_run
 from .llms import call_llm
+from .planner import create_plan
 from .protocol import log_response_validation_error, parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
 from .tools import run_tool
 
 
-def build_user_message(context: AgentContext, agent_history: str) -> str:
-    return f"""User task:
+def build_user_message(
+    context: AgentContext,
+    agent_history: str,
+    plan: str | None,
+) -> str:
+    message = f"""User task:
 {context.user_prompt}
 
 Agent history:
 {agent_history}"""
+    if plan is None:
+        return message
+    return f"""{message}
+
+Plan:
+{plan}"""
 
 
 def print_iteration_action(iteration: int, action_description: str) -> None:
@@ -61,13 +74,17 @@ def handle_finish_action(context: AgentContext, user_message: str, agent_history
 
 def agentic_loop(context: AgentContext) -> str:
     max_iterations = 10
-    agent_history = AgentHistory()
+    agent_history = create_history()
+    plan = create_plan(context)
 
     for iteration in range(1, max_iterations + 1):
-        user_message = build_user_message(context, agent_history.to_text())
+        user_message = build_user_message(context, history_to_text(agent_history), plan)
         agent_response = get_agent_response(context, user_message)
 
         if agent_response.action == "finish":
+            reviewed_response = review_finish(context, user_message, agent_history, agent_response)
+            if reviewed_response is not None:
+                agent_response = reviewed_response
             agent_response = handle_finish_action(context, user_message, agent_history, agent_response)
 
         print_iteration_action(iteration, agent_response.action_description)
@@ -77,7 +94,7 @@ def agentic_loop(context: AgentContext) -> str:
             return agent_response.action_input
 
         tool_result = run_tool(agent_response, context.workspace_path)
-        agent_history.append(iteration, agent_response, tool_result)
+        update_history(agent_history, iteration, agent_response, tool_result)
 
     print()
     raise ValueError("Agent stopped after reaching the maximum number of steps.")

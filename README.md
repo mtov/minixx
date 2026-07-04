@@ -72,8 +72,9 @@ If the run command fails with a message like `Codex CLI not found in PATH`, the 
 1. Minixx loads the backend configuration and the system prompt.
 2. Minixx loads `prompt.txt` from the selected workspace.
 3. Minixx sends the request to the configured backend.
-4. The agent chooses a tool, receives the tool result, and updates its history.
-5. The loop ends when the agent returns a final `finish` output.
+4. Optional extension points can add a plan or review a final answer.
+5. The agent chooses a tool, receives the tool result, and updates its history.
+6. The loop ends when the agent returns a final `finish` output.
 
 ```mermaid
 sequenceDiagram
@@ -86,7 +87,8 @@ sequenceDiagram
     Minixx->>BackendLayer: request next action
     BackendLayer->>LLM: send prompt
     LLM-->>BackendLayer: generate response
-    BackendLayer-->>Minixx: Thought / Action / Action Input
+    BackendLayer-->>Minixx: Thought / Action / Action Input / Action Description
+    Minixx->>Minixx: optional planning and finish review
     Minixx->>Workspace: run tool
     Workspace-->>Minixx: tool result
     Minixx->>BackendLayer: send updated request
@@ -107,12 +109,18 @@ flowchart TD
     F["tools.py"]
     G["logs.py"]
     H["guards.py"]
+    I["planner.py"]
+    J["finish_reviewer.py"]
+    K["history_manager.py"]
 
     A --> B
     A --> C
     A --> D
     A --> E
     A --> F
+    A --> I
+    A --> J
+    A --> K
     C --> B
     C --> G
     D --> B
@@ -129,13 +137,16 @@ flowchart TD
 - `protocol.py` parses and repairs model responses.
 - `tools.py` executes agent tools.
 - `logs.py` writes traces to `agent.log`.
+- `planner.py` defines the optional planning step.
+- `finish_reviewer.py` defines the optional final review step before accepting `finish`.
+- `history_manager.py` encapsulates history creation, update, and serialization.
 - `agentic_loop.py` runs the agent loop.
 
 ## Data Classes
 
 - `LLMConfig` stores the typed backend configuration used by one run.
 - `AgentContext` stores the configuration and stable inputs for one agent run.
-- `AgentResponse` stores one parsed model decision: `thought`, `action`, and `action_input`.
+- `AgentResponse` stores one parsed model decision: `thought`, `action`, `action_input`, and `action_description`.
 - `AgentHistory` stores the accumulated iteration history used in the ReAct loop.
 
 ## Tools
@@ -175,10 +186,23 @@ Tool paths are validated by `guards.py`, which prevents file and directory acces
 The `run_tests` tool uses a fixed test command instead of accepting an arbitrary shell command.
 This is a simple safety mechanism for local agent experiments, not a complete sandbox.
 
+## Extension Points
+
+Minixx now includes three small extension points for agent features:
+
+- `planner.py`
+- `finish_reviewer.py`
+- `history_manager.py`
+
+The first versions are intentionally minimal.
+`planner.py` and `finish_reviewer.py` currently return `None`, which means no extra behavior is added yet.
+They exist as simple places where new features can be plugged in without changing the overall loop structure.
+
 ## What to Inspect First
 
 - Start with `agentic_loop.py` to understand the main loop.
 - Then read `context.py` to see the core data structures.
+- Then read `planner.py`, `finish_reviewer.py`, and `history_manager.py` to see the new extension points.
 - Then read `llms.py` to see how the backend request is made.
 - Then read `tools.py` to understand what actions the agent can perform.
 
