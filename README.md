@@ -119,19 +119,26 @@ flowchart TD
     D --> G
 ```
 
+Configuration:
 - `config/config.json` stores backend settings.
 - `config/system_prompt.txt` stores the agent's behavior instructions.
-- `context.py` defines `AgentContext` and `AgentResponse`.
-- `guards.py` validates and resolves tool paths inside the workspace.
+
+Core:
+- `agentic_loop.py` runs the agent loop.
 - `inputs.py` parses arguments and prepares the run context.
 - `llms.py` selects the backend and performs the LLM request.
 - `protocol.py` parses and repairs model responses.
 - `tools.py` executes agent tools.
 - `logs.py` writes traces to `agent.log`.
+
+Extension Points:
 - `planner.py` defines the optional planning step.
 - `finish_reviewer.py` defines the optional final review step before accepting `finish`.
 - `history_manager.py` encapsulates history creation, update, and serialization.
-- `agentic_loop.py` runs the agent loop.
+
+Shared Types and Safety:
+- `context.py` defines `AgentContext` and `AgentResponse`.
+- `guards.py` validates and resolves tool paths inside the workspace.
 
 ## Data Classes
 
