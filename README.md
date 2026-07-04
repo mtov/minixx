@@ -102,30 +102,21 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     A["agentic_loop.py"]
-    B["context.py"]
-    C["inputs.py"]
-    D["llms.py"]
-    E["protocol.py"]
-    F["tools.py"]
-    G["logs.py"]
-    H["guards.py"]
-    I["planner.py"]
-    J["finish_reviewer.py"]
-    K["history_manager.py"]
+    B["inputs.py"]
+    C["llms.py"]
+    D["protocol.py"]
+    E["tools.py"]
+    F["planner / reviewer / history"]
+    G["context / responses / history"]
 
     A --> B
     A --> C
     A --> D
     A --> E
     A --> F
-    A --> I
-    A --> J
-    A --> K
-    C --> B
-    C --> G
-    D --> B
-    E --> B
-    F --> H
+    A --> G
+    E --> G
+    D --> G
 ```
 
 - `config/config.json` stores backend settings.
