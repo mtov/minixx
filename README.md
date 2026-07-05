@@ -100,7 +100,29 @@ sequenceDiagram
     BackendLayer-->>Minixx: finish
 ```
 
-## Architecture
+## High-Level Architecture
+
+```mermaid
+flowchart TD
+    A["Config"]
+    B["Core"]
+    C["Extension Points"]
+    D["Shared Types"]
+    E["Tools"]
+    F["Backends"]
+    G["Logging"]
+    H["Safety Guards"]
+
+    B --> A
+    B --> C
+    B --> D
+    B --> E
+    B --> F
+    B --> G
+    E --> H
+```
+
+## Core Structure
 
 ```mermaid
 flowchart TD
@@ -108,9 +130,10 @@ flowchart TD
     B["inputs.py"]
     C["llms.py"]
     D["protocol.py"]
-    E["tools.py"]
-    F["planner / reviewer / history"]
-    G["context / responses / history"]
+    E["patches.py"]
+    F["history_manager.py"]
+    G["planner.py"]
+    H["finish_reviewer.py"]
 
     A --> B
     A --> C
@@ -118,8 +141,7 @@ flowchart TD
     A --> E
     A --> F
     A --> G
-    E --> G
-    D --> G
+    A --> H
 ```
 
 Configuration:
