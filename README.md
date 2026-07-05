@@ -1,6 +1,8 @@
 # Minixx
 
-<img src="minixx.png" alt="Minixx logo" width="192">
+<p align="center">
+  <img src="minixx.png" alt="Minixx logo" width="128">
+</p>
 
 Minixx is a didactic Python project for studying how to build a simple code agent.
 It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc.ufmg.br/) at DCC/UFMG.
