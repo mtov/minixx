@@ -1,14 +1,17 @@
 --- a/file_a.py
 +++ b/file_a.py
-@@ -1 +1 @@
+@@ -1,2 +1,2 @@
 -def old_name():
 +def new_name():
+     return "ok"
 
 --- a/file_b.py
 +++ b/file_b.py
-@@ -1 +1 @@
+@@ -1,5 +1,5 @@
 -from file_a import old_name
 +from file_a import new_name
-@@ -5 +5 @@
+ 
+ 
+ def run():
 -    return old_name()
 +    return new_name()
