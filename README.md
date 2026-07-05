@@ -1,7 +1,7 @@
 # Minixx
 
 <p align="center">
-  <img src="minixx.png" alt="Minixx logo" width="128">
+  <img src="minixx.png" alt="Minixx logo" width="160">
 </p>
 
 Minixx is a didactic Python project for studying how to build a simple code agent.
@@ -11,7 +11,7 @@ It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc
 
 - Minixx is intended for learning, experimentation, and research.
 - Minixx favors a simple architecture that is easy to understand and extend.
-- Minixx currently uses OpenAI's Codex as its backend, but the design can be extended to support other models, including Small Language Models.
+- Minixx currently uses OpenAI's Codex as its default backend, but it can also be configured to use Gemini or local models served by Ollama.
 
 ## Run
 
@@ -33,6 +33,15 @@ It may also contain:
 
 ```text
 Rename the function old_name to new_name in all relevant files and return a unified diff patch.
+```
+
+Setup:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+export GEMINI_API_KEY="your_key_here"
 ```
 
 Run command:
@@ -66,12 +75,14 @@ Program Creation:
 ## Backend and Model
 
 Minixx currently uses OpenAI's Codex as its default backend layer in read-only mode, acting as a bridge to the underlying model.
-It can also be configured to use other backend integrations, such as local models served by Ollama.
+It can also be configured to use Gemini or local models served by Ollama.
 
 ```mermaid
 flowchart LR
     Minixx --> Codex["OpenAI's Codex"]
     Codex --> GPT["GPT Model"]
+    Minixx --> Gemini["Gemini backend"]
+    Gemini --> GoogleModel["Gemini model"]
     Minixx --> Ollama["Ollama backend"]
     Ollama --> Other["Other LLMs"]
 ```
@@ -80,6 +91,7 @@ Requirements:
 
 - the Codex desktop app or CLI must be installed
 - the `codex` executable must be available in your shell `PATH`
+- a Gemini backend requires a valid `GEMINI_API_KEY` environment variable
 - the backend configuration lives in `./config/config.json`
 - `pytest` must be available in the Python environment used to run Minixx
 

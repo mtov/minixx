@@ -9,6 +9,7 @@ class LLMConfig:
     backend: str
     timeout_seconds: int
     codex_command: str | None
+    gemini_model: str | None
     ollama_url: str | None
     ollama_model: str | None
     working_directory: Path

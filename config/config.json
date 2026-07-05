@@ -1,6 +1,7 @@
 {
-  "backend": "codex",
+  "backend": "gemini",
   "codex_command": "codex",
+  "gemini_model": "gemini-2.5-flash",
   "timeout_seconds": 600,
   "ollama_url": "http://localhost:11434",
   "ollama_model": "qwen3-coder:30b"

@@ -33,6 +33,7 @@ def load_llm_config(working_directory: Path) -> LLMConfig:
         backend=raw_config["backend"],
         timeout_seconds=raw_config["timeout_seconds"],
         codex_command=raw_config.get("codex_command"),
+        gemini_model=raw_config.get("gemini_model"),
         ollama_url=raw_config.get("ollama_url"),
         ollama_model=raw_config.get("ollama_model"),
         working_directory=working_directory,
@@ -93,10 +94,26 @@ def load_user_prompt(workspace_path: Path) -> str:
     return prompt
 
 
+def print_backend_summary(llm_config: LLMConfig) -> None:
+    backend = llm_config.backend
+
+    if backend == "codex":
+        model_name = llm_config.codex_command or "codex"
+    elif backend == "gemini":
+        model_name = llm_config.gemini_model or "gemini"
+    elif backend == "ollama":
+        model_name = llm_config.ollama_model or "ollama"
+    else:
+        model_name = backend
+
+    print(f"Using backend: {backend} ({model_name})")
+
+
 def prepare_run(workspace_path_arg: str) -> AgentContext:
     clear_trace()
     workspace_path = resolve_workspace_path(workspace_path_arg)
     llm_config = load_llm_config(workspace_path)
+    print_backend_summary(llm_config)
     system_prompt = load_system_prompt()
     workspace_instructions = load_workspace_instructions(workspace_path)
     if workspace_instructions is not None:
