@@ -7,7 +7,7 @@ from .inputs import parse_args, prepare_run
 from .llms import call_llm
 from .patches import save_patch
 from .planner import create_plan
-from .protocol import log_response_validation_error, looks_like_patch, parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
+from .protocol import looks_like_patch, parse_response, repair_finish_output, repair_finish_preconditions, repair_response, trace_response_validation_error, validate_finish_output, validate_finish_preconditions
 from .tools import run_tool
 
 
@@ -48,7 +48,7 @@ def get_agent_response(context: AgentContext, user_message: str) -> AgentRespons
     try:
         return parse_response(response)
     except ValueError as exc:
-        log_response_validation_error(str(exc), response)
+        trace_response_validation_error(str(exc), response)
         return repair_response(context, user_message, str(exc))
 
 
@@ -56,7 +56,7 @@ def handle_finish_action(context: AgentContext, user_message: str, agent_history
     try:
         validate_finish_preconditions(agent_response, context.user_prompt, agent_history)
     except ValueError as exc:
-        log_response_validation_error(str(exc), format_agent_response(agent_response))
+        trace_response_validation_error(str(exc), format_agent_response(agent_response))
         agent_response = repair_finish_preconditions(context, user_message, str(exc))
         validate_finish_preconditions(agent_response, context.user_prompt, agent_history)
 
@@ -66,7 +66,7 @@ def handle_finish_action(context: AgentContext, user_message: str, agent_history
     try:
         validate_finish_output(agent_response, context.user_prompt)
     except ValueError as exc:
-        log_response_validation_error(str(exc), format_agent_response(agent_response))
+        trace_response_validation_error(str(exc), format_agent_response(agent_response))
         agent_response = repair_finish_output(context, user_message, str(exc))
         validate_finish_output(agent_response, context.user_prompt)
 

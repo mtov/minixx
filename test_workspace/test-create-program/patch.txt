@@ -1,0 +1,35 @@
+--- /dev/null
++++ b/palindrome.py
+@@ -0,0 +1,10 @@
++def is_palindrome(text: str) -> bool:
++    normalized = text.replace(" ", "").lower()
++    return normalized == normalized[::-1]
++
++
++if __name__ == "__main__":
++    import sys
++
++    value = " ".join(sys.argv[1:])
++    print(is_palindrome(value))
++
+--- /dev/null
++++ b/test_palindrome.py
+@@ -0,0 +1,18 @@
++from palindrome import is_palindrome
++
++
++def test_simple_palindrome():
++    assert is_palindrome("level") is True
++
++
++def test_case_is_ignored():
++    assert is_palindrome("RaceCar") is True
++
++
++def test_spaces_are_ignored():
++    assert is_palindrome("nurses run") is True
++
++
++def test_non_palindrome():
++    assert is_palindrome("python") is False
++

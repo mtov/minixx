@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 from .context import AgentContext
-from .traces import log_response
+from .traces import trace_response
 
 
 def build_codex_prompt(system_prompt: str, user_prompt: str) -> str:
@@ -108,5 +108,5 @@ def call_llm(context: AgentContext, user_prompt: str, response_label: str = "Res
     else:
         raise ValueError(f"Unsupported backend: {backend}")
 
-    log_response(response, response_label)
+    trace_response(response, response_label)
     return response

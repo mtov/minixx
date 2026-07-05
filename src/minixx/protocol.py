@@ -4,7 +4,7 @@ import re
 
 from .context import AgentContext, AgentHistory, AgentResponse
 from .llms import call_llm
-from .traces import log_repair_attempt, log_validation_error
+from .traces import trace_repair_attempt, trace_validation_error
 
 REPAIR_PROMPT = (
     "Your previous response was invalid. "
@@ -112,14 +112,14 @@ def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> N
 
 
 def repair_with_prompt(context: AgentContext, user_message: str, repair_prompt: str, repair_kind: str, reason: str) -> AgentResponse:
-    log_repair_attempt(repair_kind, reason)
+    trace_repair_attempt(repair_kind, reason)
     repair_message = f"{user_message}\n\n{repair_prompt}"
     response = call_llm(context, repair_message, "Repair Response")
     return parse_response(response)
 
 
-def log_response_validation_error(reason: str, response: str) -> None:
-    log_validation_error(reason, response)
+def trace_response_validation_error(reason: str, response: str) -> None:
+    trace_validation_error(reason, response)
 
 
 def repair_response(context: AgentContext, user_message: str, reason: str) -> AgentResponse:

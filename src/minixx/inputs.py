@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from .context import AgentContext, LLMConfig
-from .traces import clear_log, log_request
+from .traces import clear_trace, trace_request
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = PROJECT_ROOT / "config"
@@ -76,10 +76,10 @@ def load_user_prompt(workspace_path: Path) -> str:
 
 
 def prepare_run(workspace_path_arg: str) -> AgentContext:
-    clear_log()
+    clear_trace()
     workspace_path = resolve_workspace_path(workspace_path_arg)
     llm_config = load_llm_config(workspace_path)
     system_prompt = load_system_prompt()
     user_prompt = load_user_prompt(workspace_path)
-    log_request(user_prompt)
+    trace_request(user_prompt)
     return AgentContext(llm_config=llm_config, system_prompt=system_prompt, user_prompt=user_prompt, workspace_path=workspace_path)
