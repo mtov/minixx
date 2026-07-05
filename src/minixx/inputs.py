@@ -11,6 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = PROJECT_ROOT / "config"
 CONFIG_PATH = CONFIG_DIR / "config.json"
 SYSTEM_PROMPT_PATH = CONFIG_DIR / "system_prompt.txt"
+WORKSPACE_INSTRUCTIONS_PATH = "AGENTS.md"
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,6 +52,23 @@ def load_system_prompt() -> str:
     return prompt
 
 
+def load_workspace_instructions(workspace_path: Path) -> str | None:
+    instructions_path = workspace_path / WORKSPACE_INSTRUCTIONS_PATH
+    if not instructions_path.exists():
+        return None
+
+    try:
+        instructions = instructions_path.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise OSError(
+            f"Could not read workspace instructions file: {instructions_path}"
+        ) from exc
+
+    if not instructions:
+        return None
+    return instructions
+
+
 def resolve_workspace_path(raw_path: str) -> Path:
     workspace_path = Path(raw_path).expanduser().resolve()
     if not workspace_path.exists():
@@ -80,6 +98,14 @@ def prepare_run(workspace_path_arg: str) -> AgentContext:
     workspace_path = resolve_workspace_path(workspace_path_arg)
     llm_config = load_llm_config(workspace_path)
     system_prompt = load_system_prompt()
+    workspace_instructions = load_workspace_instructions(workspace_path)
+    if workspace_instructions is not None:
+        print("Loading AGENTS.md")
+        system_prompt = (
+            f"{system_prompt}\n\n"
+            "Workspace instructions:\n"
+            f"{workspace_instructions}"
+        )
     user_prompt = load_user_prompt(workspace_path)
     trace_request(user_prompt)
     return AgentContext(llm_config=llm_config, system_prompt=system_prompt, user_prompt=user_prompt, workspace_path=workspace_path)

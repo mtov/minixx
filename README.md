@@ -19,6 +19,10 @@ Each workspace should contain:
 - a `prompt.txt` file
 - the project files and tests that the agent is allowed to inspect
 
+It may also contain:
+
+- an `AGENTS.md` file with workspace-specific instructions appended to the system prompt
+
 ### Example
 
 `prompt.txt`:
@@ -79,7 +83,7 @@ If the run command fails with a message like `Codex CLI not found in PATH`, the 
 
 ## How One Run Works
 
-1. Minixx loads the backend configuration and the system prompt.
+1. Minixx loads the backend configuration, the global system prompt, and optional workspace instructions from `AGENTS.md`.
 2. Minixx loads `prompt.txt` from the selected workspace.
 3. Minixx sends the request to the configured backend.
 4. Optional extension points can add a plan or review a final answer.
@@ -93,7 +97,7 @@ sequenceDiagram
     participant LLM
     participant Workspace
 
-    Minixx->>Workspace: load prompt.txt and project files
+    Minixx->>Workspace: load AGENTS.md, prompt.txt, and project files
     Minixx->>BackendLayer: request next action
     BackendLayer->>LLM: send prompt
     LLM-->>BackendLayer: generate response

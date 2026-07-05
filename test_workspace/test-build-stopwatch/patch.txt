@@ -7,7 +7,7 @@
 +  <meta charset="UTF-8">
 +  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 +  <title>Stopwatch</title>
-+  <link rel="stylesheet" href="style.css">
++  <link rel="stylesheet" href="styles.css">
 +</head>
 +<body>
 +  <main class="app">
@@ -25,8 +25,8 @@
 +</html>
 +
 --- /dev/null
-+++ b/style.css
-@@ -0,0 +1,53 @@
++++ b/styles.css
+@@ -0,0 +1,49 @@
 +* {
 +  box-sizing: border-box;
 +}
@@ -37,105 +37,93 @@
 +  display: grid;
 +  place-items: center;
 +  font-family: Arial, sans-serif;
-+  background: linear-gradient(135deg, #f4f7fb, #dfe8f5);
-+  color: #1f2933;
++  background: #f4f4f4;
++  color: #222;
 +}
 +
 +.app {
-+  width: min(90vw, 360px);
-+  padding: 2rem;
-+  border-radius: 16px;
-+  background: #ffffff;
-+  box-shadow: 0 12px 32px rgba(31, 41, 51, 0.15);
++  width: min(90vw, 320px);
++  padding: 24px;
++  border-radius: 12px;
++  background: #fff;
++  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 +  text-align: center;
 +}
 +
 +h1 {
-+  margin: 0 0 1rem;
-+  font-size: 1.75rem;
++  margin: 0 0 16px;
++  font-size: 1.5rem;
 +}
 +
 +.display {
-+  margin-bottom: 1.5rem;
++  margin-bottom: 20px;
 +  font-size: 3rem;
 +  font-variant-numeric: tabular-nums;
-+  letter-spacing: 0.08em;
 +}
 +
 +.controls {
 +  display: flex;
-+  gap: 0.75rem;
++  gap: 8px;
 +  justify-content: center;
 +}
 +
 +button {
 +  border: 0;
-+  border-radius: 999px;
-+  padding: 0.75rem 1.25rem;
-+  font-size: 1rem;
++  border-radius: 8px;
++  padding: 10px 14px;
++  font: inherit;
 +  cursor: pointer;
-+  background: #2563eb;
-+  color: #ffffff;
++  background: #222;
++  color: #fff;
 +}
 +
 +button:hover {
-+  background: #1d4ed8;
++  background: #444;
 +}
 +
 --- /dev/null
 +++ b/script.js
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,41 @@
 +const display = document.getElementById("display");
 +const startButton = document.getElementById("start");
 +const pauseButton = document.getElementById("pause");
 +const resetButton = document.getElementById("reset");
 +
-+let elapsedMs = 0;
-+let startTime = 0;
-+let timerId = null;
++let elapsedSeconds = 0;
++let intervalId = null;
 +
-+function formatTime(totalMs) {
-+  const totalSeconds = Math.floor(totalMs / 1000);
++function formatTime(totalSeconds) {
 +  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
 +  const seconds = String(totalSeconds % 60).padStart(2, "0");
 +  return `${minutes}:${seconds}`;
 +}
 +
 +function render() {
-+  display.textContent = formatTime(elapsedMs);
++  display.textContent = formatTime(elapsedSeconds);
 +}
 +
-+function tick() {
-+  elapsedMs = Date.now() - startTime;
-+  render();
-+}
-+
-+startButton.addEventListener("click", () => {
-+  if (timerId !== null) {
++function start() {
++  if (intervalId !== null) {
 +    return;
 +  }
 +
-+  startTime = Date.now() - elapsedMs;
-+  timerId = window.setInterval(tick, 100);
-+});
++  intervalId = window.setInterval(() => {
++    elapsedSeconds += 1;
++    render();
++  }, 1000);
++}
 +
-+pauseButton.addEventListener("click", () => {
-+  if (timerId === null) {
-+    return;
-+  }
++function pause() {
++  window.clearInterval(intervalId);
++  intervalId = null;
++}
 +
-+  window.clearInterval(timerId);
-+  timerId = null;
-+  elapsedMs = Date.now() - startTime;
++function reset() {
++  pause();
++  elapsedSeconds = 0;
 +  render();
-+});
++}
 +
-+resetButton.addEventListener("click", () => {
-+  if (timerId !== null) {
-+    window.clearInterval(timerId);
-+    timerId = null;
-+  }
-+
-+  elapsedMs = 0;
-+  render();
-+});
++startButton.addEventListener("click", start);
++pauseButton.addEventListener("click", pause);
++resetButton.addEventListener("click", reset);
