@@ -11,7 +11,7 @@ It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc
 
 - Minixx is intended for learning, experimentation, and research.
 - Minixx favors a simple architecture that is easy to understand and extend.
-- Minixx currently uses OpenAI's Codex as its default backend, but it can also be configured to use Gemini or local models served by Ollama.
+- Minixx currently uses Gemini as its default backend, but it can also be configured to use OpenAI's Codex or local models served by Ollama.
 
 ## Run
 
@@ -74,28 +74,27 @@ Program Creation:
 
 ## Backend and Model
 
-Minixx currently uses OpenAI's Codex as its default backend layer in read-only mode, acting as a bridge to the underlying model.
-It can also be configured to use Gemini or local models served by Ollama.
+Minixx currently uses Gemini as its default backend.
+It can also be configured to use OpenAI's Codex or local models served by Ollama.
 
 ```mermaid
 flowchart LR
+    Minixx --> Gemini["Gemini backend"]
+    Gemini --> GoogleModel["Gemini 2.5 Flash"]
     Minixx --> Codex["OpenAI's Codex"]
     Codex --> GPT["GPT Model"]
-    Minixx --> Gemini["Gemini backend"]
-    Gemini --> GoogleModel["Gemini model"]
     Minixx --> Ollama["Ollama backend"]
     Ollama --> Other["Other LLMs"]
 ```
 
 Requirements:
 
-- the Codex desktop app or CLI must be installed
-- the `codex` executable must be available in your shell `PATH`
 - a Gemini backend requires a valid `GEMINI_API_KEY` environment variable
 - the backend configuration lives in `./config/config.json`
+- a Codex backend requires the Codex desktop app or CLI and the `codex` executable in your shell `PATH`
 - `pytest` must be available in the Python environment used to run Minixx
 
-If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment.
+If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment when using the Codex backend.
 
 ## How One Run Works
 
