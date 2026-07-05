@@ -130,10 +130,11 @@ flowchart TD
     B["inputs.py"]
     C["llms.py"]
     D["protocol.py"]
-    E["patches.py"]
-    F["history_manager.py"]
-    G["planner.py"]
-    H["finish_reviewer.py"]
+    E["finish_handler.py"]
+    F["patches.py"]
+    G["history_manager.py"]
+    H["planner.py"]
+    I["finish_reviewer.py"]
 
     A --> B
     A --> C
@@ -142,6 +143,7 @@ flowchart TD
     A --> F
     A --> G
     A --> H
+    E --> I
 ```
 
 Configuration:
@@ -153,6 +155,7 @@ Core:
 - `inputs.py` parses arguments and prepares the run context.
 - `llms.py` selects the backend and performs the LLM request.
 - `protocol.py` parses and repairs model responses.
+- `finish_handler.py` validates, repairs, reviews, and persists final `finish` outputs.
 - `tools.py` executes agent tools.
 - `patches.py` saves generated unified diff patches to `patch.txt`.
 - `traces.py` writes execution traces to `agent_trace.log`.
@@ -245,6 +248,7 @@ They exist as simple places where new features can be plugged in without changin
 - Start with `agentic_loop.py` to understand the main loop.
 - Then read `context.py` to see the core data structures.
 - Then read `planner.py`, `finish_reviewer.py`, and `history_manager.py` to see the new extension points.
+- Then read `finish_handler.py` to see how final `finish` responses are handled.
 - Then read `llms.py` to see how the backend request is made.
 - Then read `patches.py` to see how final patches are persisted.
 - Then read `tools.py` to understand what actions the agent can perform.
