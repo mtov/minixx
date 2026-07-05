@@ -35,6 +35,7 @@ PYTHONPATH=src python3 -m minixx ./test_workspace/test-rename-refactoring
 
 The selected workspace path becomes the backend working directory for the run.
 Tool paths are also restricted to that workspace.
+If a run finishes with a unified diff patch, Minixx also saves that patch to `patch.txt` inside the selected workspace.
 
 
 ## Demo Workspaces
@@ -131,6 +132,7 @@ Core:
 - `llms.py` selects the backend and performs the LLM request.
 - `protocol.py` parses and repairs model responses.
 - `tools.py` executes agent tools.
+- `patches.py` saves generated unified diff patches to `patch.txt`.
 - `logs.py` writes traces to `agent.log`.
 
 Extension Points:
@@ -174,6 +176,23 @@ search text | /path/to/directory
 
 When a task requires a code change, the agent is expected to return a unified diff patch in the final `finish` response.
 
+## Patch Workflow
+
+When a run finishes with a unified diff patch, Minixx saves the same output to `patch.txt` in the selected workspace.
+
+To validate the saved patch manually, run:
+
+```bash
+cd ./test_workspace/test-rename-refactoring
+git apply --check patch.txt
+```
+
+To apply it manually after that, run:
+
+```bash
+git apply patch.txt
+```
+
 ## Logging
 
 Minixx writes execution traces to `agent.log`.
@@ -204,6 +223,7 @@ They exist as simple places where new features can be plugged in without changin
 - Then read `context.py` to see the core data structures.
 - Then read `planner.py`, `finish_reviewer.py`, and `history_manager.py` to see the new extension points.
 - Then read `llms.py` to see how the backend request is made.
+- Then read `patches.py` to see how final patches are persisted.
 - Then read `tools.py` to understand what actions the agent can perform.
 
 ## Current Limitations

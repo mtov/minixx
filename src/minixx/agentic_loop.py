@@ -5,8 +5,9 @@ from .finish_reviewer import review_finish
 from .history_manager import create_history, history_to_text, update_history
 from .inputs import parse_args, prepare_run
 from .llms import call_llm
+from .patches import save_patch
 from .planner import create_plan
-from .protocol import log_response_validation_error, parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
+from .protocol import log_response_validation_error, looks_like_patch, parse_response, repair_finish_output, repair_finish_preconditions, repair_response, validate_finish_output, validate_finish_preconditions
 from .tools import run_tool
 
 
@@ -90,6 +91,8 @@ def agentic_loop(context: AgentContext) -> str:
         print_iteration_action(iteration, agent_response.action_description)
 
         if agent_response.action == "finish":
+            if looks_like_patch(agent_response.action_input):
+                save_patch(context.workspace_path, agent_response.action_input)
             print()
             return agent_response.action_input
 

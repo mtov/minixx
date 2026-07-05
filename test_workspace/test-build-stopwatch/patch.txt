@@ -1,0 +1,170 @@
+--- /dev/null
++++ b/index.html
+@@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++  <meta charset="UTF-8">
++  <meta name="viewport" content="width=device-width, initial-scale=1.0">
++  <title>Stopwatch</title>
++  <link rel="stylesheet" href="styles.css">
++</head>
++<body>
++  <main class="app">
++    <section class="stopwatch" aria-label="Stopwatch">
++      <h1 class="title">Stopwatch</h1>
++      <div class="display" id="display" aria-live="polite">00:00</div>
++      <div class="controls">
++        <button id="startButton" type="button">Start</button>
++        <button id="pauseButton" type="button">Pause</button>
++        <button id="resetButton" type="button">Reset</button>
++      </div>
++    </section>
++  </main>
++  <script src="script.js"></script>
++</body>
++</html>
++
+--- /dev/null
++++ b/styles.css
+@@
++* {
++  box-sizing: border-box;
++}
++
++body {
++  margin: 0;
++  min-height: 100vh;
++  display: grid;
++  place-items: center;
++  font-family: Arial, sans-serif;
++  background: linear-gradient(135deg, #f4f7fb, #dfe8f5);
++  color: #1f2933;
++}
++
++.app {
++  width: min(100%, 28rem);
++  padding: 1.5rem;
++}
++
++.stopwatch {
++  background: #ffffff;
++  border-radius: 1rem;
++  padding: 2rem;
++  box-shadow: 0 1rem 2.5rem rgba(31, 41, 51, 0.15);
++  text-align: center;
++}
++
++.title {
++  margin: 0 0 1rem;
++  font-size: 1.75rem;
++}
++
++.display {
++  margin-bottom: 1.5rem;
++  font-size: clamp(3rem, 10vw, 4.5rem);
++  font-variant-numeric: tabular-nums;
++  letter-spacing: 0.08em;
++}
++
++.controls {
++  display: flex;
++  gap: 0.75rem;
++  justify-content: center;
++  flex-wrap: wrap;
++}
++
++button {
++  border: 0;
++  border-radius: 999px;
++  padding: 0.75rem 1.25rem;
++  font-size: 1rem;
++  font-weight: 600;
++  cursor: pointer;
++  background: #2563eb;
++  color: #ffffff;
++  transition: transform 0.15s ease, opacity 0.15s ease;
++}
++
++button:hover {
++  transform: translateY(-1px);
++}
++
++button:active {
++  transform: translateY(0);
++  opacity: 0.9;
++}
++
++#pauseButton {
++  background: #f59e0b;
++}
++
++#resetButton {
++  background: #dc2626;
++}
++
+--- /dev/null
++++ b/script.js
+@@
++const display = document.getElementById("display");
++const startButton = document.getElementById("startButton");
++const pauseButton = document.getElementById("pauseButton");
++const resetButton = document.getElementById("resetButton");
++
++let elapsedMs = 0;
++let startTime = 0;
++let timerId = null;
++
++function formatTime(totalMs) {
++  const totalSeconds = Math.floor(totalMs / 1000);
++  const minutes = Math.floor(totalSeconds / 60);
++  const seconds = totalSeconds % 60;
++
++  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
++}
++
++function render() {
++  display.textContent = formatTime(elapsedMs);
++}
++
++function tick() {
++  elapsedMs = Date.now() - startTime;
++  render();
++}
++
++function start() {
++  if (timerId !== null) {
++    return;
++  }
++
++  startTime = Date.now() - elapsedMs;
++  timerId = window.setInterval(tick, 100);
++}
++
++function pause() {
++  if (timerId === null) {
++    return;
++  }
++
++  window.clearInterval(timerId);
++  timerId = null;
++  elapsedMs = Date.now() - startTime;
++  render();
++}
++
++function reset() {
++  if (timerId !== null) {
++    window.clearInterval(timerId);
++    timerId = null;
++  }
++
++  elapsedMs = 0;
++  startTime = 0;
++  render();
++}
++
++startButton.addEventListener("click", start);
++pauseButton.addEventListener("click", pause);
++resetButton.addEventListener("click", reset);
++
++render();
