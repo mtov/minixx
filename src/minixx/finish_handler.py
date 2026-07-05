@@ -33,15 +33,38 @@ def is_bug_fix_task(user_prompt: str) -> bool:
     return any(keyword in prompt for keyword in ("bug", "fix", "failing test", "tests pass"))
 
 
+def is_retrieval_task(user_prompt: str) -> bool:
+    prompt = user_prompt.lower()
+    return any(
+        keyword in prompt
+        for keyword in (
+            "read",
+            "find",
+            "locate",
+            "inspect",
+            "secret",
+            "symbol",
+            "file",
+        )
+    )
+
+
+def has_observation_action(agent_history: AgentHistory) -> bool:
+    return any(
+        agent_history.contains_action(action)
+        for action in ("list_files", "read_file", "find_text")
+    )
+
+
 def validate_finish_preconditions(
     agent_response: AgentResponse,
     user_prompt: str,
     agent_history: AgentHistory,
 ) -> None:
-    if not is_bug_fix_task(user_prompt):
-        return
-    if not agent_history.contains_action("run_tests"):
+    if is_bug_fix_task(user_prompt) and not agent_history.contains_action("run_tests"):
         raise ValueError("Bug-fixing tasks must use run_tests before finish.")
+    if is_retrieval_task(user_prompt) and not has_observation_action(agent_history):
+        raise ValueError("Retrieval tasks must use list_files, read_file, or find_text before finish.")
 
 
 def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> None:
