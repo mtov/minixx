@@ -40,12 +40,19 @@ If a run finishes with a unified diff patch, Minixx also saves that patch to `pa
 
 ## Demo Workspaces
 
+Discovery:
 - `./test_workspace/test-find-secret-key`: file discovery and secret lookup
 - `./test_workspace/test-find-symbol`: symbol search and precise location reporting
+
+Refactoring:
 - `./test_workspace/test-rename-refactoring`: cross-file refactoring and patch generation
-- `./test_workspace/test-create-program`: program creation and test generation as a unified diff patch
+
+Bug Fixing:
 - `./test_workspace/test-fix-failing-test`: test execution, bug diagnosis, and patch generation
 - `./test_workspace/test-fix-misleading-bug`: cross-file bug fixing with a misleading first suspicion
+
+Program Creation:
+- `./test_workspace/test-create-program`: program creation and test generation as a unified diff patch
 - `./test_workspace/test-build-stopwatch`: create a small browser-based JavaScript stopwatch app from prompt only
 
 ## Backend and Model
