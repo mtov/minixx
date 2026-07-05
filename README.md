@@ -175,6 +175,7 @@ search text | /path/to/directory
 `run_tests` runs the workspace test suite using a fixed `pytest` command.
 
 When a task requires a code change, the agent is expected to return a unified diff patch in the final `finish` response.
+The patch should use real unified diff hunk headers with line ranges, such as `@@ -1 +1 @@` or `@@ -0,0 +1,10 @@`.
 
 ## Patch Workflow
 

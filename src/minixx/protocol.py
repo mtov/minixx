@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from .context import AgentContext, AgentHistory, AgentResponse
 from .llms import call_llm
 from .logs import log_repair_attempt, log_validation_error
@@ -87,7 +89,12 @@ def is_bug_fix_task(user_prompt: str) -> bool:
 
 
 def looks_like_patch(text: str) -> bool:
-    return "--- " in text and "+++ " in text and "@@" in text
+    hunk_header_pattern = re.compile(r"^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@")
+    has_file_headers = "--- " in text and "+++ " in text
+    has_valid_hunk_header = any(
+        hunk_header_pattern.match(line) for line in text.splitlines()
+    )
+    return has_file_headers and has_valid_hunk_header
 
 
 def validate_finish_preconditions(agent_response: AgentResponse, user_prompt: str, agent_history: AgentHistory) -> None:

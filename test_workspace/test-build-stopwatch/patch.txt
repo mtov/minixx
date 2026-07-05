@@ -1,33 +1,32 @@
 --- /dev/null
 +++ b/index.html
-@@
+@@ -0,0 +1,22 @@
 +<!DOCTYPE html>
 +<html lang="en">
 +<head>
 +  <meta charset="UTF-8">
 +  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 +  <title>Stopwatch</title>
-+  <link rel="stylesheet" href="styles.css">
++  <link rel="stylesheet" href="style.css">
 +</head>
 +<body>
 +  <main class="app">
-+    <section class="stopwatch" aria-label="Stopwatch">
-+      <h1 class="title">Stopwatch</h1>
-+      <div class="display" id="display" aria-live="polite">00:00</div>
-+      <div class="controls">
-+        <button id="startButton" type="button">Start</button>
-+        <button id="pauseButton" type="button">Pause</button>
-+        <button id="resetButton" type="button">Reset</button>
-+      </div>
-+    </section>
++    <h1>Stopwatch</h1>
++    <div id="display" class="display" aria-live="polite">00:00</div>
++    <div class="controls">
++      <button id="start" type="button">Start</button>
++      <button id="pause" type="button">Pause</button>
++      <button id="reset" type="button">Reset</button>
++    </div>
 +  </main>
++
 +  <script src="script.js"></script>
 +</body>
 +</html>
 +
 --- /dev/null
-+++ b/styles.css
-@@
++++ b/style.css
+@@ -0,0 +1,53 @@
 +* {
 +  box-sizing: border-box;
 +}
@@ -43,26 +42,22 @@
 +}
 +
 +.app {
-+  width: min(100%, 28rem);
-+  padding: 1.5rem;
-+}
-+
-+.stopwatch {
-+  background: #ffffff;
-+  border-radius: 1rem;
++  width: min(90vw, 360px);
 +  padding: 2rem;
-+  box-shadow: 0 1rem 2.5rem rgba(31, 41, 51, 0.15);
++  border-radius: 16px;
++  background: #ffffff;
++  box-shadow: 0 12px 32px rgba(31, 41, 51, 0.15);
 +  text-align: center;
 +}
 +
-+.title {
++h1 {
 +  margin: 0 0 1rem;
 +  font-size: 1.75rem;
 +}
 +
 +.display {
 +  margin-bottom: 1.5rem;
-+  font-size: clamp(3rem, 10vw, 4.5rem);
++  font-size: 3rem;
 +  font-variant-numeric: tabular-nums;
 +  letter-spacing: 0.08em;
 +}
@@ -71,7 +66,6 @@
 +  display: flex;
 +  gap: 0.75rem;
 +  justify-content: center;
-+  flex-wrap: wrap;
 +}
 +
 +button {
@@ -79,37 +73,22 @@
 +  border-radius: 999px;
 +  padding: 0.75rem 1.25rem;
 +  font-size: 1rem;
-+  font-weight: 600;
 +  cursor: pointer;
 +  background: #2563eb;
 +  color: #ffffff;
-+  transition: transform 0.15s ease, opacity 0.15s ease;
 +}
 +
 +button:hover {
-+  transform: translateY(-1px);
-+}
-+
-+button:active {
-+  transform: translateY(0);
-+  opacity: 0.9;
-+}
-+
-+#pauseButton {
-+  background: #f59e0b;
-+}
-+
-+#resetButton {
-+  background: #dc2626;
++  background: #1d4ed8;
 +}
 +
 --- /dev/null
 +++ b/script.js
-@@
+@@ -0,0 +1,51 @@
 +const display = document.getElementById("display");
-+const startButton = document.getElementById("startButton");
-+const pauseButton = document.getElementById("pauseButton");
-+const resetButton = document.getElementById("resetButton");
++const startButton = document.getElementById("start");
++const pauseButton = document.getElementById("pause");
++const resetButton = document.getElementById("reset");
 +
 +let elapsedMs = 0;
 +let startTime = 0;
@@ -117,10 +96,9 @@
 +
 +function formatTime(totalMs) {
 +  const totalSeconds = Math.floor(totalMs / 1000);
-+  const minutes = Math.floor(totalSeconds / 60);
-+  const seconds = totalSeconds % 60;
-+
-+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
++  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
++  const seconds = String(totalSeconds % 60).padStart(2, "0");
++  return `${minutes}:${seconds}`;
 +}
 +
 +function render() {
@@ -132,16 +110,16 @@
 +  render();
 +}
 +
-+function start() {
++startButton.addEventListener("click", () => {
 +  if (timerId !== null) {
 +    return;
 +  }
 +
 +  startTime = Date.now() - elapsedMs;
 +  timerId = window.setInterval(tick, 100);
-+}
++});
 +
-+function pause() {
++pauseButton.addEventListener("click", () => {
 +  if (timerId === null) {
 +    return;
 +  }
@@ -150,21 +128,14 @@
 +  timerId = null;
 +  elapsedMs = Date.now() - startTime;
 +  render();
-+}
++});
 +
-+function reset() {
++resetButton.addEventListener("click", () => {
 +  if (timerId !== null) {
 +    window.clearInterval(timerId);
 +    timerId = null;
 +  }
 +
 +  elapsedMs = 0;
-+  startTime = 0;
 +  render();
-+}
-+
-+startButton.addEventListener("click", start);
-+pauseButton.addEventListener("click", pause);
-+resetButton.addEventListener("click", reset);
-+
-+render();
++});
