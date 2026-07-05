@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from .context import AgentContext, AgentHistory, AgentResponse
+from .context import AgentContext, AgentResponse
 from .llms import call_llm
 from .traces import trace_repair_attempt, trace_validation_error
 
@@ -78,16 +78,6 @@ def parse_response(text: str) -> AgentResponse:
     )
 
 
-def is_code_change_task(user_prompt: str) -> bool:
-    prompt = user_prompt.lower()
-    return any(keyword in prompt for keyword in ("rename", "refactor", "change", "update", "modify", "fix", "create", "implement"))
-
-
-def is_bug_fix_task(user_prompt: str) -> bool:
-    prompt = user_prompt.lower()
-    return any(keyword in prompt for keyword in ("bug", "fix", "failing test", "tests pass"))
-
-
 def looks_like_patch(text: str) -> bool:
     hunk_header_pattern = re.compile(r"^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@")
     has_file_headers = "--- " in text and "+++ " in text
@@ -95,20 +85,6 @@ def looks_like_patch(text: str) -> bool:
         hunk_header_pattern.match(line) for line in text.splitlines()
     )
     return has_file_headers and has_valid_hunk_header
-
-
-def validate_finish_preconditions(agent_response: AgentResponse, user_prompt: str, agent_history: AgentHistory) -> None:
-    if not is_bug_fix_task(user_prompt):
-        return
-    if not agent_history.contains_action("run_tests"):
-        raise ValueError("Bug-fixing tasks must use run_tests before finish.")
-
-
-def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> None:
-    if not is_code_change_task(user_prompt):
-        return
-    if not looks_like_patch(agent_response.action_input):
-        raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
 
 
 def repair_with_prompt(context: AgentContext, user_message: str, repair_prompt: str, repair_kind: str, reason: str) -> AgentResponse:
@@ -124,11 +100,3 @@ def trace_response_validation_error(reason: str, response: str) -> None:
 
 def repair_response(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
     return repair_with_prompt(context, user_message, REPAIR_PROMPT, "Protocol repair", reason)
-
-
-def repair_finish_output(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
-    return repair_with_prompt(context, user_message, PATCH_REPAIR_PROMPT, "Finish output repair", reason)
-
-
-def repair_finish_preconditions(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
-    return repair_with_prompt(context, user_message, PRECONDITION_REPAIR_PROMPT, "Finish precondition repair", reason)
