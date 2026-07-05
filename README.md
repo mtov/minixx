@@ -30,7 +30,7 @@ Rename the function old_name to new_name in all relevant files and return a unif
 Run command:
 
 ```bash
-PYTHONPATH=src python3 -m minixx ./test_workspace/test-rename-refactoring
+python3 run_minixx.py ./test_workspace/test-rename-refactoring
 ```
 
 The selected workspace path becomes the backend working directory for the run.

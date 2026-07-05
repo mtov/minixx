@@ -6,11 +6,9 @@
 
 --- a/file_b.py
 +++ b/file_b.py
-@@ -1,5 +1,5 @@
+@@ -1 +1 @@
 -from file_a import old_name
 +from file_a import new_name
- 
- 
- def call_it():
+@@ -5 +5 @@
 -    return old_name()
 +    return new_name()
