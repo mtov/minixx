@@ -4,7 +4,7 @@ import re
 
 from .context import AgentContext, AgentHistory, AgentResponse
 from .llms import call_llm
-from .logs import log_repair_attempt, log_validation_error
+from .traces import log_repair_attempt, log_validation_error
 
 REPAIR_PROMPT = (
     "Your previous response was invalid. "

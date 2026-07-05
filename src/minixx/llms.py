@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 from .context import AgentContext
-from .logs import log_response
+from .traces import log_response
 
 
 def build_codex_prompt(system_prompt: str, user_prompt: str) -> str:

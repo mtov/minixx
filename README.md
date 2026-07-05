@@ -155,7 +155,7 @@ Core:
 - `protocol.py` parses and repairs model responses.
 - `tools.py` executes agent tools.
 - `patches.py` saves generated unified diff patches to `patch.txt`.
-- `logs.py` writes traces to `agent.log`.
+- `traces.py` writes execution traces to `agent_trace.log`.
 
 Extension Points:
 - `planner.py` defines the optional planning step.
@@ -216,10 +216,10 @@ To apply it manually after that, run:
 git apply patch.txt
 ```
 
-## Logging
+## Tracing
 
-Minixx writes execution traces to `agent.log`.
-Because the project is didactic, users are encouraged to inspect this log to better understand how the agent reasons, chooses actions, and reacts to tool results.
+Minixx writes execution traces to `agent_trace.log`.
+Because the project is didactic, users are encouraged to inspect this trace to better understand how the agent reasons, chooses actions, and reacts to tool results.
 
 ## Security
 

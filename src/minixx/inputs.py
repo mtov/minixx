@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from .context import AgentContext, LLMConfig
-from .logs import clear_log, log_request
+from .traces import clear_log, log_request
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = PROJECT_ROOT / "config"
