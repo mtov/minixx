@@ -121,23 +121,23 @@ Do not add external dependencies.
 
 ```mermaid
 sequenceDiagram
-    participant Loop as agentic_loop.py
+    participant AgentLoop as agentic_loop.py
     participant Models as models.py
     participant External as Gemini / Codex / Ollama
     participant Workspace
 
-    Loop->>Workspace: load AGENTS.md, prompt.txt, and project files
-    Loop->>Models: request next response
+    AgentLoop->>Workspace: load AGENTS.md, prompt.txt, and project files
+    AgentLoop->>Models: request next response
     Models->>External: send prompt
     External-->>Models: return response
-    Models-->>Loop: return parsed response
-    Loop->>Loop: optional planning and finish review
-    Loop->>Workspace: run tool
-    Workspace-->>Loop: tool result
-    Loop->>Models: request next response
+    Models-->>AgentLoop: return parsed response
+    AgentLoop->>AgentLoop: optional planning and finish review
+    AgentLoop->>Workspace: run tool
+    Workspace-->>AgentLoop: tool result
+    AgentLoop->>Models: request next response
     Models->>External: send updated prompt
     External-->>Models: return response
-    Models-->>Loop: return parsed response
+    Models-->>AgentLoop: return parsed response
 ```
 
 ## High-Level Architecture
