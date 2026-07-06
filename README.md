@@ -114,52 +114,55 @@ Do not add external dependencies.
 
 1. Minixx loads the model configuration, the global system prompt, and optional workspace instructions from `AGENTS.md`.
 2. Minixx loads `prompt.txt` from the selected workspace.
-3. Minixx sends the request to the configured model.
-4. Optional extension points can add a plan or review a final answer.
-5. The agent chooses a tool, receives the tool result, and updates its history.
+3. `agentic_loop.py` asks `models.py` for the next response.
+4. `models.py` calls the configured external model (`Gemini`, `Codex`, or `Ollama`).
+5. The loop chooses a tool, receives the tool result, and updates its history.
 6. The loop ends when the agent returns a final `finish` output.
 
 ```mermaid
 sequenceDiagram
-    participant Minixx
-    participant ModelLayer as Model Layer
-    participant Model
+    participant Loop as agentic_loop.py
+    participant Models as models.py
+    participant External as Gemini / Codex / Ollama
     participant Workspace
 
-    Minixx->>Workspace: load AGENTS.md, prompt.txt, and project files
-    Minixx->>ModelLayer: request next action
-    ModelLayer->>Model: send prompt
-    Model-->>ModelLayer: generate response
-    ModelLayer-->>Minixx: Thought / Action / Action Input / Action Description
-    Minixx->>Minixx: optional planning and finish review
-    Minixx->>Workspace: run tool
-    Workspace-->>Minixx: tool result
-    Minixx->>ModelLayer: send updated request
-    ModelLayer->>Model: send updated prompt
-    Model-->>ModelLayer: generate finish response
-    ModelLayer-->>Minixx: finish
+    Loop->>Workspace: load AGENTS.md, prompt.txt, and project files
+    Loop->>Models: request next response
+    Models->>External: send prompt
+    External-->>Models: return response
+    Models-->>Loop: return parsed response
+    Loop->>Loop: optional planning and finish review
+    Loop->>Workspace: run tool
+    Workspace-->>Loop: tool result
+    Loop->>Models: request next response
+    Models->>External: send updated prompt
+    External-->>Models: return response
+    Models-->>Loop: return parsed response
 ```
 
 ## High-Level Architecture
 
 ```mermaid
 flowchart TD
-    A["Config"]
-    B["Core"]
-    C["Extension Points"]
-    D["Shared Types"]
-    E["Tools"]
-    F["Models"]
-    G["Tracing"]
-    H["Safety Guards"]
+    A["Run Loop (agentic_loop.py)"]
+    B["Input Loading (inputs.py)"]
+    C["Model Calls (models.py)"]
+    D["Response Parsing (protocol.py)"]
+    E["Tool Execution (tools.py)"]
+    F["Finish Handling (finish_handler.py)"]
+    G["Extension Points (planner.py, finish_reviewer.py, history_manager.py)"]
+    H["Shared Types (context.py)"]
+    I["Support Code (guards.py, patches.py, traces.py)"]
 
-    B --> A
-    B --> C
-    B --> D
-    B --> E
-    B --> F
-    B --> G
-    E --> H
+    A --> B
+    A --> C
+    A --> D
+    A --> E
+    A --> F
+    A --> G
+    A --> H
+    E --> I
+    F --> I
 ```
 
 ## Core Structure
@@ -191,12 +194,12 @@ Configuration:
 - `config/system_prompt.txt` stores the agent's behavior instructions.
 
 Core:
-- `agentic_loop.py` runs the agent loop.
-- `inputs.py` parses arguments and prepares the run context.
-- `models.py` selects the configured integration and performs the request.
+- `agentic_loop.py` runs the main ReAct-style loop.
+- `inputs.py` loads configuration, prompts, and workspace instructions.
+- `models.py` sends requests to the configured external model.
 - `protocol.py` parses and repairs model responses.
+- `tools.py` executes the available workspace-safe tools.
 - `finish_handler.py` validates, repairs, reviews, and persists final `finish` outputs.
-- `tools.py` executes agent tools.
 - `patches.py` saves generated unified diff patches to `patch.txt`.
 - `traces.py` writes execution traces to `agent_trace.log`.
 
@@ -205,9 +208,11 @@ Extension Points:
 - `finish_reviewer.py` defines the optional final review step before accepting `finish`.
 - `history_manager.py` encapsulates history creation, update, and serialization.
 
-Shared Types and Safety:
-- `context.py` defines `AgentContext` and `AgentResponse`.
-- `guards.py` validates and resolves tool paths inside the workspace.
+Shared Types and Support:
+- `context.py` defines the main data structures used across one run.
+- `guards.py` validates and resolves tool paths inside the selected workspace.
+- `patches.py` persists final patch outputs.
+- `traces.py` records the request/response trace for inspection.
 
 ## Data Classes
 
