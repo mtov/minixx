@@ -11,7 +11,7 @@ from .protocol import (
     trace_response_validation_error,
 )
 from .traces import trace_repair_attempt
-from .llms import call_llm
+from .models import call_model
 
 
 def format_agent_response(agent_response: AgentResponse) -> str:
@@ -83,7 +83,7 @@ def repair_finish_with_prompt(
 ) -> AgentResponse:
     trace_repair_attempt(repair_kind, reason)
     repair_message = f"{user_message}\n\n{repair_prompt}"
-    response = call_llm(context, repair_message, "Repair Response")
+    response = call_model(context, repair_message, "Repair Response")
     return parse_response(response)
 
 

@@ -1,5 +1,5 @@
 {
-  "backend": "gemini",
+  "model": "gemini",
   "codex_command": "codex",
   "gemini_model": "gemini-2.5-flash",
   "timeout_seconds": 600,

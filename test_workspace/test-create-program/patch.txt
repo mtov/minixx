@@ -1,35 +1,41 @@
 --- /dev/null
 +++ b/palindrome.py
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,11 @@
 +def is_palindrome(text: str) -> bool:
-+    normalized = text.replace(" ", "").lower()
-+    return normalized == normalized[::-1]
-+
-+
-+if __name__ == "__main__":
-+    import sys
-+
-+    value = " ".join(sys.argv[1:])
-+    print(is_palindrome(value))
-+
++    """
++    Checks if a given text is a palindrome, ignoring case and spaces.
++    """
++    normalized_text = "".join(char.lower() for char in text if char.isalnum())
++    return normalized_text == normalized_text[::-1]
 --- /dev/null
 +++ b/test_palindrome.py
 @@ -0,0 +1,18 @@
++import unittest
 +from palindrome import is_palindrome
 +
++class TestPalindrome(unittest.TestCase):
 +
-+def test_simple_palindrome():
-+    assert is_palindrome("level") is True
++    def test_empty_string(self):
++        self.assertTrue(is_palindrome(""))
 +
++    def test_single_character(self):
++        self.assertTrue(is_palindrome("a"))
 +
-+def test_case_is_ignored():
-+    assert is_palindrome("RaceCar") is True
++    def test_simple_palindrome(self):
++        self.assertTrue(is_palindrome("madam"))
++        self.assertTrue(is_palindrome("racecar"))
 +
++    def test_palindrome_with_spaces_and_case(self):
++        self.assertTrue(is_palindrome("A man a plan a canal Panama"))
++        self.assertTrue(is_palindrome("No lemon, no melon"))
 +
-+def test_spaces_are_ignored():
-+    assert is_palindrome("nurses run") is True
++    def test_not_palindrome(self):
++        self.assertFalse(is_palindrome("hello"))
++        self.assertFalse(is_palindrome("world"))
 +
++    def test_palindrome_with_numbers(self):
++        self.assertTrue(is_palindrome("121"))
++        self.assertTrue(is_palindrome("A1B22B1A"))
 +
-+def test_non_palindrome():
-+    assert is_palindrome("python") is False
-+
++if __name__ == '__main__':
++    unittest.main()

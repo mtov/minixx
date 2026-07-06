@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .context import AgentContext, LLMConfig
+from .context import AgentContext, ModelConfig
 from .traces import clear_trace, trace_request
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -20,7 +20,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_llm_config(working_directory: Path) -> LLMConfig:
+def load_model_config(working_directory: Path) -> ModelConfig:
     try:
         with CONFIG_PATH.open("r", encoding="utf-8") as file:
             raw_config = json.load(file)
@@ -29,8 +29,12 @@ def load_llm_config(working_directory: Path) -> LLMConfig:
     except OSError as exc:
         raise OSError(f"Could not read config file: {CONFIG_PATH}") from exc
 
-    return LLMConfig(
-        backend=raw_config["backend"],
+    selected_model = raw_config.get("model")
+    if selected_model is None:
+        raise KeyError("Config file must define 'model'.")
+
+    return ModelConfig(
+        model=selected_model,
         timeout_seconds=raw_config["timeout_seconds"],
         codex_command=raw_config.get("codex_command"),
         gemini_model=raw_config.get("gemini_model"),
@@ -94,26 +98,26 @@ def load_user_prompt(workspace_path: Path) -> str:
     return prompt
 
 
-def print_backend_summary(llm_config: LLMConfig) -> None:
-    backend = llm_config.backend
+def print_model_summary(model_config: ModelConfig) -> None:
+    model = model_config.model
 
-    if backend == "codex":
-        model_name = llm_config.codex_command or "codex"
-    elif backend == "gemini":
-        model_name = llm_config.gemini_model or "gemini"
-    elif backend == "ollama":
-        model_name = llm_config.ollama_model or "ollama"
+    if model == "codex":
+        model_name = model_config.codex_command or "codex"
+    elif model == "gemini":
+        model_name = model_config.gemini_model or "gemini"
+    elif model == "ollama":
+        model_name = model_config.ollama_model or "ollama"
     else:
-        model_name = backend
+        model_name = model
 
-    print(f"Using backend: {backend} ({model_name})")
+    print(f"Using model: {model} ({model_name})")
 
 
 def prepare_run(workspace_path_arg: str) -> AgentContext:
     clear_trace()
     workspace_path = resolve_workspace_path(workspace_path_arg)
-    llm_config = load_llm_config(workspace_path)
-    print_backend_summary(llm_config)
+    model_config = load_model_config(workspace_path)
+    print_model_summary(model_config)
     system_prompt = load_system_prompt()
     workspace_instructions = load_workspace_instructions(workspace_path)
     if workspace_instructions is not None:
@@ -125,4 +129,4 @@ def prepare_run(workspace_path_arg: str) -> AgentContext:
         )
     user_prompt = load_user_prompt(workspace_path)
     trace_request(user_prompt)
-    return AgentContext(llm_config=llm_config, system_prompt=system_prompt, user_prompt=user_prompt, workspace_path=workspace_path)
+    return AgentContext(model_config=model_config, system_prompt=system_prompt, user_prompt=user_prompt, workspace_path=workspace_path)

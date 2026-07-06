@@ -11,7 +11,7 @@ It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc
 
 - Minixx is intended for learning, experimentation, and research.
 - Minixx favors a simple architecture that is easy to understand and extend.
-- Minixx currently uses Gemini as its default backend, but it can also be configured to use OpenAI's Codex or local models served by Ollama.
+- Minixx currently uses Gemini as its default model, but it can also be configured to use OpenAI's Codex or local models served by Ollama.
 
 ## Run
 
@@ -50,7 +50,7 @@ Run command:
 python run_minixx.py ./test_workspace/test-rename-refactoring
 ```
 
-The selected workspace path becomes the backend working directory for the run.
+The selected workspace path becomes the model working directory for the run.
 Tool paths are also restricted to that workspace.
 If a run finishes with a unified diff patch, Minixx also saves that patch to `patch.txt` inside the selected workspace.
 
@@ -72,30 +72,30 @@ Program Creation:
 - `./test_workspace/test-create-program`: program creation and test generation as a unified diff patch
 - `./test_workspace/test-build-stopwatch`: create a small browser-based JavaScript stopwatch app from prompt only
 
-## Backend and Model
+## Model
 
-Minixx currently uses Gemini as its default backend.
+Minixx currently uses Gemini as its default model.
 It can also be configured to use OpenAI's Codex or local models served by Ollama.
 
 ```mermaid
 flowchart LR
-    Minixx --> Gemini["Gemini backend"]
+    Minixx --> Gemini["Gemini model"]
     Gemini --> GoogleModel["Gemini 2.5 Flash"]
-    Minixx --> Ollama["Ollama backend"]
-    Ollama --> Other["Other LLMs"]
+    Minixx --> Ollama["Ollama model"]
+    Ollama --> Other["Other models"]
     Minixx --> Codex["OpenAI's Codex"]
     Codex --> GPT["GPT Model"]
 ```
 
 Requirements:
 
-- a Gemini backend requires a valid `GEMINI_API_KEY` environment variable
-- the backend configuration lives in `./config/config.json`
-- a Codex backend requires the Codex desktop app or CLI and the `codex` executable in your shell `PATH`
-- an Ollama backend requires a reachable Ollama server and a configured model
+- a Gemini model requires a valid `GEMINI_API_KEY` environment variable
+- the model configuration lives in `./config/config.json`
+- a Codex model requires the Codex desktop app or CLI and the `codex` executable in your shell `PATH`
+- an Ollama model requires a reachable Ollama server and a configured model
 - `pytest` must be available in the Python environment used to run Minixx
 
-If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment when using the Codex backend.
+If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment when using the Codex model.
 
 ## Workspace Instructions
 
@@ -112,9 +112,9 @@ Do not add external dependencies.
 
 ## How One Run Works
 
-1. Minixx loads the backend configuration, the global system prompt, and optional workspace instructions from `AGENTS.md`.
+1. Minixx loads the model configuration, the global system prompt, and optional workspace instructions from `AGENTS.md`.
 2. Minixx loads `prompt.txt` from the selected workspace.
-3. Minixx sends the request to the configured backend.
+3. Minixx sends the request to the configured model.
 4. Optional extension points can add a plan or review a final answer.
 5. The agent chooses a tool, receives the tool result, and updates its history.
 6. The loop ends when the agent returns a final `finish` output.
@@ -122,22 +122,22 @@ Do not add external dependencies.
 ```mermaid
 sequenceDiagram
     participant Minixx
-    participant BackendLayer as Backend Layer
-    participant LLM
+    participant ModelLayer as Model Layer
+    participant Model
     participant Workspace
 
     Minixx->>Workspace: load AGENTS.md, prompt.txt, and project files
-    Minixx->>BackendLayer: request next action
-    BackendLayer->>LLM: send prompt
-    LLM-->>BackendLayer: generate response
-    BackendLayer-->>Minixx: Thought / Action / Action Input / Action Description
+    Minixx->>ModelLayer: request next action
+    ModelLayer->>Model: send prompt
+    Model-->>ModelLayer: generate response
+    ModelLayer-->>Minixx: Thought / Action / Action Input / Action Description
     Minixx->>Minixx: optional planning and finish review
     Minixx->>Workspace: run tool
     Workspace-->>Minixx: tool result
-    Minixx->>BackendLayer: send updated request
-    BackendLayer->>LLM: send updated prompt
-    LLM-->>BackendLayer: generate finish response
-    BackendLayer-->>Minixx: finish
+    Minixx->>ModelLayer: send updated request
+    ModelLayer->>Model: send updated prompt
+    Model-->>ModelLayer: generate finish response
+    ModelLayer-->>Minixx: finish
 ```
 
 ## High-Level Architecture
@@ -149,7 +149,7 @@ flowchart TD
     C["Extension Points"]
     D["Shared Types"]
     E["Tools"]
-    F["Backends"]
+    F["Models"]
     G["Tracing"]
     H["Safety Guards"]
 
@@ -168,7 +168,7 @@ flowchart TD
 flowchart TD
     A["agentic_loop.py"]
     B["inputs.py"]
-    C["llms.py"]
+    C["models.py"]
     D["protocol.py"]
     E["finish_handler.py"]
     F["patches.py"]
@@ -187,13 +187,13 @@ flowchart TD
 ```
 
 Configuration:
-- `config/config.json` stores backend settings.
+- `config/config.json` stores model settings.
 - `config/system_prompt.txt` stores the agent's behavior instructions.
 
 Core:
 - `agentic_loop.py` runs the agent loop.
 - `inputs.py` parses arguments and prepares the run context.
-- `llms.py` selects the backend and performs the LLM request.
+- `models.py` selects the model and performs the model request.
 - `protocol.py` parses and repairs model responses.
 - `finish_handler.py` validates, repairs, reviews, and persists final `finish` outputs.
 - `tools.py` executes agent tools.
@@ -211,7 +211,7 @@ Shared Types and Safety:
 
 ## Data Classes
 
-- `LLMConfig` stores the typed backend configuration used by one run.
+- `ModelConfig` stores the typed model configuration used by one run.
 - `AgentContext` stores the configuration and stable inputs for one agent run.
 - `AgentResponse` stores one parsed model decision: `thought`, `action`, `action_input`, and `action_description`.
 - `AgentHistory` stores the accumulated iteration history used in the ReAct loop.
@@ -289,7 +289,7 @@ They exist as simple places where new features can be plugged in without changin
 - Then read `context.py` to see the core data structures.
 - Then read `planner.py`, `finish_reviewer.py`, and `history_manager.py` to see the new extension points.
 - Then read `finish_handler.py` to see how final `finish` responses are handled.
-- Then read `llms.py` to see how the backend request is made.
+- Then read `models.py` to see how the model request is made.
 - Then read `patches.py` to see how final patches are persisted.
 - Then read `tools.py` to understand what actions the agent can perform.
 

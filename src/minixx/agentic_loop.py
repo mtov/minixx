@@ -4,7 +4,7 @@ from .context import AgentContext, AgentHistory, AgentResponse
 from .finish_handler import handle_finish
 from .history_manager import create_history, history_to_text, update_history
 from .inputs import parse_args, prepare_run
-from .llms import call_llm
+from .models import call_model
 from .planner import create_plan
 from .protocol import parse_response, repair_response, trace_response_validation_error
 from .tools import run_tool
@@ -37,7 +37,7 @@ def print_iteration_action(
 
 
 def get_agent_response(context: AgentContext, user_message: str) -> AgentResponse:
-    response = call_llm(context, user_message)
+    response = call_model(context, user_message)
 
     try:
         return parse_response(response)

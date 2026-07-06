@@ -19,15 +19,15 @@ Do not rely on previous conversation state or hidden context.
 {user_prompt}"""
 
 
-def require_config_value(value: str | None, key: str, backend_name: str) -> str:
+def require_config_value(value: str | None, key: str, model_name: str) -> str:
     if not value:
-        raise ValueError(f"Missing {key} for {backend_name} backend.")
+        raise ValueError(f"Missing {key} for {model_name} model.")
     return value
 
 
 def call_codex(context: AgentContext, user_prompt: str) -> str:
-    codex_command = require_config_value(context.llm_config.codex_command, "codex_command", "Codex")
-    working_directory = context.llm_config.working_directory
+    codex_command = require_config_value(context.model_config.codex_command, "codex_command", "Codex")
+    working_directory = context.model_config.working_directory
     prompt = build_codex_prompt(context.system_prompt, user_prompt)
 
     if shutil.which(codex_command) is None:
@@ -39,7 +39,7 @@ def call_codex(context: AgentContext, user_prompt: str) -> str:
             cwd=working_directory,
             capture_output=True,
             text=True,
-            timeout=context.llm_config.timeout_seconds,
+            timeout=context.model_config.timeout_seconds,
         )
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Could not execute Codex in {working_directory}.") from exc
@@ -76,8 +76,8 @@ def call_ollama(context: AgentContext, user_prompt: str) -> str:
     except ImportError as exc:
         raise RuntimeError("Ollama Python package not installed. Run pip install -r requirements.txt.") from exc
 
-    ollama_url = require_config_value(context.llm_config.ollama_url, "ollama_url", "Ollama")
-    ollama_model = require_config_value(context.llm_config.ollama_model, "ollama_model", "Ollama")
+    ollama_url = require_config_value(context.model_config.ollama_url, "ollama_url", "Ollama")
+    ollama_model = require_config_value(context.model_config.ollama_model, "ollama_model", "Ollama")
     client = Client(host=ollama_url)
 
     try:
@@ -90,9 +90,9 @@ def call_ollama(context: AgentContext, user_prompt: str) -> str:
                     {"role": "user", "content": user_prompt},
                 ],
             )
-            response = future.result(timeout=context.llm_config.timeout_seconds)
+            response = future.result(timeout=context.model_config.timeout_seconds)
     except FuturesTimeoutError as exc:
-        raise RuntimeError(f"Ollama request timed out after {context.llm_config.timeout_seconds} seconds.") from exc
+        raise RuntimeError(f"Ollama request timed out after {context.model_config.timeout_seconds} seconds.") from exc
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(f"Could not connect to Ollama at {ollama_url}.") from exc
 
@@ -113,7 +113,7 @@ def call_gemini(context: AgentContext, user_prompt: str) -> str:
         "Gemini",
     )
     gemini_model = require_config_value(
-        context.llm_config.gemini_model,
+        context.model_config.gemini_model,
         "gemini_model",
         "Gemini",
     )
@@ -127,10 +127,10 @@ def call_gemini(context: AgentContext, user_prompt: str) -> str:
                 system_instruction=context.system_prompt,
                 input=user_prompt,
             )
-            interaction = future.result(timeout=context.llm_config.timeout_seconds)
+            interaction = future.result(timeout=context.model_config.timeout_seconds)
     except FuturesTimeoutError as exc:
         raise RuntimeError(
-            f"Gemini request timed out after {context.llm_config.timeout_seconds} seconds."
+            f"Gemini request timed out after {context.model_config.timeout_seconds} seconds."
         ) from exc
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError("Could not execute Gemini request.") from exc
@@ -142,17 +142,17 @@ def call_gemini(context: AgentContext, user_prompt: str) -> str:
     raise ValueError("Gemini returned a response without output_text.")
 
 
-def call_llm(context: AgentContext, user_prompt: str, response_label: str = "Response") -> str:
-    backend = context.llm_config.backend
+def call_model(context: AgentContext, user_prompt: str, response_label: str = "Response") -> str:
+    model = context.model_config.model
 
-    if backend == "codex":
+    if model == "codex":
         response = call_codex(context, user_prompt)
-    elif backend == "gemini":
+    elif model == "gemini":
         response = call_gemini(context, user_prompt)
-    elif backend == "ollama":
+    elif model == "ollama":
         response = call_ollama(context, user_prompt)
     else:
-        raise ValueError(f"Unsupported backend: {backend}")
+        raise ValueError(f"Unsupported model: {model}")
 
     trace_response(response, response_label)
     return response

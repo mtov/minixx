@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 
 from .context import AgentContext, AgentResponse
-from .llms import call_llm
+from .models import call_model
 from .traces import trace_repair_attempt, trace_validation_error
 
 REPAIR_PROMPT = (
@@ -90,7 +90,7 @@ def looks_like_patch(text: str) -> bool:
 def repair_with_prompt(context: AgentContext, user_message: str, repair_prompt: str, repair_kind: str, reason: str) -> AgentResponse:
     trace_repair_attempt(repair_kind, reason)
     repair_message = f"{user_message}\n\n{repair_prompt}"
-    response = call_llm(context, repair_message, "Repair Response")
+    response = call_model(context, repair_message, "Repair Response")
     return parse_response(response)
 
 

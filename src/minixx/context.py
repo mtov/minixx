@@ -5,8 +5,8 @@ from pathlib import Path
 
 
 @dataclass
-class LLMConfig:
-    backend: str
+class ModelConfig:
+    model: str
     timeout_seconds: int
     codex_command: str | None
     gemini_model: str | None
@@ -17,7 +17,7 @@ class LLMConfig:
 
 @dataclass
 class AgentContext:
-    llm_config: LLMConfig
+    model_config: ModelConfig
     system_prompt: str
     user_prompt: str
     workspace_path: Path
