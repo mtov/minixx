@@ -82,7 +82,7 @@ def main() -> int:
         context = prepare_run(args.workspace_path)
         result = agentic_loop(context)
     except Exception as exc:  # noqa: BLE001
-        print(f"Error executing Codex: {exc}")
+        print(f"Error executing Minixx: {exc}")
         return 1
 
     print(result)

@@ -56,15 +56,25 @@ def has_observation_action(agent_history: AgentHistory) -> bool:
     )
 
 
+def has_content_observation_action(agent_history: AgentHistory) -> bool:
+    return any(
+        agent_history.contains_action(action)
+        for action in ("read_file", "find_text")
+    )
+
+
 def validate_finish_preconditions(
     agent_response: AgentResponse,
     user_prompt: str,
     agent_history: AgentHistory,
 ) -> None:
+    if agent_response.action != "finish":
+        return
+
     if is_bug_fix_task(user_prompt) and not agent_history.contains_action("run_tests"):
         raise ValueError("Bug-fixing tasks must use run_tests before finish.")
-    if is_retrieval_task(user_prompt) and not has_observation_action(agent_history):
-        raise ValueError("Retrieval tasks must use list_files, read_file, or find_text before finish.")
+    if is_retrieval_task(user_prompt) and not has_content_observation_action(agent_history):
+        raise ValueError("Retrieval tasks must use read_file or find_text before finish.")
 
 
 def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> None:

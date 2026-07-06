@@ -31,7 +31,7 @@ def call_codex(context: AgentContext, user_prompt: str) -> str:
     prompt = build_codex_prompt(context.system_prompt, user_prompt)
 
     if shutil.which(codex_command) is None:
-        raise RuntimeError(f"Codex CLI not found in PATH: {codex_command}")
+        raise RuntimeError(f"Codex CLI not found in PATH: {codex_command}.")
 
     try:
         result = subprocess.run(
@@ -42,10 +42,14 @@ def call_codex(context: AgentContext, user_prompt: str) -> str:
             timeout=context.model_config.timeout_seconds,
         )
     except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(f"Could not execute Codex in {working_directory}.") from exc
+        raise RuntimeError(
+            f"Codex request failed in {working_directory}: {exc.__class__.__name__}: {exc}"
+        ) from exc
 
     if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "Codex returned an error.")
+        raise RuntimeError(
+            result.stderr.strip() or result.stdout.strip() or "Codex request failed."
+        )
 
     content = result.stdout.strip()
     if not content:
@@ -92,9 +96,13 @@ def call_ollama(context: AgentContext, user_prompt: str) -> str:
             )
             response = future.result(timeout=context.model_config.timeout_seconds)
     except FuturesTimeoutError as exc:
-        raise RuntimeError(f"Ollama request timed out after {context.model_config.timeout_seconds} seconds.") from exc
+        raise RuntimeError(
+            f"Ollama request timed out after {context.model_config.timeout_seconds} seconds."
+        ) from exc
     except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(f"Could not connect to Ollama at {ollama_url}.") from exc
+        raise RuntimeError(
+            f"Ollama request failed for {ollama_url}: {exc.__class__.__name__}: {exc}"
+        ) from exc
 
     return extract_ollama_content(response)
 
@@ -133,7 +141,14 @@ def call_gemini(context: AgentContext, user_prompt: str) -> str:
             f"Gemini request timed out after {context.model_config.timeout_seconds} seconds."
         ) from exc
     except Exception as exc:  # noqa: BLE001
-        raise RuntimeError("Could not execute Gemini request.") from exc
+        if exc.__class__.__name__ == "RateLimitError":
+            raise RuntimeError(
+                "Gemini quota exceeded or rate limited. "
+                "Check your API quota/billing, wait and retry, or switch to another model."
+            ) from exc
+        raise RuntimeError(
+            f"Gemini request failed: {exc.__class__.__name__}: {exc}"
+        ) from exc
 
     content = getattr(interaction, "output_text", None)
     if content:

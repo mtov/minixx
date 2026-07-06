@@ -50,7 +50,7 @@ Run command:
 python run_minixx.py ./test_workspace/test-rename-refactoring
 ```
 
-The selected workspace path becomes the model working directory for the run.
+The selected workspace path becomes the working directory for the run.
 Tool paths are also restricted to that workspace.
 If a run finishes with a unified diff patch, Minixx also saves that patch to `patch.txt` inside the selected workspace.
 
@@ -193,7 +193,7 @@ Configuration:
 Core:
 - `agentic_loop.py` runs the agent loop.
 - `inputs.py` parses arguments and prepares the run context.
-- `models.py` selects the model and performs the model request.
+- `models.py` selects the configured integration and performs the request.
 - `protocol.py` parses and repairs model responses.
 - `finish_handler.py` validates, repairs, reviews, and persists final `finish` outputs.
 - `tools.py` executes agent tools.
@@ -289,7 +289,7 @@ They exist as simple places where new features can be plugged in without changin
 - Then read `context.py` to see the core data structures.
 - Then read `planner.py`, `finish_reviewer.py`, and `history_manager.py` to see the new extension points.
 - Then read `finish_handler.py` to see how final `finish` responses are handled.
-- Then read `models.py` to see how the model request is made.
+- Then read `models.py` to see how requests are made for each configured integration.
 - Then read `patches.py` to see how final patches are persisted.
 - Then read `tools.py` to understand what actions the agent can perform.
 

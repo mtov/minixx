@@ -27,6 +27,7 @@ PATCH_REPAIR_PROMPT = (
 PRECONDITION_REPAIR_PROMPT = (
     "Your previous response was invalid. "
     "For bug-fixing tasks, you must use run_tests before finish. "
+    "For retrieval tasks, you must use read_file or find_text before finish. "
     "Respond using only: "
     "Thought: ... "
     "Action: ... "
