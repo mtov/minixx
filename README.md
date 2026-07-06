@@ -126,43 +126,35 @@ sequenceDiagram
     participant External as Gemini / Codex / Ollama
     participant Workspace
 
-    AgentLoop->>Workspace: load AGENTS.md, prompt.txt, and project files
+    AgentLoop->>Workspace: load prompt and inspect files
     AgentLoop->>Models: request next response
     Models->>External: send prompt
     External-->>Models: return response
     Models-->>AgentLoop: return parsed response
-    AgentLoop->>AgentLoop: optional planning and finish review
     AgentLoop->>Workspace: run tool
     Workspace-->>AgentLoop: tool result
-    AgentLoop->>Models: request next response
-    Models->>External: send updated prompt
-    External-->>Models: return response
-    Models-->>AgentLoop: return parsed response
+    AgentLoop->>Models: repeat until finish
 ```
 
 ## High-Level Architecture
 
 ```mermaid
 flowchart TD
-    A["Run Loop (agentic_loop.py)"]
-    B["Input Loading (inputs.py)"]
-    C["Model Calls (models.py)"]
-    D["Response Parsing (protocol.py)"]
-    E["Tool Execution (tools.py)"]
-    F["Finish Handling (finish_handler.py)"]
-    G["Extension Points (planner.py, finish_reviewer.py, history_manager.py)"]
-    H["Shared Types (context.py)"]
-    I["Support Code (guards.py, patches.py, traces.py)"]
+    A["Run Loop"]
+    B["Inputs"]
+    C["Models"]
+    D["Protocol"]
+    E["Tools"]
+    F["Finish Handling"]
+    G["Support Code"]
 
     A --> B
     A --> C
     A --> D
     A --> E
     A --> F
-    A --> G
-    A --> H
-    E --> I
-    F --> I
+    E --> G
+    F --> G
 ```
 
 ## Core Structure
@@ -174,10 +166,8 @@ flowchart TD
     C["models.py"]
     D["protocol.py"]
     E["finish_handler.py"]
-    F["patches.py"]
-    G["history_manager.py"]
-    H["planner.py"]
-    I["finish_reviewer.py"]
+    F["tools.py"]
+    G["planner.py / finish_reviewer.py / history_manager.py"]
 
     A --> B
     A --> C
@@ -185,8 +175,6 @@ flowchart TD
     A --> E
     A --> F
     A --> G
-    A --> H
-    E --> I
 ```
 
 Configuration:
