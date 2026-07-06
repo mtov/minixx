@@ -21,7 +21,7 @@ Run the command from the project root.
 Each workspace should contain:
 
 - a `prompt.txt` file
-- the project files and tests that the agent is allowed to inspect
+- any project files or tests that the agent is allowed to inspect
 
 It may also contain:
 
@@ -92,6 +92,7 @@ Requirements:
 - a Gemini backend requires a valid `GEMINI_API_KEY` environment variable
 - the backend configuration lives in `./config/config.json`
 - a Codex backend requires the Codex desktop app or CLI and the `codex` executable in your shell `PATH`
+- an Ollama backend requires a reachable Ollama server and a configured model
 - `pytest` must be available in the Python environment used to run Minixx
 
 If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment when using the Codex backend.
@@ -149,7 +150,7 @@ flowchart TD
     D["Shared Types"]
     E["Tools"]
     F["Backends"]
-    G["Logging"]
+    G["Tracing"]
     H["Safety Guards"]
 
     B --> A
