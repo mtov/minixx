@@ -47,7 +47,7 @@ export GEMINI_API_KEY="your_key_here"
 Run command:
 
 ```bash
-python3 run_minixx.py ./test_workspace/test-rename-refactoring
+python run_minixx.py ./test_workspace/test-rename-refactoring
 ```
 
 The selected workspace path becomes the backend working directory for the run.
@@ -81,10 +81,10 @@ It can also be configured to use OpenAI's Codex or local models served by Ollama
 flowchart LR
     Minixx --> Gemini["Gemini backend"]
     Gemini --> GoogleModel["Gemini 2.5 Flash"]
-    Minixx --> Codex["OpenAI's Codex"]
-    Codex --> GPT["GPT Model"]
     Minixx --> Ollama["Ollama backend"]
     Ollama --> Other["Other LLMs"]
+    Minixx --> Codex["OpenAI's Codex"]
+    Codex --> GPT["GPT Model"]
 ```
 
 Requirements:
@@ -95,6 +95,19 @@ Requirements:
 - `pytest` must be available in the Python environment used to run Minixx
 
 If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment when using the Codex backend.
+
+## Workspace Instructions
+
+`AGENTS.md` is an optional workspace file for local agent instructions.
+Use it for workspace-specific rules such as implementation style, tool usage hints, or constraints that should augment the global system prompt.
+
+Example `AGENTS.md`:
+
+```text
+Use only plain HTML, CSS, and JavaScript.
+Keep the app small and readable.
+Do not add external dependencies.
+```
 
 ## How One Run Works
 
