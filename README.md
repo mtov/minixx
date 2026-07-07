@@ -136,7 +136,7 @@ sequenceDiagram
     AgentLoop->>Models: repeat until finish
 ```
 
-## High-Level Architecture
+## Architecture
 
 ```mermaid
 flowchart TD
@@ -155,26 +155,6 @@ flowchart TD
     A --> F
     E --> G
     F --> G
-```
-
-## Core Structure
-
-```mermaid
-flowchart TD
-    A["agentic_loop.py"]
-    B["inputs.py"]
-    C["models.py"]
-    D["protocol.py"]
-    E["finish_handler.py"]
-    F["tools.py"]
-    G["planner.py / finish_reviewer.py / history_manager.py"]
-
-    A --> B
-    A --> C
-    A --> D
-    A --> E
-    A --> F
-    A --> G
 ```
 
 Configuration:
@@ -202,7 +182,7 @@ Shared Types and Support:
 - `patches.py` persists final patch outputs.
 - `traces.py` records the request/response trace for inspection.
 
-## Data Classes
+Data Classes:
 
 - `ModelConfig` stores the typed model configuration used by one run.
 - `AgentContext` stores the configuration and stable inputs for one agent run.
