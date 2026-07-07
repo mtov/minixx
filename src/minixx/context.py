@@ -16,6 +16,19 @@ class ModelConfig:
 
 
 @dataclass
+class TokenUsage:
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int | None = None
+
+
+@dataclass
+class ModelResponse:
+    content: str
+    token_usage: TokenUsage
+
+
+@dataclass
 class AgentContext:
     model_config: ModelConfig
     system_prompt: str

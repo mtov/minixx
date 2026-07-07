@@ -92,7 +92,7 @@ def repair_with_prompt(context: AgentContext, user_message: str, repair_prompt: 
     trace_repair_attempt(repair_kind, reason)
     repair_message = f"{user_message}\n\n{repair_prompt}"
     response = call_model(context, repair_message, "Repair Response")
-    return parse_response(response)
+    return parse_response(response.content)
 
 
 def trace_response_validation_error(reason: str, response: str) -> None:

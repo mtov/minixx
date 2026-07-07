@@ -189,7 +189,7 @@ Core:
 - `tools.py` executes the available workspace-safe tools.
 - `finish_handler.py` validates, repairs, reviews, and persists final `finish` outputs.
 - `patches.py` saves generated unified diff patches to `patch.txt`.
-- `traces.py` writes execution traces to `agent_trace.log`.
+- `traces.py` writes execution traces and token usage to `agent_trace.log`.
 
 Extension Points:
 - `planner.py` defines the optional planning step.
@@ -255,6 +255,7 @@ git apply patch.txt
 ## Tracing
 
 Minixx writes execution traces to `agent_trace.log`.
+Each model response also records token usage when the provider exposes it, plus a cumulative total for the current run.
 Because the project is didactic, users are encouraged to inspect this trace to better understand how the agent reasons, chooses actions, and reacts to tool results.
 
 ## Security

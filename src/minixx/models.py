@@ -6,8 +6,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .context import AgentContext
-from .traces import trace_response
+from .context import AgentContext, ModelResponse, TokenUsage
+from .traces import format_token_usage, trace_response
 
 
 def build_codex_prompt(system_prompt: str, user_prompt: str) -> str:
@@ -25,7 +25,15 @@ def require_config_value(value: str | None, key: str, model_name: str) -> str:
     return value
 
 
-def call_codex(context: AgentContext, user_prompt: str) -> str:
+def build_model_response(content: str, token_usage: TokenUsage | None = None) -> ModelResponse:
+    return ModelResponse(content=content, token_usage=token_usage or TokenUsage())
+
+
+def print_token_usage(label: str, token_usage: TokenUsage) -> None:
+    print(f"[tokens] {label}: {format_token_usage(token_usage)}", flush=True)
+
+
+def call_codex(context: AgentContext, user_prompt: str) -> ModelResponse:
     codex_command = require_config_value(context.model_config.codex_command, "codex_command", "Codex")
     working_directory = context.model_config.working_directory
     prompt = build_codex_prompt(context.system_prompt, user_prompt)
@@ -55,7 +63,7 @@ def call_codex(context: AgentContext, user_prompt: str) -> str:
     if not content:
         raise ValueError("Codex returned an empty response.")
 
-    return content
+    return build_model_response(content)
 
 
 def extract_ollama_content(response: object) -> str:
@@ -74,7 +82,26 @@ def extract_ollama_content(response: object) -> str:
     raise ValueError("Ollama returned a response without message content.")
 
 
-def call_ollama(context: AgentContext, user_prompt: str) -> str:
+def extract_ollama_usage(response: object) -> TokenUsage:
+    prompt_tokens = getattr(response, "prompt_eval_count", None)
+    output_tokens = getattr(response, "eval_count", None)
+
+    if isinstance(response, dict):
+        prompt_tokens = response.get("prompt_eval_count", prompt_tokens)
+        output_tokens = response.get("eval_count", output_tokens)
+
+    total_tokens = None
+    if prompt_tokens is not None or output_tokens is not None:
+        total_tokens = (prompt_tokens or 0) + (output_tokens or 0)
+
+    return TokenUsage(
+        input_tokens=prompt_tokens,
+        output_tokens=output_tokens,
+        total_tokens=total_tokens,
+    )
+
+
+def call_ollama(context: AgentContext, user_prompt: str) -> ModelResponse:
     try:
         from ollama import Client
     except ImportError as exc:
@@ -104,10 +131,32 @@ def call_ollama(context: AgentContext, user_prompt: str) -> str:
             f"Ollama request failed for {ollama_url}: {exc.__class__.__name__}: {exc}"
         ) from exc
 
-    return extract_ollama_content(response)
+    return build_model_response(
+        extract_ollama_content(response),
+        extract_ollama_usage(response),
+    )
 
 
-def call_gemini(context: AgentContext, user_prompt: str) -> str:
+def extract_gemini_usage(interaction: object) -> TokenUsage:
+    usage_metadata = getattr(interaction, "usage_metadata", None)
+    if usage_metadata is None:
+        return TokenUsage()
+
+    prompt_tokens = getattr(usage_metadata, "prompt_token_count", None)
+    output_tokens = getattr(usage_metadata, "candidates_token_count", None)
+    total_tokens = getattr(usage_metadata, "total_token_count", None)
+
+    if total_tokens is None and (prompt_tokens is not None or output_tokens is not None):
+        total_tokens = (prompt_tokens or 0) + (output_tokens or 0)
+
+    return TokenUsage(
+        input_tokens=prompt_tokens,
+        output_tokens=output_tokens,
+        total_tokens=total_tokens,
+    )
+
+
+def call_gemini(context: AgentContext, user_prompt: str) -> ModelResponse:
     try:
         from google import genai
     except ImportError as exc:
@@ -152,12 +201,16 @@ def call_gemini(context: AgentContext, user_prompt: str) -> str:
 
     content = getattr(interaction, "output_text", None)
     if content:
-        return content.strip()
+        return build_model_response(content.strip(), extract_gemini_usage(interaction))
 
     raise ValueError("Gemini returned a response without output_text.")
 
 
-def call_model(context: AgentContext, user_prompt: str, response_label: str = "Response") -> str:
+def call_model(
+    context: AgentContext,
+    user_prompt: str,
+    response_label: str = "Response",
+) -> ModelResponse:
     model = context.model_config.model
 
     if model == "codex":
@@ -169,5 +222,6 @@ def call_model(context: AgentContext, user_prompt: str, response_label: str = "R
     else:
         raise ValueError(f"Unsupported model: {model}")
 
-    trace_response(response, response_label)
+    trace_response(response.content, response_label, response.token_usage)
+    print_token_usage(response_label, response.token_usage)
     return response

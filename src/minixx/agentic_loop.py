@@ -37,12 +37,12 @@ def print_iteration_action(
 
 
 def get_agent_response(context: AgentContext, user_message: str) -> AgentResponse:
-    response = call_model(context, user_message)
+    model_response = call_model(context, user_message)
 
     try:
-        return parse_response(response)
+        return parse_response(model_response.content)
     except ValueError as exc:
-        trace_response_validation_error(str(exc), response)
+        trace_response_validation_error(str(exc), model_response.content)
         return repair_response(context, user_message, str(exc))
 
 

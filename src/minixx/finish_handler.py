@@ -94,7 +94,7 @@ def repair_finish_with_prompt(
     trace_repair_attempt(repair_kind, reason)
     repair_message = f"{user_message}\n\n{repair_prompt}"
     response = call_model(context, repair_message, "Repair Response")
-    return parse_response(response)
+    return parse_response(response.content)
 
 
 def repair_finish_output(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
