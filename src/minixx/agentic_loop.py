@@ -7,6 +7,7 @@ from .inputs import parse_args, prepare_run
 from .models import call_model
 from .planner import create_plan
 from .protocol import parse_response, repair_response, trace_response_validation_error
+from .traces import get_total_tokens
 from .tools import run_tool
 
 
@@ -82,8 +83,14 @@ def main() -> int:
         context = prepare_run(args.workspace_path)
         result = agentic_loop(context)
     except Exception as exc:  # noqa: BLE001
+        total_tokens = get_total_tokens()
+        if total_tokens is not None:
+            print(f"Total tokens: {total_tokens}")
         print(f"Error executing Minixx: {exc}")
         return 1
 
+    total_tokens = get_total_tokens()
+    if total_tokens is not None:
+        print(f"Total tokens: {total_tokens}")
     print(result)
     return 0

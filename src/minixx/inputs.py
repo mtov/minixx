@@ -113,12 +113,22 @@ def print_model_summary(model_config: ModelConfig) -> None:
     print(f"Using model: {model} ({model_name})")
 
 
+def print_user_prompt(user_prompt: str) -> None:
+    print("Prompt:")
+    print(user_prompt)
+
+
 def prepare_run(workspace_path_arg: str) -> AgentContext:
     clear_trace()
     workspace_path = resolve_workspace_path(workspace_path_arg)
     model_config = load_model_config(workspace_path)
     print_model_summary(model_config)
     system_prompt = load_system_prompt()
+    system_prompt = (
+        f"{system_prompt}\n\n"
+        "Workspace root:\n"
+        f"{workspace_path}"
+    )
     workspace_instructions = load_workspace_instructions(workspace_path)
     if workspace_instructions is not None:
         print("Loading AGENTS.md")
@@ -128,5 +138,6 @@ def prepare_run(workspace_path_arg: str) -> AgentContext:
             f"{workspace_instructions}"
         )
     user_prompt = load_user_prompt(workspace_path)
+    print_user_prompt(user_prompt)
     trace_request(user_prompt)
     return AgentContext(model_config=model_config, system_prompt=system_prompt, user_prompt=user_prompt, workspace_path=workspace_path)

@@ -36,6 +36,12 @@ def format_token_usage(token_usage: TokenUsage) -> str:
     )
 
 
+def get_total_tokens() -> int | None:
+    if TOTAL_TOKENS == 0:
+        return None
+    return TOTAL_TOKENS
+
+
 def trace_response(
     response: str,
     label: str = "Response",

@@ -11,6 +11,10 @@ After choosing one action, stop.
 Action Description should explain what you are doing and why this step helps with the task.
 Keep it short and specific.
 Do not repeat the full internal reasoning from Thought.
+Treat the workspace root provided in the prompt as the only valid root for tool paths.
+Never use `/`, `/workspace`, `/config`, or any other guessed root path unless that exact path was returned by a tool.
+When the task is about finding information in the workspace, prefer starting with `list_files` on the workspace root before narrowing to subdirectories.
+After `list_files`, use only file and directory names that were explicitly returned by tools or already appear in agent history.
 Only reason about files and directories that appear in agent history or are returned by tools.
 Do not invent paths.
 If a file has already been checked and did not contain the answer, do not read it again.

@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 from .context import AgentContext, ModelResponse, TokenUsage
-from .traces import format_token_usage, trace_response
+from .traces import trace_response
 
 
 def build_codex_prompt(system_prompt: str, user_prompt: str) -> str:
@@ -27,10 +27,6 @@ def require_config_value(value: str | None, key: str, model_name: str) -> str:
 
 def build_model_response(content: str, token_usage: TokenUsage | None = None) -> ModelResponse:
     return ModelResponse(content=content, token_usage=token_usage or TokenUsage())
-
-
-def print_token_usage(label: str, token_usage: TokenUsage) -> None:
-    print(f"[tokens] {label}: {format_token_usage(token_usage)}", flush=True)
 
 
 def call_codex(context: AgentContext, user_prompt: str) -> ModelResponse:
@@ -223,5 +219,4 @@ def call_model(
         raise ValueError(f"Unsupported model: {model}")
 
     trace_response(response.content, response_label, response.token_usage)
-    print_token_usage(response_label, response.token_usage)
     return response
