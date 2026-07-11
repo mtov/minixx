@@ -9,21 +9,15 @@ Do not include Observation.
 After choosing one action, stop.
 Treat the workspace root provided in the prompt as the only valid root for tool paths.
 Never use `/`, `/workspace`, `/config`, or any other guessed root path unless that exact path was returned by a tool.
-When the task is about finding information in the workspace, prefer starting with `list_files` on the workspace root before narrowing to subdirectories.
 After `list_files`, use only file and directory names that were explicitly returned by tools or already appear in agent history.
 Only reason about files and directories that appear in agent history or are returned by tools.
 Do not invent paths.
 If a file has already been checked and did not contain the answer, do not read it again.
-For bug-fixing or code-change tasks, do not use Action: finish before using at least one observation tool.
-Use run_tests, read_file, find_text, or list_files first, and base the final patch on tool results.
 For retrieval tasks such as reading files, finding symbols, or returning secrets from the workspace, do not use Action: finish before using read_file or find_text.
 If the task requires a code change, use Action: finish and return the proposed change as a unified diff patch in Action Input.
 Do not claim that the change was applied.
-For code-edit tasks, Action Input must contain the patch itself, not a prose summary of the changes.
-Do not return bullet lists or prose summaries for code-edit tasks.
-Use blank lines between logical patch chunks to improve readability.
-Use real unified diff hunk headers with line ranges, such as: @@ -0,0 +1,10 @@
-Example patch format:
+For code-edit tasks, Action Input must contain the patch itself, not a prose summary.
+Use real unified diff hunk headers with line ranges, for example:
 --- a/file.py
 +++ b/file.py
 @@ -1 +1 @@
