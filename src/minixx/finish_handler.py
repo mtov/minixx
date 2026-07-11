@@ -25,22 +25,6 @@ def is_bug_fix_task(user_prompt: str) -> bool:
     return any(keyword in prompt for keyword in ("bug", "fix", "failing test", "tests pass"))
 
 
-def is_retrieval_task(user_prompt: str) -> bool:
-    prompt = user_prompt.lower()
-    return any(
-        keyword in prompt
-        for keyword in (
-            "read",
-            "find",
-            "locate",
-            "inspect",
-            "secret",
-            "symbol",
-            "file",
-        )
-    )
-
-
 def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> None:
     if not is_code_change_task(user_prompt):
         return
@@ -74,12 +58,6 @@ def handle_finish(
 ) -> AgentResponse:
     if agent_response.action != "finish":
         return agent_response
-
-    if is_retrieval_task(context.user_prompt) and not any(
-        agent_history.contains_action(action)
-        for action in ("read_file", "find_text")
-    ):
-        raise ValueError("Retrieval tasks must use read_file or find_text before finish.")
 
     try:
         validate_finish_output(agent_response, context.user_prompt)
