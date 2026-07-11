@@ -1,8 +1,8 @@
 {
-  "model": "ollama",
+  "model": "openai-compatible",
   "codex_command": "codex",
-  "gemini_model": "gemini-2.5-flash",
+  "openai_base_url": "http://localhost:11434/v1",
+  "openai_model": "qwen2.5-coder:14b",
   "timeout_seconds": 600,
-  "ollama_url": "http://localhost:11434",
-  "ollama_model": "qwen2.5-coder:14b"
+  "openai_api_key_env": null
 }

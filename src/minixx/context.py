@@ -9,9 +9,9 @@ class ModelConfig:
     model: str
     timeout_seconds: int
     codex_command: str | None
-    gemini_model: str | None
-    ollama_url: str | None
-    ollama_model: str | None
+    openai_base_url: str | None
+    openai_model: str | None
+    openai_api_key_env: str | None
     working_directory: Path
 
 

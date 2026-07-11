@@ -11,7 +11,7 @@ It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc
 
 - Minixx is intended for learning, experimentation, and research.
 - Minixx favors a simple architecture that is easy to understand and extend.
-- Minixx currently uses Gemini as its default model, but it can also be configured to use OpenAI's Codex or local models served by Ollama.
+- Minixx uses either the Codex CLI or a single OpenAI-compatible chat API.
 
 ## Run
 
@@ -41,7 +41,6 @@ Setup:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-export GEMINI_API_KEY="your_key_here"
 ```
 
 Run command:
@@ -74,25 +73,26 @@ Program Creation:
 
 ## Model
 
-Minixx currently uses Gemini as its default model.
-It can also be configured to use OpenAI's Codex or local models served by Ollama.
+Minixx can call models in two ways:
+
+- directly through the Codex CLI
+- through any chat-completions endpoint compatible with the OpenAI API
 
 ```mermaid
 flowchart LR
-    Minixx --> Gemini["Gemini model"]
-    Gemini --> GoogleModel["Gemini 2.5 Flash"]
-    Minixx --> Ollama["Ollama model"]
-    Ollama --> Other["Other models"]
+    Minixx --> Compatible["OpenAI-compatible API"]
+    Compatible --> OpenAI["OpenAI models"]
+    Compatible --> Other["Other compatible providers"]
     Minixx --> Codex["OpenAI's Codex"]
     Codex --> GPT["GPT Model"]
 ```
 
 Requirements:
 
-- a Gemini model requires a valid `GEMINI_API_KEY` environment variable
 - the model configuration lives in `./config/config.json`
 - a Codex model requires the Codex desktop app or CLI and the `codex` executable in your shell `PATH`
-- an Ollama model requires a reachable Ollama server and a configured model
+- an OpenAI-compatible model requires a configured `openai_model`
+- some providers require `OPENAI_API_KEY` or the env var named by `openai_api_key_env`
 - `pytest` must be available in the Python environment used to run Minixx
 
 If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment when using the Codex model.
@@ -115,7 +115,7 @@ Do not add external dependencies.
 1. Minixx loads the model configuration, the global system prompt, and optional workspace instructions from `AGENTS.md`.
 2. Minixx loads `prompt.txt` from the selected workspace.
 3. `agentic_loop.py` asks `models.py` for the next response.
-4. `models.py` calls the configured external model (`Gemini`, `Codex`, or `Ollama`).
+4. `models.py` calls the configured external model (`Codex` or an OpenAI-compatible API).
 5. The loop chooses a tool, receives the tool result, and updates its history.
 6. The loop ends when the agent returns a final `finish` output.
 
@@ -123,7 +123,7 @@ Do not add external dependencies.
 sequenceDiagram
     participant AgentLoop as agentic_loop.py
     participant Models as models.py
-    participant External as Gemini / Codex / Ollama
+    participant External as Codex / OpenAI-compatible API
     participant Workspace
 
     AgentLoop->>Workspace: load prompt and inspect files
@@ -211,6 +211,26 @@ search text | /path/to/directory
 ```
 
 `run_tests` runs the workspace test suite using a fixed `pytest` command.
+
+## Model Configuration
+
+The default `config/config.json` uses the OpenAI-compatible client:
+
+```json
+{
+  "model": "openai-compatible",
+  "codex_command": "codex",
+  "openai_base_url": "http://localhost:11434/v1",
+  "openai_model": "qwen2.5-coder:14b",
+  "timeout_seconds": 600,
+  "openai_api_key_env": null
+}
+```
+
+Supported `model` values:
+
+- `openai-compatible`
+- `codex`
 
 When a task requires a code change, the agent is expected to return a unified diff patch in the final `finish` response.
 The patch should use real unified diff hunk headers with line ranges, such as `@@ -1 +1 @@` or `@@ -0,0 +1,10 @@`.

@@ -37,9 +37,9 @@ def load_model_config(working_directory: Path) -> ModelConfig:
         model=selected_model,
         timeout_seconds=raw_config["timeout_seconds"],
         codex_command=raw_config.get("codex_command"),
-        gemini_model=raw_config.get("gemini_model"),
-        ollama_url=raw_config.get("ollama_url"),
-        ollama_model=raw_config.get("ollama_model"),
+        openai_base_url=raw_config.get("openai_base_url"),
+        openai_model=raw_config.get("openai_model"),
+        openai_api_key_env=raw_config.get("openai_api_key_env"),
         working_directory=working_directory,
     )
 
@@ -103,10 +103,8 @@ def print_model_summary(model_config: ModelConfig) -> None:
 
     if model == "codex":
         model_name = model_config.codex_command or "codex"
-    elif model == "gemini":
-        model_name = model_config.gemini_model or "gemini"
-    elif model == "ollama":
-        model_name = model_config.ollama_model or "ollama"
+    elif model == "openai-compatible":
+        model_name = model_config.openai_model or "openai-compatible"
     else:
         model_name = model
 

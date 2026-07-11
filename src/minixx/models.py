@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 import os
 import shutil
 import subprocess
-from pathlib import Path
 
 from .context import AgentContext, ModelResponse, TokenUsage
 from .traces import trace_response
@@ -62,85 +61,60 @@ def call_codex(context: AgentContext, user_prompt: str) -> ModelResponse:
     return build_model_response(content)
 
 
-def extract_ollama_content(response: object) -> str:
-    message = getattr(response, "message", None)
-    if message is not None:
-        content = getattr(message, "content", None)
-        if content:
-            return content.strip()
+def extract_openai_content(response: object) -> str:
+    choices = getattr(response, "choices", None)
+    if choices is None and isinstance(response, dict):
+        choices = response.get("choices")
 
-    if isinstance(response, dict):
-        message = response.get("message", {})
+    if not choices:
+        raise ValueError("OpenAI-compatible model returned a response without choices.")
+
+    first_choice = choices[0]
+    message = getattr(first_choice, "message", None)
+    if message is None and isinstance(first_choice, dict):
+        message = first_choice.get("message", {})
+
+    content = getattr(message, "content", None)
+    if content is None and isinstance(message, dict):
         content = message.get("content")
-        if content:
-            return content.strip()
 
-    raise ValueError("Ollama returned a response without message content.")
+    if isinstance(content, str) and content.strip():
+        return content.strip()
 
+    if isinstance(content, list):
+        text_parts: list[str] = []
+        for part in content:
+            if isinstance(part, str):
+                text_parts.append(part)
+                continue
+            if isinstance(part, dict) and part.get("type") == "text" and part.get("text"):
+                text_parts.append(str(part["text"]))
+                continue
+            text = getattr(part, "text", None)
+            if text:
+                text_parts.append(str(text))
+        joined = "".join(text_parts).strip()
+        if joined:
+            return joined
 
-def extract_ollama_usage(response: object) -> TokenUsage:
-    prompt_tokens = getattr(response, "prompt_eval_count", None)
-    output_tokens = getattr(response, "eval_count", None)
-
-    if isinstance(response, dict):
-        prompt_tokens = response.get("prompt_eval_count", prompt_tokens)
-        output_tokens = response.get("eval_count", output_tokens)
-
-    total_tokens = None
-    if prompt_tokens is not None or output_tokens is not None:
-        total_tokens = (prompt_tokens or 0) + (output_tokens or 0)
-
-    return TokenUsage(
-        input_tokens=prompt_tokens,
-        output_tokens=output_tokens,
-        total_tokens=total_tokens,
-    )
+    raise ValueError("OpenAI-compatible model returned a response without message content.")
 
 
-def call_ollama(context: AgentContext, user_prompt: str) -> ModelResponse:
-    try:
-        from ollama import Client
-    except ImportError as exc:
-        raise RuntimeError("Ollama Python package not installed. Run pip install -r requirements.txt.") from exc
-
-    ollama_url = require_config_value(context.model_config.ollama_url, "ollama_url", "Ollama")
-    ollama_model = require_config_value(context.model_config.ollama_model, "ollama_model", "Ollama")
-    client = Client(host=ollama_url)
-
-    try:
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(
-                client.chat,
-                model=ollama_model,
-                messages=[
-                    {"role": "system", "content": context.system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            )
-            response = future.result(timeout=context.model_config.timeout_seconds)
-    except FuturesTimeoutError as exc:
-        raise RuntimeError(
-            f"Ollama request timed out after {context.model_config.timeout_seconds} seconds."
-        ) from exc
-    except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(
-            f"Ollama request failed for {ollama_url}: {exc.__class__.__name__}: {exc}"
-        ) from exc
-
-    return build_model_response(
-        extract_ollama_content(response),
-        extract_ollama_usage(response),
-    )
-
-
-def extract_gemini_usage(interaction: object) -> TokenUsage:
-    usage_metadata = getattr(interaction, "usage_metadata", None)
-    if usage_metadata is None:
+def extract_openai_usage(response: object) -> TokenUsage:
+    usage = getattr(response, "usage", None)
+    if usage is None and isinstance(response, dict):
+        usage = response.get("usage")
+    if usage is None:
         return TokenUsage()
 
-    prompt_tokens = getattr(usage_metadata, "prompt_token_count", None)
-    output_tokens = getattr(usage_metadata, "candidates_token_count", None)
-    total_tokens = getattr(usage_metadata, "total_token_count", None)
+    prompt_tokens = getattr(usage, "prompt_tokens", None)
+    output_tokens = getattr(usage, "completion_tokens", None)
+    total_tokens = getattr(usage, "total_tokens", None)
+
+    if isinstance(usage, dict):
+        prompt_tokens = usage.get("prompt_tokens", prompt_tokens)
+        output_tokens = usage.get("completion_tokens", output_tokens)
+        total_tokens = usage.get("total_tokens", total_tokens)
 
     if total_tokens is None and (prompt_tokens is not None or output_tokens is not None):
         total_tokens = (prompt_tokens or 0) + (output_tokens or 0)
@@ -152,54 +126,59 @@ def extract_gemini_usage(interaction: object) -> TokenUsage:
     )
 
 
-def call_gemini(context: AgentContext, user_prompt: str) -> ModelResponse:
-    try:
-        from google import genai
-    except ImportError as exc:
-        raise RuntimeError(
-            "Google GenAI Python package not installed. Run pip install -r requirements.txt."
-        ) from exc
+def resolve_openai_api_key(context: AgentContext) -> str:
+    api_key_env = context.model_config.openai_api_key_env
+    if api_key_env:
+        return require_config_value(
+            os.environ.get(api_key_env),
+            api_key_env,
+            "OpenAI-compatible",
+        )
 
-    gemini_api_key = require_config_value(
-        os.environ.get("GEMINI_API_KEY"),
-        "GEMINI_API_KEY",
-        "Gemini",
+    return os.environ.get("OPENAI_API_KEY", "minixx")
+
+
+def call_openai_compatible(context: AgentContext, user_prompt: str) -> ModelResponse:
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise RuntimeError("OpenAI Python package not installed. Run pip install -r requirements.txt.") from exc
+
+    openai_model = require_config_value(
+        context.model_config.openai_model,
+        "openai_model",
+        "OpenAI-compatible",
     )
-    gemini_model = require_config_value(
-        context.model_config.gemini_model,
-        "gemini_model",
-        "Gemini",
+    client = OpenAI(
+        api_key=resolve_openai_api_key(context),
+        base_url=context.model_config.openai_base_url,
     )
-    client = genai.Client(api_key=gemini_api_key)
 
     try:
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(
-                client.interactions.create,
-                model=gemini_model,
-                system_instruction=context.system_prompt,
-                input=user_prompt,
+                client.chat.completions.create,
+                model=openai_model,
+                messages=[
+                    {"role": "system", "content": context.system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
             )
-            interaction = future.result(timeout=context.model_config.timeout_seconds)
+            response = future.result(timeout=context.model_config.timeout_seconds)
     except FuturesTimeoutError as exc:
         raise RuntimeError(
-            f"Gemini request timed out after {context.model_config.timeout_seconds} seconds."
+            f"OpenAI-compatible request timed out after {context.model_config.timeout_seconds} seconds."
         ) from exc
     except Exception as exc:  # noqa: BLE001
-        if exc.__class__.__name__ == "RateLimitError":
-            raise RuntimeError(
-                "Gemini quota exceeded or rate limited. "
-                "Check your API quota/billing, wait and retry, or switch to another model."
-            ) from exc
+        base_url = context.model_config.openai_base_url or "default OpenAI endpoint"
         raise RuntimeError(
-            f"Gemini request failed: {exc.__class__.__name__}: {exc}"
+            f"OpenAI-compatible request failed for {base_url}: {exc.__class__.__name__}: {exc}"
         ) from exc
 
-    content = getattr(interaction, "output_text", None)
-    if content:
-        return build_model_response(content.strip(), extract_gemini_usage(interaction))
-
-    raise ValueError("Gemini returned a response without output_text.")
+    return build_model_response(
+        extract_openai_content(response),
+        extract_openai_usage(response),
+    )
 
 
 def call_model(
@@ -211,10 +190,8 @@ def call_model(
 
     if model == "codex":
         response = call_codex(context, user_prompt)
-    elif model == "gemini":
-        response = call_gemini(context, user_prompt)
-    elif model == "ollama":
-        response = call_ollama(context, user_prompt)
+    elif model == "openai-compatible":
+        response = call_openai_compatible(context, user_prompt)
     else:
         raise ValueError(f"Unsupported model: {model}")
 
