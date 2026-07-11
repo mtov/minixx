@@ -46,7 +46,6 @@ def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: 
     )
     calls: list[str] = []
 
-    monkeypatch.setattr("minixx.finish_handler.review_finish", lambda *args: None)
     monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: response.action_input)
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: calls.append("save_patch"))
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: calls.append("apply_patch"))
@@ -69,7 +68,6 @@ def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: 
         action_input="--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new\n",
     )
 
-    monkeypatch.setattr("minixx.finish_handler.review_finish", lambda *args: None)
     monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: response.action_input)
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: None)
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
@@ -99,7 +97,6 @@ def test_handle_finish_skips_post_apply_tests_for_non_bug_fix(monkeypatch, tmp_p
         run_tests_called = True
         return "1 passed"
 
-    monkeypatch.setattr("minixx.finish_handler.review_finish", lambda *args: None)
     monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: response.action_input)
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: None)
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)

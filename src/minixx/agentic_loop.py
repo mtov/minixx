@@ -5,7 +5,6 @@ from .finish_handler import handle_finish
 from .history_manager import create_history, history_to_text, update_history
 from .inputs import parse_args, prepare_run
 from .models import call_model
-from .planner import create_plan
 from .protocol import parse_response, repair_response, trace_response_validation_error
 from .traces import get_total_tokens
 from .tools import run_tool
@@ -14,19 +13,12 @@ from .tools import run_tool
 def build_user_message(
     context: AgentContext,
     agent_history: str,
-    plan: str | None,
 ) -> str:
-    message = f"""User task:
+    return f"""User task:
 {context.user_prompt}
 
 Agent history:
 {agent_history}"""
-    if plan is None:
-        return message
-    return f"""{message}
-
-Plan:
-{plan}"""
 
 
 def print_iteration_action(iteration: int, action: str) -> None:
@@ -46,10 +38,9 @@ def get_agent_response(context: AgentContext, user_message: str) -> AgentRespons
 def agentic_loop(context: AgentContext) -> str:
     max_iterations = 10
     agent_history = create_history()
-    plan = create_plan(context)
 
     for iteration in range(1, max_iterations + 1):
-        user_message = build_user_message(context, history_to_text(agent_history), plan)
+        user_message = build_user_message(context, history_to_text(agent_history))
         agent_response = get_agent_response(context, user_message)
 
         if agent_response.action == "finish":

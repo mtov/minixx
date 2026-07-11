@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from .context import AgentContext, AgentHistory, AgentResponse
-from .finish_reviewer import review_finish
 from .patches import apply_patch, save_patch, validate_and_repair_patch
 from .protocol import (
     PATCH_REPAIR_PROMPT,
@@ -145,10 +144,6 @@ def handle_finish(
     agent_history: AgentHistory,
     agent_response: AgentResponse,
 ) -> AgentResponse:
-    reviewed_response = review_finish(context, user_message, agent_history, agent_response)
-    if reviewed_response is not None:
-        agent_response = reviewed_response
-
     try:
         validate_finish_preconditions(agent_response, context.user_prompt, agent_history)
     except ValueError as exc:
