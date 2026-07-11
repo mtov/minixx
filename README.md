@@ -186,10 +186,6 @@ Core:
 - `src/minixx/command_runner.py` previews mutating commands and asks the user for approval
 - `src/minixx/traces.py` records the execution trace and token usage
 
-Support:
-
-- `src/minixx/history_manager.py`
-
 Shared types and support:
 
 - `src/minixx/context.py`

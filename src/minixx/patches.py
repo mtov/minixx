@@ -145,8 +145,7 @@ def validate_and_repair_patch(workspace_path: Path, patch_text: str) -> str:
 
 def apply_patch(workspace_path: Path) -> None:
     patch_path = workspace_path / "patch.txt"
-    patch_text = validate_and_repair_patch(workspace_path, patch_path.read_text(encoding="utf-8"))
-    patch_path.write_text(patch_text, encoding="utf-8")
+    patch_text = patch_path.read_text(encoding="utf-8")
     result = run_mutating_command(
         ["git", "apply", patch_path.name],
         workspace_path,

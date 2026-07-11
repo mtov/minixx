@@ -87,3 +87,13 @@ def trace_response_validation_error(reason: str, response: str) -> None:
 
 def repair_response(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
     return repair_with_prompt(context, user_message, REPAIR_PROMPT, "Protocol repair", reason)
+
+
+def repair_response_with_prompt(
+    context: AgentContext,
+    user_message: str,
+    repair_prompt: str,
+    repair_kind: str,
+    reason: str,
+) -> AgentResponse:
+    return repair_with_prompt(context, user_message, repair_prompt, repair_kind, reason)

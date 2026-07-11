@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from .context import AgentContext, AgentHistory, AgentResponse
 from .finish_handler import handle_finish
-from .history_manager import create_history, history_to_text, update_history
 from .inputs import parse_args, prepare_run
 from .models import call_model
 from .protocol import parse_response, repair_response, trace_response_validation_error
@@ -37,10 +36,10 @@ def get_agent_response(context: AgentContext, user_message: str) -> AgentRespons
 
 def agentic_loop(context: AgentContext) -> str:
     max_iterations = 10
-    agent_history = create_history()
+    agent_history = AgentHistory()
 
     for iteration in range(1, max_iterations + 1):
-        user_message = build_user_message(context, history_to_text(agent_history))
+        user_message = build_user_message(context, agent_history.to_text())
         agent_response = get_agent_response(context, user_message)
 
         if agent_response.action == "finish":
@@ -53,7 +52,7 @@ def agentic_loop(context: AgentContext) -> str:
             return agent_response.action_input
 
         tool_result = run_tool(agent_response, context.workspace_path)
-        update_history(agent_history, iteration, agent_response, tool_result)
+        agent_history.append(iteration, agent_response, tool_result)
 
     print()
     raise ValueError("Agent stopped after reaching the maximum number of steps.")

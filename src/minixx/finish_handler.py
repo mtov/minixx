@@ -6,11 +6,9 @@ from .protocol import (
     PATCH_REPAIR_PROMPT,
     PRECONDITION_REPAIR_PROMPT,
     looks_like_patch,
-    parse_response,
+    repair_response_with_prompt,
     trace_response_validation_error,
 )
-from .traces import trace_repair_attempt
-from .models import call_model
 from .tools import run_tests
 
 
@@ -101,21 +99,8 @@ def validate_post_apply_tests(context: AgentContext) -> None:
         raise ValueError(f"Post-apply tests failed:\n{test_output}")
 
 
-def repair_finish_with_prompt(
-    context: AgentContext,
-    user_message: str,
-    repair_prompt: str,
-    repair_kind: str,
-    reason: str,
-) -> AgentResponse:
-    trace_repair_attempt(repair_kind, reason)
-    repair_message = f"{user_message}\n\n{repair_prompt}"
-    response = call_model(context, repair_message, "Repair Response")
-    return parse_response(response.content)
-
-
 def repair_finish_output(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
-    return repair_finish_with_prompt(
+    return repair_response_with_prompt(
         context,
         user_message,
         PATCH_REPAIR_PROMPT,
@@ -129,7 +114,7 @@ def repair_finish_preconditions(
     user_message: str,
     reason: str,
 ) -> AgentResponse:
-    return repair_finish_with_prompt(
+    return repair_response_with_prompt(
         context,
         user_message,
         PRECONDITION_REPAIR_PROMPT,
