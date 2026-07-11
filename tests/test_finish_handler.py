@@ -105,3 +105,48 @@ def test_handle_finish_skips_post_apply_tests_for_non_bug_fix(monkeypatch, tmp_p
 
     assert result is response
     assert run_tests_called is False
+
+
+def test_handle_finish_repairs_patch_when_action_input_looks_like_patch(monkeypatch, tmp_path: Path) -> None:
+    context = build_context(tmp_path, "Please fix slugify in src/text_utils.py.")
+    history = AgentHistory()
+    history.append(
+        1,
+        AgentResponse(thought="inspect", action="read_file", action_input="src/text_utils.py"),
+        "file contents",
+    )
+    original_patch = (
+        "--- a/src/text_utils.py\n"
+        "+++ b/src/text_utils.py\n"
+        "@@ -1,6 +1,11 @@\n"
+        " import re\n"
+        "+import unicodedata\n"
+        " \n"
+        " def slugify(title: str) -> str:\n"
+        "-    value = title.lower().strip()\n"
+        "+    value = unicodedata.normalize(\"NFKD\", title)\n"
+        "+    value = value.encode(\"ascii\", \"ignore\").decode(\"ascii\")\n"
+        "+    value = value.lower().strip()\n"
+        "     value = re.sub(r\"[^a-z0-9]+\", \"-\", value)\n"
+        "-    return value.strip(\"-\")\n"
+        "+    value = value.strip(\"-\")\n"
+        "+    return value or \"item\"\n"
+    )
+    repaired_patch = original_patch.replace("@@ -1,6 +1,11 @@", "@@ -1,6 +1,10 @@")
+    response = AgentResponse(
+        thought="done",
+        action="finish",
+        action_input=original_patch,
+    )
+    saved_patches: list[str] = []
+
+    monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: repaired_patch)
+    monkeypatch.setattr("minixx.finish_handler.save_patch", lambda _path, patch: saved_patches.append(patch))
+    monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
+    monkeypatch.setattr("minixx.finish_handler.run_tests", lambda *_args: "1 passed")
+
+    result = handle_finish(context, "user message", history, response)
+
+    assert result is response
+    assert response.action_input == repaired_patch
+    assert saved_patches == [repaired_patch]

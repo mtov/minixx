@@ -72,8 +72,8 @@ def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> N
         raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
 
 
-def validate_patch_output(context: AgentContext, agent_response: AgentResponse, user_prompt: str) -> None:
-    if not is_code_change_task(user_prompt):
+def validate_patch_output(context: AgentContext, agent_response: AgentResponse) -> None:
+    if not looks_like_patch(agent_response.action_input):
         return
     repaired_patch = validate_and_repair_patch(context.workspace_path, agent_response.action_input)
     if repaired_patch != agent_response.action_input:
@@ -170,7 +170,7 @@ def handle_finish(
         agent_response=agent_response,
         validator=validate_patch_output,
         repairer=repair_finish_output,
-        validation_args=(context, agent_response, context.user_prompt),
+        validation_args=(context, agent_response),
     )
 
     if looks_like_patch(agent_response.action_input):
