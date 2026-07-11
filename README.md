@@ -153,10 +153,10 @@ git apply patch.txt
 
 ```mermaid
 sequenceDiagram
-    participant Source as "Source workspace"
-    participant Runtime as "minixx-workspace"
-    participant AgentLoop as "agentic_loop.py"
-    participant Model as "OpenAI-compatible API"
+    participant Source as SourceWorkspace
+    participant Runtime as MinixxWorkspace
+    participant AgentLoop as AgenticLoop
+    participant Model as OpenAICompatibleAPI
 
     Source->>Runtime: copy workspace
     AgentLoop->>Runtime: read prompt and files
@@ -208,13 +208,3 @@ Because the project is didactic, inspecting this trace is often the easiest way 
 - `run_tests` uses a fixed command, not arbitrary shell execution
 - patch application requires explicit user approval
 - this is a lightweight local safety model, not a full sandbox
-
-## What To Read First
-
-- `src/minixx/agentic_loop.py`
-- `src/minixx/context.py`
-- `src/minixx/inputs.py`
-- `src/minixx/tools.py`
-- `src/minixx/finish_handler.py`
-- `src/minixx/patches.py`
-- `src/minixx/models.py`
