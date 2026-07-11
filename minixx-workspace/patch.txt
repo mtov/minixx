@@ -5,9 +5,10 @@
 +import unicodedata
  
  def slugify(title: str) -> str:
-     value = title.lower().strip()
+-    value = title.lower().strip()
 -    value = re.sub(r"[^a-z0-9]+", "-", value)
 -    return value.strip("-")
++    value = title.lower().strip()
 +    value = unicodedata.normalize("NFKD", value)
 +    value = "".join(ch for ch in value if not unicodedata.combining(ch))
 +    value = re.sub(r"[^a-z0-9]+", "-", value)

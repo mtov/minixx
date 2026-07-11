@@ -153,18 +153,18 @@ git apply patch.txt
 
 ```mermaid
 sequenceDiagram
-    participant Source as Source workspace
-    participant Runtime as minixx-workspace
-    participant Loop as agentic_loop.py
-    participant Model as OpenAI-compatible API
+    participant Source as "Source workspace"
+    participant Runtime as "minixx-workspace"
+    participant AgentLoop as "agentic_loop.py"
+    participant Model as "OpenAI-compatible API"
 
     Source->>Runtime: copy workspace
-    Loop->>Runtime: read prompt and files
-    Loop->>Model: request next action
-    Model-->>Loop: Thought / Action / Action Input
-    Loop->>Runtime: run tool
-    Runtime-->>Loop: tool result
-    Loop->>Runtime: save and apply patch on finish
+    AgentLoop->>Runtime: read prompt and files
+    AgentLoop->>Model: request next action
+    Model-->>AgentLoop: Thought / Action / Action Input
+    AgentLoop->>Runtime: run tool
+    Runtime-->>AgentLoop: tool result
+    AgentLoop->>Runtime: save and apply patch on finish
 ```
 
 ## Architecture

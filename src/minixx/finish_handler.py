@@ -96,6 +96,7 @@ def validate_post_apply_tests(context: AgentContext) -> None:
     if not is_bug_fix_task(context.user_prompt):
         return
 
+    print("Running tests after applying patch...", flush=True)
     test_output = run_tests(context.workspace_path)
     if "passed" not in test_output.lower():
         raise ValueError(f"Post-apply tests failed:\n{test_output}")

@@ -36,7 +36,7 @@ def build_history() -> AgentHistory:
     return history
 
 
-def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: Path) -> None:
+def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: Path, capsys) -> None:
     context = build_context(tmp_path, "Fix the bug in slugify and make tests pass.")
     history = build_history()
     response = AgentResponse(
@@ -53,9 +53,11 @@ def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: 
     monkeypatch.setattr("minixx.finish_handler.run_tests", lambda *_args: "1 passed")
 
     result = handle_finish(context, "user message", history, response)
+    captured = capsys.readouterr()
 
     assert result is response
     assert calls == ["save_patch", "apply_patch"]
+    assert "Running tests after applying patch..." in captured.out
 
 
 def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: Path) -> None:
