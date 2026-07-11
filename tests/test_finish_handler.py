@@ -107,6 +107,19 @@ def test_handle_finish_skips_post_apply_tests_for_non_bug_fix(monkeypatch, tmp_p
     assert run_tests_called is False
 
 
+def test_handle_finish_raises_immediately_when_retrieval_task_finishes_without_reading(tmp_path: Path) -> None:
+    context = build_context(tmp_path, "Read the secret value from the project.")
+    history = AgentHistory()
+    response = AgentResponse(
+        thought="done",
+        action="finish",
+        action_input="The secret is 123.",
+    )
+
+    with pytest.raises(ValueError, match="Retrieval tasks must use read_file or find_text before finish."):
+        handle_finish(context, "user message", history, response)
+
+
 def test_handle_finish_repairs_patch_when_action_input_looks_like_patch(monkeypatch, tmp_path: Path) -> None:
     context = build_context(tmp_path, "Please fix slugify in src/text_utils.py.")
     history = AgentHistory()
