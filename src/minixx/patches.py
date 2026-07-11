@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 import re
+import shlex
 import subprocess
 import tempfile
+from pathlib import Path
 
-from .command_runner import run_mutating_command
+from .traces import trace_command_event
 
 
 def save_patch(workspace_path: Path, patch_text: str) -> None:
@@ -143,10 +144,47 @@ def validate_and_repair_patch(workspace_path: Path, patch_text: str) -> str:
     return repaired_patch
 
 
+def _format_command(command: list[str]) -> str:
+    return shlex.join(command)
+
+
+def _request_command_approval(command: list[str], cwd: Path, preview: str | None = None) -> bool:
+    formatted_command = _format_command(command)
+    print(f"Proposed command: {formatted_command}")
+    print(f"Working directory: {cwd}")
+    if preview is not None:
+        print("Command preview:")
+        print(preview)
+    trace_command_event("proposed", formatted_command, cwd)
+    answer = input("Authorize command? [y/N]: ").strip().lower()
+    approved = answer in {"y", "yes"}
+    trace_command_event("approved" if approved else "rejected", formatted_command, cwd)
+    return approved
+
+
+def _run_mutating_command(
+    command: list[str],
+    cwd: Path,
+    preview: str | None = None,
+) -> subprocess.CompletedProcess[str]:
+    formatted_command = _format_command(command)
+    if not _request_command_approval(command, cwd, preview):
+        raise PermissionError(f"User rejected command: {formatted_command}")
+
+    print(f"Executing command: {formatted_command}")
+    trace_command_event("executed", formatted_command, cwd)
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+
+
 def apply_patch(workspace_path: Path) -> None:
     patch_path = workspace_path / "patch.txt"
     patch_text = patch_path.read_text(encoding="utf-8")
-    result = run_mutating_command(
+    result = _run_mutating_command(
         ["git", "apply", patch_path.name],
         workspace_path,
         preview=patch_text,

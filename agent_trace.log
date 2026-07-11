@@ -63,3 +63,38 @@ Status: executed
 Command: git apply patch.txt
 Working Directory: /Users/mtov/minixx/minixx-workspace
 
+Command Event
+Status: proposed
+Command: git status
+Working Directory: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-109/test_run_mutating_command_requ0
+
+Command Event
+Status: rejected
+Command: git status
+Working Directory: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-109/test_run_mutating_command_requ0
+
+Command Event
+Status: proposed
+Command: git status
+Working Directory: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-109/test_run_mutating_command_exec0
+
+Command Event
+Status: approved
+Command: git status
+Working Directory: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-109/test_run_mutating_command_exec0
+
+Command Event
+Status: executed
+Command: git status
+Working Directory: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-109/test_run_mutating_command_exec0
+
+Command Event
+Status: proposed
+Command: git apply patch.txt
+Working Directory: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-109/test_run_mutating_command_prin0
+
+Command Event
+Status: rejected
+Command: git apply patch.txt
+Working Directory: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-109/test_run_mutating_command_prin0
+
