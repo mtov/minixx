@@ -44,12 +44,11 @@ def agentic_loop(context: AgentContext) -> str:
 
         if agent_response.action == "finish":
             agent_response = handle_finish(context, user_message, agent_history, agent_response)
-
-        print_iteration_action(iteration, agent_response.action)
-
-        if agent_response.action == "finish":
+            print_iteration_action(iteration, agent_response.action)
             print()
             return agent_response.action_input
+
+        print_iteration_action(iteration, agent_response.action)
 
         tool_result = run_tool(agent_response, context.workspace_path)
         agent_history.append(iteration, agent_response, tool_result)
