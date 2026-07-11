@@ -52,12 +52,8 @@ def looks_like_patch(text: str) -> bool:
     return has_file_headers and has_valid_hunk_header
 
 
-def repair_with_prompt(context: AgentContext, user_message: str, repair_prompt: str, repair_kind: str, reason: str) -> AgentResponse:
-    trace_repair_attempt(repair_kind, reason)
-    repair_message = f"{user_message}\n\n{repair_prompt}"
+def repair_response(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
+    trace_repair_attempt("Protocol repair", reason)
+    repair_message = f"{user_message}\n\n{REPAIR_PROMPT}"
     response = call_model(context, repair_message, "Repair Response")
     return parse_response(response.content)
-
-
-def repair_response(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
-    return repair_with_prompt(context, user_message, REPAIR_PROMPT, "Protocol repair", reason)

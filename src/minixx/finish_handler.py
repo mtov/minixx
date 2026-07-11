@@ -87,13 +87,8 @@ def handle_finish(
         trace_validation_error(str(exc), format_agent_response(agent_response))
         raise
 
-    try:
-        validate_patch_output(context, agent_response)
-    except ValueError as exc:
-        trace_validation_error(str(exc), format_agent_response(agent_response))
-        raise
-
     if looks_like_patch(agent_response.action_input):
+        validate_patch_output(context, agent_response)
         save_patch(context.workspace_path, agent_response.action_input)
         apply_patch(context.workspace_path)
         validate_post_apply_tests(context)
