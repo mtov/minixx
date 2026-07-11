@@ -4,8 +4,8 @@ from .context import AgentContext, AgentHistory, AgentResponse
 from .finish_handler import handle_finish
 from .inputs import parse_args, prepare_run
 from .models import call_model
-from .protocol import parse_response, repair_response, trace_response_validation_error
-from .traces import get_total_tokens
+from .protocol import parse_response, repair_response
+from .traces import get_total_tokens, trace_validation_error
 from .tools import run_tool
 
 
@@ -30,7 +30,7 @@ def get_agent_response(context: AgentContext, user_message: str) -> AgentRespons
     try:
         return parse_response(model_response.content)
     except ValueError as exc:
-        trace_response_validation_error(str(exc), model_response.content)
+        trace_validation_error(str(exc), model_response.content)
         return repair_response(context, user_message, str(exc))
 
 
