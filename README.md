@@ -4,38 +4,17 @@
   <img src="minixx.png" alt="Minixx logo" width="160">
 </p>
 
-Minixx is a didactic Python project for studying how to build a simple code agent.
+Minixx is a didactic Python project for studying how to build a small code agent.
 It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc.ufmg.br/) at DCC/UFMG.
 
 ## Design Principles
 
-- Minixx is intended for learning, experimentation, and research.
-- Minixx favors a simple architecture that is easy to understand and extend.
-- Minixx uses either the Codex CLI or a single OpenAI-compatible chat API.
+- Minixx is meant for learning, experimentation, and research.
+- Minixx keeps the architecture intentionally small and readable.
+- Minixx isolates edits in a copied runtime workspace instead of modifying the original input workspace.
+- Minixx uses a single OpenAI-compatible chat API in the documented setup.
 
-## Run
-
-Minixx runs against a workspace passed on the command line.
-Run the command from the project root.
-For each run, Minixx copies the input workspace into an internal runtime directory named `minixx-workspace`.
-The original workspace is preserved and all file changes happen only inside that copied runtime workspace.
-
-Each workspace should contain:
-
-- a `prompt.txt` file
-- any project files or tests that the agent is allowed to inspect
-
-It may also contain:
-
-- an `AGENTS.md` file with workspace-specific instructions appended to the system prompt
-
-### Example
-
-`prompt.txt`:
-
-```text
-Rename the function old_name to new_name in all relevant files and return a unified diff patch.
-```
+## Quick Start
 
 Setup:
 
@@ -46,157 +25,76 @@ python -m pip install -r requirements.txt
 export OPENAI_API_KEY="your_key_here"
 ```
 
-Run command:
+Run:
 
 ```bash
-python run_minixx.py ./test_workspace/test-rename-refactoring
+python run_minixx.py ./test_workspace/bugfix_001_slugify
 ```
 
-The copied `minixx-workspace` becomes the working directory for the run.
-Tool paths are also restricted to that runtime workspace.
-If a run finishes with a unified diff patch, Minixx also saves that patch to `patch.txt` inside `minixx-workspace`.
+The default configuration calls the OpenAI API directly.
+If you want another OpenAI-compatible provider, set `openai_base_url` in `config/config.json`.
 
+## Workspace Contract
 
-## Demo Workspaces
+Minixx runs against a workspace directory passed on the command line.
+Each workspace should contain:
 
-Discovery:
-- `./test_workspace/test-find-secret-key`: file discovery and secret lookup
-- `./test_workspace/test-find-symbol`: symbol search and precise location reporting
+- `prompt.txt`
+- the project files the agent may inspect or patch
+- any tests the agent may run
 
-Refactoring:
-- `./test_workspace/test-rename-refactoring`: cross-file refactoring and patch generation
+It may also contain:
 
-Bug Fixing:
-- `./test_workspace/test-fix-failing-test`: test execution, bug diagnosis, and patch generation
-- `./test_workspace/test-fix-misleading-bug`: cross-file bug fixing with a misleading first suspicion
+- `AGENTS.md`, which is appended to the system prompt as workspace-specific guidance
 
-Program Creation:
-- `./test_workspace/test-create-program`: program creation and test generation as a unified diff patch
-- `./test_workspace/test-build-stopwatch`: create a small browser-based JavaScript stopwatch app from prompt only
-
-## Model
-
-Minixx can call models in two ways:
-
-- directly through the Codex CLI
-- through any chat-completions endpoint compatible with the OpenAI API
-
-```mermaid
-flowchart LR
-    Minixx --> Compatible["OpenAI-compatible API"]
-    Compatible --> OpenAI["OpenAI models"]
-    Compatible --> Other["Other compatible providers"]
-    Minixx --> Codex["OpenAI's Codex"]
-    Codex --> GPT["GPT Model"]
-```
-
-Requirements:
-
-- the model configuration lives in `./config/config.json`
-- a Codex model requires the Codex desktop app or CLI and the `codex` executable in your shell `PATH`
-- an OpenAI-compatible model requires a configured `openai_model`
-- the default configuration requires `OPENAI_API_KEY`
-- other compatible providers can be configured through `openai_base_url`
-- `pytest` must be available in the Python environment used to run Minixx
-
-If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment when using the Codex model.
-
-## Workspace Instructions
-
-`AGENTS.md` is an optional workspace file for local agent instructions.
-Use it for workspace-specific rules such as implementation style, tool usage hints, or constraints that should augment the global system prompt.
-
-Example `AGENTS.md`:
+Example `prompt.txt`:
 
 ```text
-Use only plain HTML, CSS, and JavaScript.
-Keep the app small and readable.
-Do not add external dependencies.
+Corrija a função `slugify(title)` em `src/text_utils.py`.
+Execute: `python -m pytest -q`.
 ```
 
-## How One Run Works
+## Runtime Workspace
 
-1. Minixx loads the model configuration, the global system prompt, and optional workspace instructions from `AGENTS.md`.
-2. Minixx loads `prompt.txt` from the selected workspace.
-3. `agentic_loop.py` asks `models.py` for the next response.
-4. `models.py` calls the configured external model (`Codex` or an OpenAI-compatible API).
-5. The loop chooses a tool, receives the tool result, and updates its history inside `minixx-workspace`.
-6. When a patch is ready, Minixx validates it, asks for approval, and applies it only inside `minixx-workspace`.
-7. The loop ends when the agent returns a final `finish` output.
+For each run, Minixx copies the selected workspace into a fixed internal directory named `minixx-workspace`.
+The original workspace is preserved.
+All reads, test runs, patch validation, and patch application happen only inside `minixx-workspace`.
 
-```mermaid
-sequenceDiagram
-    participant AgentLoop as agentic_loop.py
-    participant Models as models.py
-    participant External as Codex / OpenAI-compatible API
-    participant Workspace as Source workspace
-    participant Runtime as minixx-workspace
+This gives Minixx a predictable temporary working area with a stable path across runs.
+Before the next run, Minixx deletes the previous `minixx-workspace` and recreates it from the new source workspace.
 
-    AgentLoop->>Workspace: copy workspace
-    AgentLoop->>Runtime: load prompt and inspect files
-    AgentLoop->>Models: request next response
-    Models->>External: send prompt
-    External-->>Models: return response
-    Models-->>AgentLoop: return parsed response
-    AgentLoop->>Runtime: run tool
-    Runtime-->>AgentLoop: tool result
-    AgentLoop->>Models: repeat until finish
+## Current Example Workspace
+
+The repository currently ships with one example workspace:
+
+- `./test_workspace/bugfix_001_slugify`: bug fixing with test execution and final patch application
+
+## Model Options
+
+Minixx uses the documented `openai-compatible` model path.
+
+The default `config/config.json` is:
+
+```json
+{
+  "model": "openai-compatible",
+  "openai_base_url": null,
+  "openai_model": "gpt-5.4-mini",
+  "timeout_seconds": 600,
+  "openai_api_key_env": "OPENAI_API_KEY"
+}
 ```
 
-## Architecture
+Notes:
 
-```mermaid
-flowchart TD
-    A["Run Loop"]
-    B["Inputs"]
-    C["Models"]
-    D["Protocol"]
-    E["Tools"]
-    F["Finish Handling"]
-    G["Support Code"]
-
-    A --> B
-    A --> C
-    A --> D
-    A --> E
-    A --> F
-    E --> G
-    F --> G
-```
-
-Configuration:
-- `config/config.json` stores model settings.
-- `config/system_prompt.txt` stores the agent's behavior instructions.
-
-Core:
-- `agentic_loop.py` runs the main ReAct-style loop.
-- `inputs.py` loads configuration, prompts, and workspace instructions.
-- `models.py` sends requests to the configured external model.
-- `protocol.py` parses and repairs model responses.
-- `tools.py` executes the available workspace-safe tools.
-- `finish_handler.py` validates, repairs, reviews, and persists final `finish` outputs.
-- `patches.py` saves generated unified diff patches to `patch.txt`.
-- `traces.py` writes execution traces and token usage to `agent_trace.log`.
-
-Extension Points:
-- `planner.py` defines the optional planning step.
-- `finish_reviewer.py` defines the optional final review step before accepting `finish`.
-- `history_manager.py` encapsulates history creation, update, and serialization.
-
-Shared Types and Support:
-- `context.py` defines the main data structures used across one run.
-- `guards.py` validates and resolves tool paths inside the selected workspace.
-- `patches.py` persists final patch outputs.
-- `traces.py` records the request/response trace for inspection.
-
-Data Classes:
-
-- `ModelConfig` stores the typed model configuration used by one run.
-- `AgentContext` stores the configuration and stable inputs for one agent run.
-- `AgentResponse` stores one parsed model decision: `thought`, `action`, and `action_input`.
-- `AgentHistory` stores the accumulated iteration history used in the ReAct loop.
+- with `openai_base_url: null`, Minixx calls the default OpenAI API directly
+- the default setup requires `OPENAI_API_KEY`
+- `openai_model` selects the model for the OpenAI-compatible path
+- `pytest` must be available in the Python environment used to run Minixx
 
 ## Tools
+
+Available actions:
 
 - `list_files`
 - `read_file`
@@ -204,103 +102,121 @@ Data Classes:
 - `run_tests`
 - `finish`
 
-Minixx can inspect files, search for text, reason about changes, and propose patches.
-When a patch is approved by the user, Minixx applies it only inside `minixx-workspace`.
-Tool file and directory paths must stay inside the runtime workspace.
+Behavior notes:
 
-The model responds with `Thought`, `Action`, and `Action Input`.
+- `read_file` prints `Reading file: <name>` to the console before returning file contents
+- `find_text` expects `search text | /path/to/directory`
+- `run_tests` uses a fixed `pytest` command instead of an arbitrary shell command
+- for code-change tasks, `finish` must return a unified diff patch in `Action Input`
 
-`find_text` expects this input format:
+The model responds using:
 
-```text
-search text | /path/to/directory
-```
-
-`run_tests` runs the workspace test suite using a fixed `pytest` command.
-
-## Model Configuration
-
-The default `config/config.json` uses the OpenAI-compatible client:
-
-```json
-{
-  "model": "openai-compatible",
-  "codex_command": "codex",
-  "openai_base_url": null,
-  "openai_model": "gpt-4.1",
-  "timeout_seconds": 600,
-  "openai_api_key_env": "OPENAI_API_KEY"
-}
-```
-
-With `openai_base_url: null`, Minixx calls the default OpenAI API directly.
-
-Supported `model` values:
-
-- `openai-compatible`
-- `codex`
-
-When a task requires a code change, the agent is expected to return a unified diff patch in the final `finish` response.
-The patch should use real unified diff hunk headers with line ranges, such as `@@ -1 +1 @@` or `@@ -0,0 +1,10 @@`.
+- `Thought`
+- `Action`
+- `Action Input`
 
 ## Patch Workflow
 
-When a run finishes with a unified diff patch, Minixx saves the same output to `patch.txt` in `minixx-workspace`.
-Before applying the patch, Minixx prints the exact command and asks the user for authorization.
-If approved, the patch is applied only inside `minixx-workspace`.
+When Minixx finishes a code-change task, it expects a unified diff patch.
+That patch is saved to `minixx-workspace/patch.txt`.
 
-To validate the saved patch manually, run:
+Before applying the patch, Minixx:
+
+1. validates the patch structure
+2. attempts lightweight automatic repair for common diff formatting issues
+3. prints the exact command that will run
+4. prints the full patch as a command preview
+5. asks the user for approval
+
+If the user approves, Minixx runs `git apply patch.txt` inside `minixx-workspace`.
+
+For bug-fixing tasks, Minixx also runs tests automatically after the patch is applied.
+If the post-apply test run does not pass, the `finish` step is rejected.
+
+Manual validation:
 
 ```bash
 cd ./minixx-workspace
 git apply --check patch.txt
-```
-
-To apply it manually after that, run:
-
-```bash
 git apply patch.txt
 ```
+
+## How One Run Works
+
+1. Minixx loads `config/config.json` and `config/system_prompt.txt`.
+2. Minixx resolves the source workspace passed on the command line.
+3. Minixx recreates `minixx-workspace` as a copy of that source workspace.
+4. Minixx loads `prompt.txt` and optional `AGENTS.md` from the copied workspace.
+5. `agentic_loop.py` asks the configured model for the next action.
+6. `tools.py` executes the selected tool inside `minixx-workspace`.
+7. `finish_handler.py` validates the final response, applies the patch if needed, and runs post-apply checks for bug fixes.
+
+```mermaid
+sequenceDiagram
+    participant Source as Source workspace
+    participant Runtime as minixx-workspace
+    participant Loop as agentic_loop.py
+    participant Model as OpenAI-compatible API
+
+    Source->>Runtime: copy workspace
+    Loop->>Runtime: read prompt and files
+    Loop->>Model: request next action
+    Model-->>Loop: Thought / Action / Action Input
+    Loop->>Runtime: run tool
+    Runtime-->>Loop: tool result
+    Loop->>Runtime: save and apply patch on finish
+```
+
+## Architecture
+
+Configuration:
+
+- `config/config.json` stores model settings
+- `config/system_prompt.txt` stores the main agent instructions
+
+Core:
+
+- `src/minixx/agentic_loop.py` runs the main ReAct-style loop
+- `src/minixx/inputs.py` loads config, prompt files, and prepares `minixx-workspace`
+- `src/minixx/models.py` sends requests to the configured model backend
+- `src/minixx/protocol.py` parses and repairs model responses
+- `src/minixx/tools.py` implements the available workspace-safe tools
+- `src/minixx/finish_handler.py` validates, repairs, applies, and verifies final `finish` outputs
+- `src/minixx/patches.py` saves, repairs, validates, and applies unified diff patches
+- `src/minixx/command_runner.py` previews mutating commands and asks the user for approval
+- `src/minixx/traces.py` records the execution trace and token usage
+
+Extension points:
+
+- `src/minixx/planner.py`
+- `src/minixx/finish_reviewer.py`
+- `src/minixx/history_manager.py`
+
+Shared types and support:
+
+- `src/minixx/context.py`
+- `src/minixx/guards.py`
 
 ## Tracing
 
 Minixx writes execution traces to `agent_trace.log`.
-Each model response also records token usage when the provider exposes it, plus a cumulative total for the current run.
-Because the project is didactic, users are encouraged to inspect this trace to better understand how the agent reasons, chooses actions, and reacts to tool results.
+Each model response also records token usage when the provider exposes it, plus a cumulative total for the run.
+Because the project is didactic, inspecting this trace is often the easiest way to understand how the agent reasoned through a task.
 
-## Security
+## Security and Limits
 
-Minixx is designed to run against a selected workspace.
-Tool paths are validated by `guards.py`, which prevents file and directory access outside that workspace.
-The `run_tests` tool uses a fixed test command instead of accepting an arbitrary shell command.
-This is a simple safety mechanism for local agent experiments, not a complete sandbox.
+- Minixx never modifies the original input workspace
+- file and directory tool paths are restricted to `minixx-workspace`
+- `run_tests` uses a fixed command, not arbitrary shell execution
+- patch application requires explicit user approval
+- this is a lightweight local safety model, not a full sandbox
 
-## Extension Points
+## What To Read First
 
-Minixx now includes three small extension points for agent features:
-
-- `planner.py`
-- `finish_reviewer.py`
-- `history_manager.py`
-
-The first versions are intentionally minimal.
-`planner.py` and `finish_reviewer.py` currently return `None`, which means no extra behavior is added yet.
-They exist as simple places where new features can be plugged in without changing the overall loop structure.
-
-## What to Inspect First
-
-- Start with `agentic_loop.py` to understand the main loop.
-- Then read `context.py` to see the core data structures.
-- Then read `planner.py`, `finish_reviewer.py`, and `history_manager.py` to see the new extension points.
-- Then read `finish_handler.py` to see how final `finish` responses are handled.
-- Then read `models.py` to see how requests are made for each configured integration.
-- Then read `patches.py` to see how final patches are persisted.
-- Then read `tools.py` to understand what actions the agent can perform.
-
-## Current Limitations
-
-- Minixx never modifies the original input workspace.
-- Minixx applies approved patches only inside `minixx-workspace`.
-- The toolset is intentionally small.
-- Output validation is simple and protocol-driven.
-- File access is restricted to the selected workspace.
+- `src/minixx/agentic_loop.py`
+- `src/minixx/context.py`
+- `src/minixx/inputs.py`
+- `src/minixx/tools.py`
+- `src/minixx/finish_handler.py`
+- `src/minixx/patches.py`
+- `src/minixx/models.py`
