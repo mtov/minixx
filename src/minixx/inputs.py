@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from pathlib import Path
 
 from .context import AgentContext, ModelConfig
 from .traces import clear_trace, trace_request
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RUNTIME_WORKSPACE_PATH = PROJECT_ROOT / "minixx-workspace"
 CONFIG_DIR = PROJECT_ROOT / "config"
 CONFIG_PATH = CONFIG_DIR / "config.json"
 SYSTEM_PROMPT_PATH = CONFIG_DIR / "system_prompt.txt"
@@ -83,6 +85,14 @@ def resolve_workspace_path(raw_path: str) -> Path:
     return workspace_path
 
 
+def prepare_runtime_workspace(source_workspace_path: Path) -> Path:
+    if RUNTIME_WORKSPACE_PATH.exists():
+        shutil.rmtree(RUNTIME_WORKSPACE_PATH)
+
+    shutil.copytree(source_workspace_path, RUNTIME_WORKSPACE_PATH)
+    return RUNTIME_WORKSPACE_PATH
+
+
 def load_user_prompt(workspace_path: Path) -> str:
     prompt_path = workspace_path / "prompt.txt"
 
@@ -118,13 +128,16 @@ def print_user_prompt(user_prompt: str) -> None:
 
 def prepare_run(workspace_path_arg: str) -> AgentContext:
     clear_trace()
-    workspace_path = resolve_workspace_path(workspace_path_arg)
+    source_workspace_path = resolve_workspace_path(workspace_path_arg)
+    workspace_path = prepare_runtime_workspace(source_workspace_path)
     model_config = load_model_config(workspace_path)
     print_model_summary(model_config)
     system_prompt = load_system_prompt()
     system_prompt = (
         f"{system_prompt}\n\n"
-        "Workspace root:\n"
+        "Source workspace root:\n"
+        f"{source_workspace_path}\n\n"
+        "Runtime workspace root:\n"
         f"{workspace_path}"
     )
     workspace_instructions = load_workspace_instructions(workspace_path)
@@ -138,4 +151,10 @@ def prepare_run(workspace_path_arg: str) -> AgentContext:
     user_prompt = load_user_prompt(workspace_path)
     print_user_prompt(user_prompt)
     trace_request(user_prompt)
-    return AgentContext(model_config=model_config, system_prompt=system_prompt, user_prompt=user_prompt, workspace_path=workspace_path)
+    return AgentContext(
+        model_config=model_config,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        source_workspace_path=source_workspace_path,
+        workspace_path=workspace_path,
+    )

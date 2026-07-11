@@ -1,0 +1,17 @@
+--- a/src/text_utils.py
++++ b/src/text_utils.py
+@@ -1,6 +1,12 @@
+ import re
++import unicodedata
+ 
+ def slugify(title: str) -> str:
+-    value = title.lower().strip()
++    value = unicodedata.normalize("NFKD", title)
++    value = value.encode("ascii", "ignore").decode("ascii")
++    value = value.lower().strip()
+     value = re.sub(r"[^a-z0-9]+", "-", value)
+-    return value.strip("-")
++    value = value.strip("-")
++    if not value:
++        return "item"
++    return value

@@ -17,6 +17,8 @@ It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc
 
 Minixx runs against a workspace passed on the command line.
 Run the command from the project root.
+For each run, Minixx copies the input workspace into an internal runtime directory named `minixx-workspace`.
+The original workspace is preserved and all file changes happen only inside that copied runtime workspace.
 
 Each workspace should contain:
 
@@ -41,6 +43,7 @@ Setup:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+export OPENAI_API_KEY="your_key_here"
 ```
 
 Run command:
@@ -49,9 +52,9 @@ Run command:
 python run_minixx.py ./test_workspace/test-rename-refactoring
 ```
 
-The selected workspace path becomes the working directory for the run.
-Tool paths are also restricted to that workspace.
-If a run finishes with a unified diff patch, Minixx also saves that patch to `patch.txt` inside the selected workspace.
+The copied `minixx-workspace` becomes the working directory for the run.
+Tool paths are also restricted to that runtime workspace.
+If a run finishes with a unified diff patch, Minixx also saves that patch to `patch.txt` inside `minixx-workspace`.
 
 
 ## Demo Workspaces
@@ -92,7 +95,8 @@ Requirements:
 - the model configuration lives in `./config/config.json`
 - a Codex model requires the Codex desktop app or CLI and the `codex` executable in your shell `PATH`
 - an OpenAI-compatible model requires a configured `openai_model`
-- some providers require `OPENAI_API_KEY` or the env var named by `openai_api_key_env`
+- the default configuration requires `OPENAI_API_KEY`
+- other compatible providers can be configured through `openai_base_url`
 - `pytest` must be available in the Python environment used to run Minixx
 
 If the run command fails with a message like `Codex CLI not found in PATH`, the most likely issue is that the local `codex` executable is not available in your shell environment when using the Codex model.
@@ -116,23 +120,26 @@ Do not add external dependencies.
 2. Minixx loads `prompt.txt` from the selected workspace.
 3. `agentic_loop.py` asks `models.py` for the next response.
 4. `models.py` calls the configured external model (`Codex` or an OpenAI-compatible API).
-5. The loop chooses a tool, receives the tool result, and updates its history.
-6. The loop ends when the agent returns a final `finish` output.
+5. The loop chooses a tool, receives the tool result, and updates its history inside `minixx-workspace`.
+6. When a patch is ready, Minixx validates it, asks for approval, and applies it only inside `minixx-workspace`.
+7. The loop ends when the agent returns a final `finish` output.
 
 ```mermaid
 sequenceDiagram
     participant AgentLoop as agentic_loop.py
     participant Models as models.py
     participant External as Codex / OpenAI-compatible API
-    participant Workspace
+    participant Workspace as Source workspace
+    participant Runtime as minixx-workspace
 
-    AgentLoop->>Workspace: load prompt and inspect files
+    AgentLoop->>Workspace: copy workspace
+    AgentLoop->>Runtime: load prompt and inspect files
     AgentLoop->>Models: request next response
     Models->>External: send prompt
     External-->>Models: return response
     Models-->>AgentLoop: return parsed response
-    AgentLoop->>Workspace: run tool
-    Workspace-->>AgentLoop: tool result
+    AgentLoop->>Runtime: run tool
+    Runtime-->>AgentLoop: tool result
     AgentLoop->>Models: repeat until finish
 ```
 
@@ -186,7 +193,7 @@ Data Classes:
 
 - `ModelConfig` stores the typed model configuration used by one run.
 - `AgentContext` stores the configuration and stable inputs for one agent run.
-- `AgentResponse` stores one parsed model decision: `thought`, `action`, `action_input`, and `action_description`.
+- `AgentResponse` stores one parsed model decision: `thought`, `action`, and `action_input`.
 - `AgentHistory` stores the accumulated iteration history used in the ReAct loop.
 
 ## Tools
@@ -198,11 +205,10 @@ Data Classes:
 - `finish`
 
 Minixx can inspect files, search for text, reason about changes, and propose patches.
-It does not apply edits directly.
-Tool file and directory paths must stay inside the selected workspace.
+When a patch is approved by the user, Minixx applies it only inside `minixx-workspace`.
+Tool file and directory paths must stay inside the runtime workspace.
 
 The model responds with `Thought`, `Action`, and `Action Input`.
-It also returns `Action Description`, a short didactic explanation of the current step and its immediate purpose.
 
 `find_text` expects this input format:
 
@@ -220,12 +226,14 @@ The default `config/config.json` uses the OpenAI-compatible client:
 {
   "model": "openai-compatible",
   "codex_command": "codex",
-  "openai_base_url": "http://localhost:11434/v1",
-  "openai_model": "qwen2.5-coder:14b",
+  "openai_base_url": null,
+  "openai_model": "gpt-4.1",
   "timeout_seconds": 600,
-  "openai_api_key_env": null
+  "openai_api_key_env": "OPENAI_API_KEY"
 }
 ```
+
+With `openai_base_url: null`, Minixx calls the default OpenAI API directly.
 
 Supported `model` values:
 
@@ -237,12 +245,14 @@ The patch should use real unified diff hunk headers with line ranges, such as `@
 
 ## Patch Workflow
 
-When a run finishes with a unified diff patch, Minixx saves the same output to `patch.txt` in the selected workspace.
+When a run finishes with a unified diff patch, Minixx saves the same output to `patch.txt` in `minixx-workspace`.
+Before applying the patch, Minixx prints the exact command and asks the user for authorization.
+If approved, the patch is applied only inside `minixx-workspace`.
 
 To validate the saved patch manually, run:
 
 ```bash
-cd ./test_workspace/test-rename-refactoring
+cd ./minixx-workspace
 git apply --check patch.txt
 ```
 
@@ -289,7 +299,8 @@ They exist as simple places where new features can be plugged in without changin
 
 ## Current Limitations
 
-- Minixx runs in read-only patch mode and does not apply edits directly.
+- Minixx never modifies the original input workspace.
+- Minixx applies approved patches only inside `minixx-workspace`.
 - The toolset is intentionally small.
 - Output validation is simple and protocol-driven.
 - File access is restricted to the selected workspace.

@@ -33,6 +33,7 @@ class AgentContext:
     model_config: ModelConfig
     system_prompt: str
     user_prompt: str
+    source_workspace_path: Path
     workspace_path: Path
 
 
@@ -41,7 +42,6 @@ class AgentResponse:
     thought: str
     action: str
     action_input: str
-    action_description: str
 
 
 @dataclass
@@ -54,7 +54,6 @@ class AgentHistory:
             f"Thought: {agent_response.thought}\n"
             f"Action: {agent_response.action}\n"
             f"Action Input: {agent_response.action_input}\n"
-            f"Action Description: {agent_response.action_description}\n"
             f"Observation: {tool_result}\n"
         )
         self.entries.append(entry)

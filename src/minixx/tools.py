@@ -43,6 +43,7 @@ def read_file(action_input: str, workspace_path: Path) -> str:
     if not path.is_file():
         return f"Path is not a file: {path}"
 
+    print(f"Reading file: {path.name}", flush=True)
     return path.read_text(encoding="utf-8")
 
 

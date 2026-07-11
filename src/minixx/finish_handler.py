@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .context import AgentContext, AgentHistory, AgentResponse
 from .finish_reviewer import review_finish
-from .patches import save_patch
+from .patches import apply_patch, save_patch, validate_and_repair_patch
 from .protocol import (
     PATCH_REPAIR_PROMPT,
     PRECONDITION_REPAIR_PROMPT,
@@ -12,14 +12,14 @@ from .protocol import (
 )
 from .traces import trace_repair_attempt
 from .models import call_model
+from .tools import run_tests
 
 
 def format_agent_response(agent_response: AgentResponse) -> str:
     return (
         f"Thought: {agent_response.thought}\n"
         f"Action: {agent_response.action}\n"
-        f"Action Input: {agent_response.action_input}\n"
-        f"Action Description: {agent_response.action_description}"
+        f"Action Input: {agent_response.action_input}"
     )
 
 
@@ -82,6 +82,23 @@ def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> N
         return
     if not looks_like_patch(agent_response.action_input):
         raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
+
+
+def validate_patch_output(context: AgentContext, agent_response: AgentResponse, user_prompt: str) -> None:
+    if not is_code_change_task(user_prompt):
+        return
+    repaired_patch = validate_and_repair_patch(context.workspace_path, agent_response.action_input)
+    if repaired_patch != agent_response.action_input:
+        agent_response.action_input = repaired_patch
+
+
+def validate_post_apply_tests(context: AgentContext) -> None:
+    if not is_bug_fix_task(context.user_prompt):
+        return
+
+    test_output = run_tests(context.workspace_path)
+    if "passed" not in test_output.lower():
+        raise ValueError(f"Post-apply tests failed:\n{test_output}")
 
 
 def repair_finish_with_prompt(
@@ -148,7 +165,17 @@ def handle_finish(
         agent_response = repair_finish_output(context, user_message, str(exc))
         validate_finish_output(agent_response, context.user_prompt)
 
+    try:
+        validate_patch_output(context, agent_response, context.user_prompt)
+    except ValueError as exc:
+        trace_response_validation_error(str(exc), format_agent_response(agent_response))
+        agent_response = repair_finish_output(context, user_message, str(exc))
+        validate_finish_output(agent_response, context.user_prompt)
+        validate_patch_output(context, agent_response, context.user_prompt)
+
     if looks_like_patch(agent_response.action_input):
         save_patch(context.workspace_path, agent_response.action_input)
+        apply_patch(context.workspace_path)
+        validate_post_apply_tests(context)
 
     return agent_response

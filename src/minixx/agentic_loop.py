@@ -29,12 +29,8 @@ Plan:
 {plan}"""
 
 
-def print_iteration_action(
-    iteration: int,
-    action: str,
-    action_description: str,
-) -> None:
-    print(f"[{iteration}] {action}: {action_description}", flush=True)
+def print_iteration_action(iteration: int, action: str) -> None:
+    print(f"[{iteration}] {action}", flush=True)
 
 
 def get_agent_response(context: AgentContext, user_message: str) -> AgentResponse:
@@ -59,11 +55,7 @@ def agentic_loop(context: AgentContext) -> str:
         if agent_response.action == "finish":
             agent_response = handle_finish(context, user_message, agent_history, agent_response)
 
-        print_iteration_action(
-            iteration,
-            agent_response.action,
-            agent_response.action_description,
-        )
+        print_iteration_action(iteration, agent_response.action)
 
         if agent_response.action == "finish":
             print()

@@ -3,14 +3,10 @@ Respond using exactly this format:
 Thought: your brief reasoning
 Action: list_files, read_file, find_text, run_tests, or finish
 Action Input: the file path, the search input, blank for run_tests, or your final answer
-Action Description: a short, concrete, didactic explanation of the current step for a developer following the run, including the immediate purpose of the action
 
 Choose exactly one action per response.
 Do not include Observation.
 After choosing one action, stop.
-Action Description should explain what you are doing and why this step helps with the task.
-Keep it short and specific.
-Do not repeat the full internal reasoning from Thought.
 Treat the workspace root provided in the prompt as the only valid root for tool paths.
 Never use `/`, `/workspace`, `/config`, or any other guessed root path unless that exact path was returned by a tool.
 When the task is about finding information in the workspace, prefer starting with `list_files` on the workspace root before narrowing to subdirectories.

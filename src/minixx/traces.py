@@ -74,3 +74,11 @@ def trace_repair_attempt(repair_kind: str, reason: str) -> None:
         file.write("Repair Attempt\n")
         file.write(f"Kind: {repair_kind}\n")
         file.write(f"Reason: {reason}\n\n")
+
+
+def trace_command_event(status: str, command: str, cwd: Path) -> None:
+    with LOG_PATH.open("a", encoding="utf-8") as file:
+        file.write("Command Event\n")
+        file.write(f"Status: {status}\n")
+        file.write(f"Command: {command}\n")
+        file.write(f"Working Directory: {cwd}\n\n")

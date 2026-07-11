@@ -1,0 +1,11 @@
+Corrija a função `slugify(title)` em `src/text_utils.py`.
+
+Comportamento esperado:
+- converter texto para minúsculas;
+- remover acentos, por exemplo `ação` -> `acao`;
+- substituir grupos de caracteres não alfanuméricos por um único `-`;
+- remover `-` do início e do fim;
+- retornar `"item"` quando o slug final for vazio.
+
+Não modifique os testes.
+Execute: `python -m pytest -q`.
