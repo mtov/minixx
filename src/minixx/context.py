@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+MAX_HISTORY_ENTRIES = 4
+MAX_OBSERVATION_CHARS = 1200
+
 
 @dataclass
 class ModelConfig:
@@ -45,22 +48,29 @@ class AgentResponse:
 
 @dataclass
 class AgentHistory:
-    entries: list[str] = field(default_factory=list)
+    entries: list[tuple[int, AgentResponse, str]] = field(default_factory=list)
+
+    def _format_observation(self, tool_result: str) -> str:
+        observation = tool_result.strip()
+        if len(observation) <= MAX_OBSERVATION_CHARS:
+            return observation
+        return f"{observation[:MAX_OBSERVATION_CHARS].rstrip()}..."
 
     def append(self, iteration: int, agent_response: AgentResponse, tool_result: str) -> None:
-        entry = (
-            f"Iteration {iteration}\n"
-            f"Thought: {agent_response.thought}\n"
-            f"Action: {agent_response.action}\n"
-            f"Action Input: {agent_response.action_input}\n"
-            f"Observation: {tool_result}\n"
-        )
-        self.entries.append(entry)
+        self.entries.append((iteration, agent_response, tool_result))
 
     def contains_action(self, action: str) -> bool:
-        return any(f"Action: {action}" in entry for entry in self.entries)
+        return any(agent_response.action == action for _, agent_response, _ in self.entries)
 
     def to_text(self) -> str:
         if not self.entries:
             return "No previous steps."
-        return "\n".join(self.entries)
+        formatted_entries = []
+        for iteration, agent_response, tool_result in self.entries[-MAX_HISTORY_ENTRIES:]:
+            formatted_entries.append(
+                f"Iteration {iteration}\n"
+                f"Action: {agent_response.action}\n"
+                f"Action Input: {agent_response.action_input}\n"
+                f"Observation: {self._format_observation(tool_result)}\n"
+            )
+        return "\n".join(formatted_entries)
