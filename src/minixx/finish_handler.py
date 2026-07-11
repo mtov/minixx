@@ -46,13 +46,6 @@ def is_retrieval_task(user_prompt: str) -> bool:
     )
 
 
-def has_observation_action(agent_history: AgentHistory) -> bool:
-    return any(
-        agent_history.contains_action(action)
-        for action in ("list_files", "read_file", "find_text")
-    )
-
-
 def has_content_observation_action(agent_history: AgentHistory) -> bool:
     return any(
         agent_history.contains_action(action)
@@ -68,8 +61,6 @@ def validate_finish_preconditions(
     if agent_response.action != "finish":
         return
 
-    if is_bug_fix_task(user_prompt) and not agent_history.contains_action("run_tests"):
-        raise ValueError("Bug-fixing tasks must use run_tests before finish.")
     if is_retrieval_task(user_prompt) and not has_content_observation_action(agent_history):
         raise ValueError("Retrieval tasks must use read_file or find_text before finish.")
 
@@ -123,36 +114,64 @@ def repair_finish_preconditions(
     )
 
 
+def validate_or_repair(
+    *,
+    context: AgentContext,
+    user_message: str,
+    agent_response: AgentResponse,
+    validator,
+    repairer,
+    validation_args: tuple[object, ...],
+) -> AgentResponse:
+    original_response = agent_response
+
+    try:
+        validator(*validation_args)
+    except ValueError as exc:
+        trace_response_validation_error(str(exc), format_agent_response(agent_response))
+        agent_response = repairer(context, user_message, str(exc))
+        repaired_args = tuple(
+            agent_response if arg is original_response else arg
+            for arg in validation_args
+        )
+        validator(*repaired_args)
+    return agent_response
+
+
 def handle_finish(
     context: AgentContext,
     user_message: str,
     agent_history: AgentHistory,
     agent_response: AgentResponse,
 ) -> AgentResponse:
-    try:
-        validate_finish_preconditions(agent_response, context.user_prompt, agent_history)
-    except ValueError as exc:
-        trace_response_validation_error(str(exc), format_agent_response(agent_response))
-        agent_response = repair_finish_preconditions(context, user_message, str(exc))
-        validate_finish_preconditions(agent_response, context.user_prompt, agent_history)
+    agent_response = validate_or_repair(
+        context=context,
+        user_message=user_message,
+        agent_response=agent_response,
+        validator=validate_finish_preconditions,
+        repairer=repair_finish_preconditions,
+        validation_args=(agent_response, context.user_prompt, agent_history),
+    )
 
     if agent_response.action != "finish":
         return agent_response
 
-    try:
-        validate_finish_output(agent_response, context.user_prompt)
-    except ValueError as exc:
-        trace_response_validation_error(str(exc), format_agent_response(agent_response))
-        agent_response = repair_finish_output(context, user_message, str(exc))
-        validate_finish_output(agent_response, context.user_prompt)
-
-    try:
-        validate_patch_output(context, agent_response, context.user_prompt)
-    except ValueError as exc:
-        trace_response_validation_error(str(exc), format_agent_response(agent_response))
-        agent_response = repair_finish_output(context, user_message, str(exc))
-        validate_finish_output(agent_response, context.user_prompt)
-        validate_patch_output(context, agent_response, context.user_prompt)
+    agent_response = validate_or_repair(
+        context=context,
+        user_message=user_message,
+        agent_response=agent_response,
+        validator=validate_finish_output,
+        repairer=repair_finish_output,
+        validation_args=(agent_response, context.user_prompt),
+    )
+    agent_response = validate_or_repair(
+        context=context,
+        user_message=user_message,
+        agent_response=agent_response,
+        validator=validate_patch_output,
+        repairer=repair_finish_output,
+        validation_args=(context, agent_response, context.user_prompt),
+    )
 
     if looks_like_patch(agent_response.action_input):
         save_patch(context.workspace_path, agent_response.action_input)

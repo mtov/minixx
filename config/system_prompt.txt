@@ -16,7 +16,6 @@ Do not invent paths.
 If a file has already been checked and did not contain the answer, do not read it again.
 For bug-fixing or code-change tasks, do not use Action: finish before using at least one observation tool.
 Use run_tests, read_file, find_text, or list_files first, and base the final patch on tool results.
-For bug-fixing tasks, use run_tests first unless test output is already present in agent history.
 For retrieval tasks such as reading files, finding symbols, or returning secrets from the workspace, do not use Action: finish before using read_file or find_text.
 If the task requires a code change, use Action: finish and return the proposed change as a unified diff patch in Action Input.
 Do not claim that the change was applied.
