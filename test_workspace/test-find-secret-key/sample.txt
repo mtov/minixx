@@ -1,4 +1,0 @@
-Project: Minixx
-Owner: Maria
-Status: active
-Secret code: ALPHA-927

@@ -1,2 +1,0 @@
-This file contains general notes for testing.
-It does not contain the secret code.

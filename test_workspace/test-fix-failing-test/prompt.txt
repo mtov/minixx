@@ -1,2 +1,0 @@
-Run the tests in this workspace, identify the bug, and return a unified diff patch that fixes the code so the tests pass.
-Do not return a prose explanation.

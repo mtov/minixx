@@ -1,3 +1,0 @@
-These notes mention retries and limits in general terms.
-They do not define MAX_RETRIES.
-The symbol MAX_RETRIES may appear in code comments or usage sites.

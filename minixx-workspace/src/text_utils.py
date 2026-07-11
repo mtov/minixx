@@ -2,11 +2,9 @@ import re
 import unicodedata
 
 def slugify(title: str) -> str:
-    value = unicodedata.normalize("NFKD", title)
-    value = value.encode("ascii", "ignore").decode("ascii")
-    value = value.lower().strip()
+    value = title.lower().strip()
+    value = unicodedata.normalize("NFKD", value)
+    value = "".join(ch for ch in value if not unicodedata.combining(ch))
     value = re.sub(r"[^a-z0-9]+", "-", value)
     value = value.strip("-")
-    if not value:
-        return "item"
-    return value
+    return value or "item"

@@ -1,4 +1,0 @@
-Troubleshooting guide:
-
-- If retry behavior is too aggressive, inspect how MAX_RETRIES is used.
-- This document mentions MAX_RETRIES, but it does not define it.

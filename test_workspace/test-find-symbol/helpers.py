@@ -1,6 +1,0 @@
-MAX_RETRY_DELAY = 5
-MAX_RETRY_BACKOFF = 2
-
-
-def helper():
-    return MAX_RETRY_DELAY
