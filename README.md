@@ -182,8 +182,7 @@ Core:
 - `src/minixx/protocol.py` parses and repairs model responses
 - `src/minixx/tools.py` implements the available workspace-safe tools
 - `src/minixx/finish_handler.py` validates, repairs, applies, and verifies final `finish` outputs
-- `src/minixx/patches.py` saves, repairs, validates, and applies unified diff patches
-- `src/minixx/command_runner.py` previews mutating commands and asks the user for approval
+- `src/minixx/patches.py` saves, repairs, validates, previews, and applies unified diff patches
 - `src/minixx/traces.py` records the execution trace and token usage
 
 Shared types and support:

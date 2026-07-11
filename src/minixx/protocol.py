@@ -14,14 +14,6 @@ REPAIR_PROMPT = (
     "Action Input: ... "
     "Do not include Observation."
 )
-PATCH_REPAIR_PROMPT = (
-    "Your previous finish output was invalid. "
-    "For this code-change task, respond using only: "
-    "Thought: ... "
-    "Action: finish "
-    "Action Input: a unified diff patch "
-    "Do not include Observation."
-)
 
 def parse_response(text: str) -> AgentResponse:
     thought = ""
@@ -69,13 +61,3 @@ def repair_with_prompt(context: AgentContext, user_message: str, repair_prompt: 
 
 def repair_response(context: AgentContext, user_message: str, reason: str) -> AgentResponse:
     return repair_with_prompt(context, user_message, REPAIR_PROMPT, "Protocol repair", reason)
-
-
-def repair_response_with_prompt(
-    context: AgentContext,
-    user_message: str,
-    repair_prompt: str,
-    repair_kind: str,
-    reason: str,
-) -> AgentResponse:
-    return repair_with_prompt(context, user_message, repair_prompt, repair_kind, reason)

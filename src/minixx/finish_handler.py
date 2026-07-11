@@ -1,14 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from .context import AgentContext, AgentHistory, AgentResponse
 from .patches import apply_patch, save_patch, validate_and_repair_patch
-from .protocol import (
-    PATCH_REPAIR_PROMPT,
-    looks_like_patch,
-    repair_response_with_prompt,
-)
+from .protocol import looks_like_patch
 from .traces import trace_validation_error
 from .tools import run_tests
 
@@ -72,35 +66,6 @@ def validate_post_apply_tests(context: AgentContext) -> None:
         raise ValueError(f"Post-apply tests failed:\n{test_output}")
 
 
-def validate_or_repair(
-    *,
-    context: AgentContext,
-    user_message: str,
-    agent_response: AgentResponse,
-    validator: Callable[..., None],
-    validation_args: tuple[object, ...],
-) -> AgentResponse:
-    original_response = agent_response
-
-    try:
-        validator(*validation_args)
-    except ValueError as exc:
-        trace_validation_error(str(exc), format_agent_response(agent_response))
-        agent_response = repair_response_with_prompt(
-            context,
-            user_message,
-            PATCH_REPAIR_PROMPT,
-            "Finish output repair",
-            str(exc),
-        )
-        repaired_args = tuple(
-            agent_response if arg is original_response else arg
-            for arg in validation_args
-        )
-        validator(*repaired_args)
-    return agent_response
-
-
 def handle_finish(
     context: AgentContext,
     user_message: str,
@@ -116,20 +81,17 @@ def handle_finish(
     ):
         raise ValueError("Retrieval tasks must use read_file or find_text before finish.")
 
-    agent_response = validate_or_repair(
-        context=context,
-        user_message=user_message,
-        agent_response=agent_response,
-        validator=validate_finish_output,
-        validation_args=(agent_response, context.user_prompt),
-    )
-    agent_response = validate_or_repair(
-        context=context,
-        user_message=user_message,
-        agent_response=agent_response,
-        validator=validate_patch_output,
-        validation_args=(context, agent_response),
-    )
+    try:
+        validate_finish_output(agent_response, context.user_prompt)
+    except ValueError as exc:
+        trace_validation_error(str(exc), format_agent_response(agent_response))
+        raise
+
+    try:
+        validate_patch_output(context, agent_response)
+    except ValueError as exc:
+        trace_validation_error(str(exc), format_agent_response(agent_response))
+        raise
 
     if looks_like_patch(agent_response.action_input):
         save_patch(context.workspace_path, agent_response.action_input)
