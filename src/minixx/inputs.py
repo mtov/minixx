@@ -38,7 +38,6 @@ def load_model_config(working_directory: Path) -> ModelConfig:
     return ModelConfig(
         model=selected_model,
         timeout_seconds=raw_config["timeout_seconds"],
-        codex_command=raw_config.get("codex_command"),
         openai_base_url=raw_config.get("openai_base_url"),
         openai_model=raw_config.get("openai_model"),
         openai_api_key_env=raw_config.get("openai_api_key_env"),
@@ -109,16 +108,8 @@ def load_user_prompt(workspace_path: Path) -> str:
 
 
 def print_model_summary(model_config: ModelConfig) -> None:
-    model = model_config.model
-
-    if model == "codex":
-        model_name = model_config.codex_command or "codex"
-    elif model == "openai-compatible":
-        model_name = model_config.openai_model or "openai-compatible"
-    else:
-        model_name = model
-
-    print(f"Using model: {model} ({model_name})")
+    model_name = model_config.openai_model or model_config.model
+    print(f"Using model: {model_config.model} ({model_name})")
 
 
 def print_user_prompt(user_prompt: str) -> None:

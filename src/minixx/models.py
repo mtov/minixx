@@ -2,20 +2,9 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 import os
-import shutil
-import subprocess
 
 from .context import AgentContext, ModelResponse, TokenUsage
 from .traces import trace_response
-
-
-def build_codex_prompt(system_prompt: str, user_prompt: str) -> str:
-    return f"""{system_prompt}
-
-Use only the explicit context in this prompt.
-Do not rely on previous conversation state or hidden context.
-
-{user_prompt}"""
 
 
 def require_config_value(value: str | None, key: str, model_name: str) -> str:
@@ -26,39 +15,6 @@ def require_config_value(value: str | None, key: str, model_name: str) -> str:
 
 def build_model_response(content: str, token_usage: TokenUsage | None = None) -> ModelResponse:
     return ModelResponse(content=content, token_usage=token_usage or TokenUsage())
-
-
-def call_codex(context: AgentContext, user_prompt: str) -> ModelResponse:
-    codex_command = require_config_value(context.model_config.codex_command, "codex_command", "Codex")
-    working_directory = context.model_config.working_directory
-    prompt = build_codex_prompt(context.system_prompt, user_prompt)
-
-    if shutil.which(codex_command) is None:
-        raise RuntimeError(f"Codex CLI not found in PATH: {codex_command}.")
-
-    try:
-        result = subprocess.run(
-            [codex_command, "exec", "--sandbox", "read-only", "--skip-git-repo-check", prompt],
-            cwd=working_directory,
-            capture_output=True,
-            text=True,
-            timeout=context.model_config.timeout_seconds,
-        )
-    except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(
-            f"Codex request failed in {working_directory}: {exc.__class__.__name__}: {exc}"
-        ) from exc
-
-    if result.returncode != 0:
-        raise RuntimeError(
-            result.stderr.strip() or result.stdout.strip() or "Codex request failed."
-        )
-
-    content = result.stdout.strip()
-    if not content:
-        raise ValueError("Codex returned an empty response.")
-
-    return build_model_response(content)
 
 
 def extract_openai_content(response: object) -> str:
@@ -188,9 +144,7 @@ def call_model(
 ) -> ModelResponse:
     model = context.model_config.model
 
-    if model == "codex":
-        response = call_codex(context, user_prompt)
-    elif model == "openai-compatible":
+    if model == "openai-compatible":
         response = call_openai_compatible(context, user_prompt)
     else:
         raise ValueError(f"Unsupported model: {model}")

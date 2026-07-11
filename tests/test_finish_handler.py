@@ -13,7 +13,6 @@ def build_context(tmp_path: Path, user_prompt: str) -> AgentContext:
         model_config=ModelConfig(
             model="openai-compatible",
             timeout_seconds=30,
-            codex_command=None,
             openai_base_url=None,
             openai_model="gpt-5.4-mini",
             openai_api_key_env="OPENAI_API_KEY",

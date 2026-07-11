@@ -8,7 +8,6 @@ from pathlib import Path
 class ModelConfig:
     model: str
     timeout_seconds: int
-    codex_command: str | None
     openai_base_url: str | None
     openai_model: str | None
     openai_api_key_env: str | None

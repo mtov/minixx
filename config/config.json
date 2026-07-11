@@ -1,6 +1,5 @@
 {
   "model": "openai-compatible",
-  "codex_command": "codex",
   "openai_base_url": null,
   "openai_model": "gpt-5.4-mini",
   "timeout_seconds": 600,
