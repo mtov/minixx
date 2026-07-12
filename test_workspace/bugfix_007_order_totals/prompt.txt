@@ -1,0 +1,13 @@
+We have a bug in checkout totals.
+
+Customer support reported that some orders are getting the wrong final amount when coupons and shipping rules are combined.
+The most common complaints are:
+
+- promotional items are being treated incorrectly when percentage coupons are used;
+- free shipping is sometimes lost after a coupon is applied, even when the cart originally qualified for it;
+- some totals look like they are being rounded at the wrong step.
+
+Please investigate `calculate_order_total(items, coupon_code)` in `src/checkout.py` and fix the behavior without changing the intended pricing rules.
+
+Do not modify the tests.
+Run: `python -m pytest -q`.
