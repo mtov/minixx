@@ -1,74 +1,37 @@
 from __future__ import annotations
 
-from .context import AgentContext, AgentHistory, AgentResponse
+from .context import AgentContext, AgentResponse
 from .patches import apply_patch, save_patch, validate_and_repair_patch
 from .protocol import looks_like_patch
-from .traces import trace_validation_error
 from .tools import run_tests
 
-
-def format_agent_response(agent_response: AgentResponse) -> str:
-    return (
-        f"Thought: {agent_response.thought}\n"
-        f"Action: {agent_response.action}\n"
-        f"Action Input: {agent_response.action_input}"
-    )
+CODE_CHANGE_KEYWORDS = ("rename", "refactor", "change", "update", "modify", "fix", "create", "implement")
+BUG_FIX_KEYWORDS = ("bug", "fix", "failing test", "tests pass")
 
 
-def is_code_change_task(user_prompt: str) -> bool:
-    prompt = user_prompt.lower()
-    return any(keyword in prompt for keyword in ("rename", "refactor", "change", "update", "modify", "fix", "create", "implement"))
+def is_code_change_task(prompt: str) -> bool:
+    return any(keyword in prompt for keyword in CODE_CHANGE_KEYWORDS)
 
 
-def is_bug_fix_task(user_prompt: str) -> bool:
-    prompt = user_prompt.lower()
-    return any(keyword in prompt for keyword in ("bug", "fix", "failing test", "tests pass"))
-
-
-def validate_finish_output(agent_response: AgentResponse, user_prompt: str) -> None:
-    if not is_code_change_task(user_prompt):
-        return
-    if not looks_like_patch(agent_response.action_input):
-        raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
-
-
-def validate_patch_output(context: AgentContext, agent_response: AgentResponse) -> None:
-    if not looks_like_patch(agent_response.action_input):
-        return
-    repaired_patch = validate_and_repair_patch(context.workspace_path, agent_response.action_input)
-    if repaired_patch != agent_response.action_input:
-        agent_response.action_input = repaired_patch
-
-
-def validate_post_apply_tests(context: AgentContext) -> None:
-    if not is_bug_fix_task(context.user_prompt):
-        return
-
-    print("Running tests after applying patch...", flush=True)
-    test_output = run_tests(context.workspace_path)
-    if "passed" not in test_output.lower():
-        raise ValueError(f"Post-apply tests failed:\n{test_output}")
+def is_bug_fix_task(prompt: str) -> bool:
+    return any(keyword in prompt for keyword in BUG_FIX_KEYWORDS)
 
 
 def handle_finish(
     context: AgentContext,
-    user_message: str,
-    agent_history: AgentHistory,
     agent_response: AgentResponse,
 ) -> AgentResponse:
-    if agent_response.action != "finish":
-        return agent_response
-
-    try:
-        validate_finish_output(agent_response, context.user_prompt)
-    except ValueError as exc:
-        trace_validation_error(str(exc), format_agent_response(agent_response))
-        raise
-
+    prompt = context.user_prompt.lower()
     if looks_like_patch(agent_response.action_input):
-        validate_patch_output(context, agent_response)
+        agent_response.action_input = validate_and_repair_patch(context.workspace_path, agent_response.action_input)
         save_patch(context.workspace_path, agent_response.action_input)
         apply_patch(context.workspace_path)
-        validate_post_apply_tests(context)
+        if is_bug_fix_task(prompt):
+            print("Running tests after applying patch...", flush=True)
+            test_output = run_tests(context.workspace_path)
+            if "passed" not in test_output.lower():
+                raise ValueError(f"Post-apply tests failed:\n{test_output}")
+    elif is_code_change_task(prompt):
+        raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
 
     return agent_response

@@ -49,7 +49,7 @@ def agentic_loop(context: AgentContext) -> str:
         agent_response = get_agent_response(context, user_message)
 
         if agent_response.action == "finish":
-            agent_response = handle_finish(context, user_message, agent_history, agent_response)
+            agent_response = handle_finish(context, agent_response)
             print_iteration_action(iteration, agent_response.action)
             print()
             return agent_response.action_input

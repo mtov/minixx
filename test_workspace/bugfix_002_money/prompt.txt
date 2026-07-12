@@ -1,0 +1,11 @@
+Fix `format_brl(cents)` in `src/money.py`.
+
+The function receives an integer amount in cents and must return a string in Brazilian reais.
+
+Examples:
+- `0` -> `"R$ 0,00"`
+- `123456` -> `"R$ 1.234,56"`
+- `-987` -> `"-R$ 9,87"`
+
+Do not use floating-point arithmetic.
+Do not modify the tests.

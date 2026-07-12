@@ -1,0 +1,9 @@
+Fix `merge_users(primary, secondary)` in `src/users.py`.
+
+The function must combine two user lists while preserving order:
+1. all users from `primary`, in their original order;
+2. then users from `secondary` that have not been seen yet.
+
+Users are considered duplicates when they have the same `id`.
+
+Do not modify the tests.
