@@ -27,7 +27,6 @@ def handle_finish(
         save_patch(context.workspace_path, agent_response.action_input)
         apply_patch(context.workspace_path)
         if is_bug_fix_task(prompt):
-            print("Running tests after applying patch...", flush=True)
             test_output = run_tests(context.workspace_path)
             if "passed" not in test_output.lower():
                 raise ValueError(f"Post-apply tests failed:\n{test_output}")

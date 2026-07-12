@@ -107,6 +107,7 @@ def find_text(action_input: str, workspace_path: Path) -> str:
 
 def run_tests(workspace_path: Path) -> str:
     environment = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+    print("Running tests...", flush=True)
 
     try:
         result = subprocess.run(
@@ -118,7 +119,13 @@ def run_tests(workspace_path: Path) -> str:
             env=environment,
         )
     except Exception as exc:  # noqa: BLE001
+        print("Tests: failed", flush=True)
         return f"Could not run tests: {exc}"
+
+    if result.returncode == 0:
+        print("Tests: passed", flush=True)
+    else:
+        print("Tests: failed", flush=True)
 
     output_parts = [result.stdout.strip(), result.stderr.strip()]
     output = "\n".join(part for part in output_parts if part).strip()
