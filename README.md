@@ -50,8 +50,8 @@ It may also contain:
 Example `prompt.txt`:
 
 ```text
-Corrija a função `slugify(title)` em `src/text_utils.py`.
-Execute: `python -m pytest -q`.
+Fix `slugify(title)` in `src/text_utils.py`.
+Run: `python -m pytest -q`.
 ```
 
 ## Runtime Workspace
@@ -63,11 +63,16 @@ All reads, test runs, patch validation, and patch application happen only inside
 This gives Minixx a predictable temporary working area with a stable path across runs.
 Before the next run, Minixx deletes the previous `minixx-workspace` and recreates it from the new source workspace.
 
-## Current Example Workspace
+## Example Workspaces
 
-The repository currently ships with one example workspace:
+The repository currently ships with six bugfix workspaces:
 
 - `./test_workspace/bugfix_001_slugify`: bug fixing with test execution and final patch application
+- `./test_workspace/bugfix_002_money`: formatting money values while preserving decimal output rules
+- `./test_workspace/bugfix_003_cache_ttl`: cache expiration behavior with time-based tests
+- `./test_workspace/bugfix_004_pagination`: pagination boundaries and invalid argument handling
+- `./test_workspace/bugfix_005_merge_users`: merge ordering and duplicate precedence rules
+- `./test_workspace/bugfix_006_date_range`: inclusive date range generation
 
 ## Model Options
 
