@@ -17,6 +17,10 @@ def is_bug_fix_task(prompt: str) -> bool:
     return any(keyword in prompt for keyword in BUG_FIX_KEYWORDS)
 
 
+def tests_passed(test_output: str) -> bool:
+    return "passed" in test_output.lower()
+
+
 def handle_finish(
     context: AgentContext,
     agent_response: AgentResponse,
@@ -28,7 +32,7 @@ def handle_finish(
         apply_patch(context.workspace_path)
         if is_bug_fix_task(prompt):
             test_output = run_tests(context.workspace_path)
-            if "passed" not in test_output.lower():
+            if not tests_passed(test_output):
                 raise ValueError(f"Post-apply tests failed:\n{test_output}")
     elif is_code_change_task(prompt):
         raise ValueError("Finish output must be a unified diff patch for code-change tasks.")

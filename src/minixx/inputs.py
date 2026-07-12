@@ -22,7 +22,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_model_config(working_directory: Path) -> ModelConfig:
+def load_model_config() -> ModelConfig:
     try:
         with CONFIG_PATH.open("r", encoding="utf-8") as file:
             raw_config = json.load(file)
@@ -41,7 +41,6 @@ def load_model_config(working_directory: Path) -> ModelConfig:
         openai_base_url=raw_config.get("openai_base_url"),
         openai_model=raw_config.get("openai_model"),
         openai_api_key_env=raw_config.get("openai_api_key_env"),
-        working_directory=working_directory,
     )
 
 
@@ -121,7 +120,7 @@ def prepare_run(workspace_path_arg: str) -> AgentContext:
     clear_trace()
     source_workspace_path = resolve_workspace_path(workspace_path_arg)
     workspace_path = prepare_runtime_workspace(source_workspace_path)
-    model_config = load_model_config(workspace_path)
+    model_config = load_model_config()
     print_model_summary(model_config)
     system_prompt = load_system_prompt()
     system_prompt = (

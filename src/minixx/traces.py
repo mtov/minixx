@@ -10,26 +10,27 @@ CALL_COUNT = 0
 TOTAL_TOKENS = 0
 
 
+def _append_trace(text: str) -> None:
+    with LOG_PATH.open("a", encoding="utf-8") as file:
+        file.write(text)
+
+
 def clear_trace() -> None:
     global CALL_COUNT, TOTAL_TOKENS
     CALL_COUNT = 0
     TOTAL_TOKENS = 0
-    with LOG_PATH.open("w", encoding="utf-8"):
-        pass
+    LOG_PATH.write_text("", encoding="utf-8")
 
 
 def trace_request(user_prompt: str) -> None:
-    with LOG_PATH.open("a", encoding="utf-8") as file:
-        file.write("Request:\n")
-        file.write(f"{user_prompt}\n")
-        file.write("\n===\n\n")
+    _append_trace(f"[request]\n{user_prompt}\n\n")
 
 
 def format_token_usage(token_usage: TokenUsage) -> str:
     if token_usage.total_tokens is None:
-        return "Token Usage: unavailable"
+        return "tokens: unavailable"
     return (
-        "Token Usage: "
+        "tokens: "
         f"input={token_usage.input_tokens if token_usage.input_tokens is not None else '?'} "
         f"output={token_usage.output_tokens if token_usage.output_tokens is not None else '?'} "
         f"total={token_usage.total_tokens}"
@@ -37,9 +38,7 @@ def format_token_usage(token_usage: TokenUsage) -> str:
 
 
 def get_total_tokens() -> int | None:
-    if TOTAL_TOKENS == 0:
-        return None
-    return TOTAL_TOKENS
+    return TOTAL_TOKENS or None
 
 
 def trace_response(
@@ -53,32 +52,40 @@ def trace_response(
     if usage.total_tokens is not None:
         TOTAL_TOKENS += usage.total_tokens
 
-    with LOG_PATH.open("a", encoding="utf-8") as file:
-        file.write(f"{label} {CALL_COUNT}\n")
-        file.write(f"{format_token_usage(usage)}\n")
-        if usage.total_tokens is not None:
-            file.write(f"Cumulative Tokens: {TOTAL_TOKENS}\n")
-        file.write(f"{response}\n\n")
+    cumulative_tokens = (
+        f"cumulative_tokens: {TOTAL_TOKENS}\n"
+        if usage.total_tokens is not None
+        else ""
+    )
+    _append_trace(
+        f"[{label.lower().replace(' ', '_')} {CALL_COUNT}]\n"
+        f"{format_token_usage(usage)}\n"
+        f"{cumulative_tokens}"
+        f"{response}\n\n"
+    )
 
 
 def trace_validation_error(reason: str, response: str) -> None:
-    with LOG_PATH.open("a", encoding="utf-8") as file:
-        file.write("Validation Error\n")
-        file.write(f"Reason: {reason}\n")
-        file.write("Response:\n")
-        file.write(f"{response}\n\n")
+    _append_trace(
+        "[validation_error]\n"
+        f"reason: {reason}\n"
+        "response:\n"
+        f"{response}\n\n"
+    )
 
 
 def trace_repair_attempt(repair_kind: str, reason: str) -> None:
-    with LOG_PATH.open("a", encoding="utf-8") as file:
-        file.write("Repair Attempt\n")
-        file.write(f"Kind: {repair_kind}\n")
-        file.write(f"Reason: {reason}\n\n")
+    _append_trace(
+        "[repair_attempt]\n"
+        f"kind: {repair_kind}\n"
+        f"reason: {reason}\n\n"
+    )
 
 
 def trace_command_event(status: str, command: str, cwd: Path) -> None:
-    with LOG_PATH.open("a", encoding="utf-8") as file:
-        file.write("Command Event\n")
-        file.write(f"Status: {status}\n")
-        file.write(f"Command: {command}\n")
-        file.write(f"Working Directory: {cwd}\n\n")
+    _append_trace(
+        "[command]\n"
+        f"status: {status}\n"
+        f"command: {command}\n"
+        f"cwd: {cwd}\n\n"
+    )

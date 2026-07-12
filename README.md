@@ -297,6 +297,16 @@ Minixx writes execution traces to `agent_trace.log`.
 Each model response also records token usage when the provider exposes it, plus a cumulative total for the run.
 Because the project is didactic, inspecting this trace is often the easiest way to understand how the agent reasoned through a task.
 
+The trace format is intentionally compact.
+It uses short section headers such as:
+
+- `[request]`
+- `[response N]`
+- `[repair_response N]`
+- `[validation_error]`
+- `[repair_attempt]`
+- `[command]`
+
 ## Security and Limits
 
 - Minixx never modifies the original input workspace

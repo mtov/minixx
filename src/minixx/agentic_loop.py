@@ -9,17 +9,6 @@ from .traces import get_total_tokens, trace_validation_error
 from .tools import run_tool
 
 
-def build_user_message(
-    context: AgentContext,
-    agent_history: str,
-) -> str:
-    return f"""User task:
-{context.user_prompt}
-
-Agent history:
-{agent_history}"""
-
-
 def print_iteration_action(iteration: int, action: str) -> None:
     print(f"[{iteration}] {action}", flush=True)
 
@@ -30,7 +19,12 @@ def print_total_tokens() -> None:
         print(f"Total tokens: {total_tokens}")
 
 
-def get_agent_response(context: AgentContext, user_message: str) -> AgentResponse:
+def get_agent_response(context: AgentContext, agent_history: str) -> AgentResponse:
+    user_message = f"""User task:
+{context.user_prompt}
+
+Agent history:
+{agent_history}"""
     model_response = call_model(context, user_message)
 
     try:
@@ -45,13 +39,11 @@ def agentic_loop(context: AgentContext) -> str:
     agent_history = AgentHistory()
 
     for iteration in range(1, max_iterations + 1):
-        user_message = build_user_message(context, agent_history.to_text())
-        agent_response = get_agent_response(context, user_message)
+        agent_response = get_agent_response(context, agent_history.to_text())
 
         if agent_response.action == "finish":
             agent_response = handle_finish(context, agent_response)
             print_iteration_action(iteration, agent_response.action)
-            print()
             return agent_response.action_input
 
         print_iteration_action(iteration, agent_response.action)
@@ -59,7 +51,6 @@ def agentic_loop(context: AgentContext) -> str:
         tool_result = run_tool(agent_response, context.workspace_path)
         agent_history.append(iteration, agent_response, tool_result)
 
-    print()
     raise ValueError("Agent stopped after reaching the maximum number of steps.")
 
 

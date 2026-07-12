@@ -14,7 +14,6 @@ class ModelConfig:
     openai_base_url: str | None
     openai_model: str | None
     openai_api_key_env: str | None
-    working_directory: Path
 
 
 @dataclass
@@ -50,12 +49,6 @@ class AgentResponse:
 class AgentHistory:
     entries: list[tuple[int, AgentResponse, str]] = field(default_factory=list)
 
-    def _format_observation(self, tool_result: str) -> str:
-        observation = tool_result.strip()
-        if len(observation) <= MAX_OBSERVATION_CHARS:
-            return observation
-        return f"{observation[:MAX_OBSERVATION_CHARS].rstrip()}..."
-
     def append(self, iteration: int, agent_response: AgentResponse, tool_result: str) -> None:
         self.entries.append((iteration, agent_response, tool_result))
 
@@ -67,10 +60,13 @@ class AgentHistory:
             return "No previous steps."
         formatted_entries = []
         for iteration, agent_response, tool_result in self.entries[-MAX_HISTORY_ENTRIES:]:
+            observation = tool_result.strip()
+            if len(observation) > MAX_OBSERVATION_CHARS:
+                observation = f"{observation[:MAX_OBSERVATION_CHARS].rstrip()}..."
             formatted_entries.append(
                 f"Iteration {iteration}\n"
                 f"Action: {agent_response.action}\n"
                 f"Action Input: {agent_response.action_input}\n"
-                f"Observation: {self._format_observation(tool_result)}\n"
+                f"Observation: {observation}\n"
             )
         return "\n".join(formatted_entries)
