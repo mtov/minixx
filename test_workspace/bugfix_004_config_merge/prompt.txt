@@ -1,0 +1,12 @@
+Fix `load_config(defaults, overrides)` in `src/config_loader.py`.
+
+The loader must merge user overrides into the default configuration.
+
+Rules:
+- preserve default keys that are not overridden;
+- override scalar values from the user config;
+- merge nested dictionaries recursively instead of replacing whole sections;
+- do not mutate `defaults` or `overrides`.
+
+Do not modify the tests.
+Run: `python -m pytest -q`.

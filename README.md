@@ -7,6 +7,20 @@
 Minixx is a didactic Python project for studying how to build a small code agent.
 It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc.ufmg.br/) at DCC/UFMG.
 
+## Overview
+
+Minixx is intentionally small.
+It focuses on one narrow workflow:
+
+1. load a bug-fix workspace
+2. copy it to an internal runtime directory
+3. let a model inspect files and run tests
+4. require the model to finish with a unified diff patch
+5. ask the user for approval before applying that patch
+6. run tests again after patch application for bug-fix tasks
+
+The project is meant for learning, experimentation, and research rather than broad production automation.
+
 ## Design Principles
 
 - Minixx is meant for learning, experimentation, and research.
@@ -34,6 +48,36 @@ python run_minixx.py ./test_workspace/bugfix_001_slugify
 The default configuration calls the OpenAI API directly.
 If you want another OpenAI-compatible provider, set `openai_base_url` in `config/config.json`.
 
+What you should expect during a run:
+
+- Minixx prints the selected model and the loaded `prompt.txt`
+- it creates or refreshes `./minixx-workspace`
+- the model chooses among a small set of tools
+- if the model finishes with a patch, Minixx prints the patch and asks for approval before running `git apply`
+- for bug-fix tasks, Minixx runs tests automatically after patch application
+
+## Configuration
+
+The default [config/config.json](/Users/mtov/minixx/config/config.json) is:
+
+```json
+{
+  "model": "openai-compatible",
+  "openai_base_url": null,
+  "openai_model": "gpt-5.4-mini",
+  "timeout_seconds": 600,
+  "openai_api_key_env": "OPENAI_API_KEY"
+}
+```
+
+Notes:
+
+- with `openai_base_url: null`, Minixx calls the default OpenAI API directly
+- the documented setup requires `OPENAI_API_KEY`
+- `openai_model` selects the concrete model used through the OpenAI-compatible path
+- `timeout_seconds` applies to the model request
+- `pytest` must be available in the same Python environment used to run Minixx
+
 ## Workspace Contract
 
 Minixx runs against a workspace directory passed on the command line.
@@ -54,6 +98,31 @@ Fix `slugify(title)` in `src/text_utils.py`.
 Run: `python -m pytest -q`.
 ```
 
+In practice, the current bug-fix workspaces also follow this layout:
+
+- `src/` contains the buggy implementation
+- `tests/` contains the test suite used by Minixx
+- `requirements.txt` documents the local dependency expectation for the workspace
+- `metadata.json` stores a small description of the task
+
+## How Tests Work
+
+Each workspace is designed to be executed from its own directory.
+That means:
+
+- imports like `from src.foo import bar` assume the current working directory is the workspace root
+- Minixx runs tests from inside the copied runtime workspace, not from the repository root
+- if you manually validate a workspace, `cd` into that workspace first
+
+Example:
+
+```bash
+cd ./test_workspace/bugfix_001_slugify
+python -m pytest -q
+```
+
+Minixx itself uses a fixed test command based on `python -m pytest -q` and does not allow arbitrary shell commands for testing.
+
 ## Runtime Workspace
 
 For each run, Minixx copies the selected workspace into a fixed internal directory named `minixx-workspace`.
@@ -63,39 +132,42 @@ All reads, test runs, patch validation, and patch application happen only inside
 This gives Minixx a predictable temporary working area with a stable path across runs.
 Before the next run, Minixx deletes the previous `minixx-workspace` and recreates it from the new source workspace.
 
+This has a few important consequences:
+
+- the source workspace is treated as input only
+- all tool actions are constrained to `minixx-workspace`
+- patch validation and patch application happen only in the copied workspace
+- the runtime workspace is disposable and is recreated on the next run
+
 ## Example Workspaces
 
 The repository currently ships with six bugfix workspaces:
 
-- `./test_workspace/bugfix_001_slugify`: bug fixing with test execution and final patch application
-- `./test_workspace/bugfix_002_money`: formatting money values while preserving decimal output rules
-- `./test_workspace/bugfix_003_cache_ttl`: cache expiration behavior with time-based tests
-- `./test_workspace/bugfix_004_pagination`: pagination boundaries and invalid argument handling
-- `./test_workspace/bugfix_005_merge_users`: merge ordering and duplicate precedence rules
-- `./test_workspace/bugfix_006_date_range`: inclusive date range generation
+- `./test_workspace/bugfix_001_slugify`: text normalization and fallback slug generation
+- `./test_workspace/bugfix_002_date_range`: inclusive date range generation
+- `./test_workspace/bugfix_003_inventory`: inventory reservation with rollback on failure
+- `./test_workspace/bugfix_004_config_merge`: recursive configuration merge without input mutation
+- `./test_workspace/bugfix_005_lru_cache`: least-recently-used eviction and recency tracking
+- `./test_workspace/bugfix_006_task_scheduler`: staged dependency scheduling with missing dependency and cycle validation
 
-## Model Options
+Suggested difficulty progression:
 
-Minixx uses the documented `openai-compatible` model path.
+- simpler:
+  - `bugfix_001_slugify`
+  - `bugfix_002_date_range`
+- intermediate:
+  - `bugfix_003_inventory`
+  - `bugfix_004_config_merge`
+- more stateful or structurally complex:
+  - `bugfix_005_lru_cache`
+  - `bugfix_006_task_scheduler`
 
-The default `config/config.json` is:
+These workspaces are designed so that:
 
-```json
-{
-  "model": "openai-compatible",
-  "openai_base_url": null,
-  "openai_model": "gpt-5.4-mini",
-  "timeout_seconds": 600,
-  "openai_api_key_env": "OPENAI_API_KEY"
-}
-```
-
-Notes:
-
-- with `openai_base_url: null`, Minixx calls the default OpenAI API directly
-- the default setup requires `OPENAI_API_KEY`
-- `openai_model` selects the model for the OpenAI-compatible path
-- `pytest` must be available in the Python environment used to run Minixx
+- the tests clearly expose the bug
+- the fix can be expressed as a patch
+- the post-fix behavior is validated by the same suite
+- difficulty increases without requiring a large codebase
 
 ## Tools
 
@@ -138,6 +210,13 @@ If the user approves, Minixx runs `git apply patch.txt` inside `minixx-workspace
 For bug-fixing tasks, Minixx also runs tests automatically after the patch is applied.
 If the post-apply test run does not pass, the `finish` step is rejected.
 
+The patch helper also normalizes a few common formatting problems before validation, such as:
+
+- fenced code block wrappers around the diff
+- patch text that includes extra explanation above the first diff header
+- malformed hunk body lines that are missing a unified diff prefix
+- stale hunk counts that can be recalculated automatically
+
 Manual validation:
 
 ```bash
@@ -154,7 +233,8 @@ git apply patch.txt
 4. Minixx loads `prompt.txt` and optional `AGENTS.md` from the copied workspace.
 5. `agentic_loop.py` asks the configured model for the next action.
 6. `tools.py` executes the selected tool inside `minixx-workspace`.
-7. `finish_handler.py` validates the final response, applies the patch if needed, and runs post-apply checks for bug fixes.
+7. when the model returns `finish`, `finish_handler.py` validates the output and routes patch application through `patches.py`.
+8. if a patch is approved and applied, Minixx runs post-apply tests for bug-fix tasks before accepting the run.
 
 ```mermaid
 sequenceDiagram
@@ -171,6 +251,14 @@ sequenceDiagram
     Runtime-->>AgentLoop: tool result
     AgentLoop->>Runtime: save and apply patch on finish
 ```
+
+## Repository Layout
+
+- [run_minixx.py](/Users/mtov/minixx/run_minixx.py): thin entry point
+- [config/](/Users/mtov/minixx/config): static configuration and system prompt
+- [src/minixx/](/Users/mtov/minixx/src/minixx): the agent implementation
+- [test_workspace/](/Users/mtov/minixx/test_workspace): the curated bug-fix tasks
+- [minixx-workspace](/Users/mtov/minixx/minixx-workspace): runtime copy created on demand during execution
 
 ## Architecture
 
@@ -195,6 +283,14 @@ Shared types and support:
 - `src/minixx/context.py`
 - `src/minixx/guards.py`
 
+Operationally, the key modules are:
+
+- `inputs.py`: turns a source workspace into a runtime workspace and assembles the prompts
+- `tools.py`: defines the constrained actions the model can take
+- `protocol.py`: validates the model output format
+- `patches.py`: validates, previews, and applies patches with user approval
+- `finish_handler.py`: enforces that bug-fix tasks only succeed after patch application and passing tests
+
 ## Tracing
 
 Minixx writes execution traces to `agent_trace.log`.
@@ -207,4 +303,23 @@ Because the project is didactic, inspecting this trace is often the easiest way 
 - file and directory tool paths are restricted to `minixx-workspace`
 - `run_tests` uses a fixed command, not arbitrary shell execution
 - patch application requires explicit user approval
+- the project assumes cooperative local execution and does not try to provide OS-level sandboxing
 - this is a lightweight local safety model, not a full sandbox
+
+## Current Scope
+
+Minixx is intentionally narrow.
+It does not try to be:
+
+- a general autonomous coding agent
+- a multi-provider orchestration framework
+- a full secure sandbox
+- a benchmark runner for arbitrary repositories
+
+Instead, it is a compact reference implementation for studying:
+
+- agent loops over a small tool API
+- patch-based code modification
+- approval before mutation
+- post-apply validation with tests
+- curated bug-fix tasks with increasing difficulty

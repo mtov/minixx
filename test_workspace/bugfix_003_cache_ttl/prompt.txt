@@ -1,6 +1,0 @@
-Fix the `TTLCache` class in `src/cache.py`.
-
-A value should be returned only if the current time is strictly less than the expiration time.
-Expired values must be removed from the cache.
-
-Do not modify the tests.

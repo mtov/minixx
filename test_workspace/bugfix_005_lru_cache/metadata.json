@@ -1,0 +1,12 @@
+{
+  "id": "bugfix_005_lru_cache",
+  "title": "Fix LRU cache recency tracking",
+  "category": "bugfix",
+  "difficulty": "hard",
+  "language": "python",
+  "test_command": "python -m pytest -q",
+  "dependencies": [
+    "pytest"
+  ],
+  "notes": "Synthetic, self-contained task focused on stateful cache behavior and eviction order."
+}
