@@ -23,7 +23,6 @@ The project is meant for learning, experimentation, and research rather than bro
 
 ## Design Principles
 
-- Minixx is meant for learning, experimentation, and research.
 - Minixx keeps the architecture intentionally small and readable.
 - Minixx isolates edits in a copied runtime workspace instead of modifying the original input workspace.
 - Minixx uses a single OpenAI-compatible chat API in the documented setup.
@@ -85,7 +84,7 @@ Each workspace should contain:
 
 - `prompt.txt`
 - the project files the agent may inspect or patch
-- any tests the agent may run
+- the tests the agent may run
 
 It may also contain:
 
@@ -153,29 +152,6 @@ These workspaces are designed so that:
 - the post-fix behavior is validated by the same suite
 - they stay practical and close to realistic maintenance tasks
 
-## Tools
-
-Available actions:
-
-- `list_files`
-- `read_file`
-- `find_text`
-- `run_tests`
-- `finish`
-
-Behavior notes:
-
-- `read_file` prints `Reading file: <name>` to the console before returning file contents
-- `find_text` expects `search text | /path/to/directory`
-- `run_tests` uses a fixed `pytest` command instead of an arbitrary shell command
-- for code-change tasks, `finish` must return a unified diff patch in `Action Input`
-
-The model responds using:
-
-- `Thought`
-- `Action`
-- `Action Input`
-
 ## Patch Workflow
 
 When Minixx finishes a code-change task, it expects a unified diff patch.
@@ -217,8 +193,8 @@ git apply patch.txt
 4. Minixx loads `prompt.txt` and optional `AGENTS.md` from the copied workspace.
 5. `agentic_loop.py` asks the configured model for the next action.
 6. `tools.py` executes the selected tool inside `minixx-workspace`.
-7. when the model returns `finish`, `finish_handler.py` validates the output and routes patch application through `patches.py`.
-8. if a patch is approved and applied, Minixx runs post-apply tests for bug-fix tasks before accepting the run.
+7. When the model returns `finish`, `finish_handler.py` validates the output and routes patch application through `patches.py`.
+8. If a patch is approved and applied, Minixx runs post-apply tests for bug-fix tasks before accepting the run.
 
 ```mermaid
 sequenceDiagram
@@ -236,15 +212,19 @@ sequenceDiagram
     AgentLoop->>Runtime: save and apply patch on finish
 ```
 
-## Repository Layout
-
-- [run_minixx.py](/Users/mtov/minixx/run_minixx.py): thin entry point
-- [config/](/Users/mtov/minixx/config): static configuration and system prompt
-- [src/minixx/](/Users/mtov/minixx/src/minixx): the agent implementation
-- [test_workspace/](/Users/mtov/minixx/test_workspace): the curated bug-fix tasks
-- [minixx-workspace](/Users/mtov/minixx/minixx-workspace): runtime copy created on demand during execution
-
 ## Architecture
+
+```mermaid
+flowchart LR
+    A[Source Workspace] --> B[minixx-workspace]
+    B --> C[Agent Loop]
+    C --> D[Model API]
+    C --> E[Tools]
+    E --> B
+    C --> F[Finish Handler]
+    F --> G[Patch Apply plus Tests]
+    G --> B
+```
 
 Configuration:
 
@@ -267,19 +247,34 @@ Shared types and support:
 - `src/minixx/context.py`
 - `src/minixx/guards.py`
 
-Operationally, the key modules are:
+## Tools
 
-- `inputs.py`: turns a source workspace into a runtime workspace and assembles the prompts
-- `tools.py`: defines the constrained actions the model can take
-- `protocol.py`: validates the model output format
-- `patches.py`: validates, previews, and applies patches with user approval
-- `finish_handler.py`: enforces that bug-fix tasks only succeed after patch application and passing tests
+Available actions:
+
+- `list_files`
+- `read_file`
+- `find_text`
+- `run_tests`
+- `finish`
+
+Behavior notes:
+
+- `read_file` prints `Reading file: <name>` to the console before returning file contents
+- `find_text` expects `search text | /path/to/directory`
+- `run_tests` uses a fixed `pytest` command instead of an arbitrary shell command
+- for code-change tasks, `finish` must return a unified diff patch in `Action Input`
+
+The model responds using:
+
+- `Thought`
+- `Action`
+- `Action Input`
 
 ## Tracing
 
 Minixx writes execution traces to `agent_trace.log`.
 Each model response also records token usage when the provider exposes it, plus a cumulative total for the run.
-Because the project is didactic, inspecting this trace is often the easiest way to understand how the agent reasoned through a task.
+Because the project is didactic, inspecting this trace is often the easiest way to understand how the agent moved through a task.
 
 The trace format is intentionally compact.
 It uses short section headers such as:
@@ -316,4 +311,4 @@ Instead, it is a compact reference implementation for studying:
 - patch-based code modification
 - approval before mutation
 - post-apply validation with tests
-- curated bug-fix tasks with increasing difficulty
+- curated bug-fix tasks in a small, practical setup
