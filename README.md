@@ -216,14 +216,17 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[Source Workspace] --> B[minixx-workspace]
-    B --> C[Agent Loop]
-    C --> D[Model API]
-    C --> E[Tools]
-    E --> B
-    C --> F[Finish Handler]
-    F --> G[Patch Apply plus Tests]
-    G --> B
+    A[run_minixx.py] --> B[inputs.py]
+    A --> C[agentic_loop.py]
+    C --> D[models.py]
+    C --> E[protocol.py]
+    C --> F[tools.py]
+    C --> G[finish_handler.py]
+    G --> H[patches.py]
+    C --> I[traces.py]
+    D --> I
+    G --> I
+    H --> I
 ```
 
 Configuration:
