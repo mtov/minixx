@@ -1,5 +1,5 @@
 {
-  "id": "bugfix_002_date_range",
+  "id": "bugfix_001_date_range",
   "title": "Fix inclusive date range",
   "category": "bugfix",
   "difficulty": "medium",

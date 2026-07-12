@@ -1,0 +1,12 @@
+Some customers are getting too much discount at checkout.
+
+When a percentage coupon is applied, the final total is lower than expected for certain orders. Support suspects the same coupon effect may be getting applied twice somewhere in the checkout flow.
+
+Expected behavior:
+- a percentage coupon should affect the order only once;
+- promotional items must never receive the coupon;
+- invalid coupon codes should be ignored;
+- the final total should still be rounded to two decimals.
+
+Please investigate the checkout flow and fix the bug without changing the intended pricing rules.
+

@@ -1,83 +1,82 @@
 [request]
-We have a bug in checkout totals.
+Some customers are getting too much discount at checkout.
 
-Customer support reported that some orders are getting the wrong final amount when coupons and shipping rules are combined.
-The most common complaints are:
+When a percentage coupon is applied, the final total is lower than expected for certain orders. Support suspects the same coupon effect may be getting applied twice somewhere in the checkout flow.
 
-- promotional items are being treated incorrectly when percentage coupons are used;
-- free shipping is sometimes lost after a coupon is applied, even when the cart originally qualified for it;
-- some totals look like they are being rounded at the wrong step.
+Expected behavior:
+- a percentage coupon should affect the order only once;
+- promotional items must never receive the coupon;
+- invalid coupon codes should be ignored;
+- the final total should still be rounded to two decimals.
 
-Please investigate `calculate_order_total(items, coupon_code)` in `src/checkout.py` and fix the behavior without changing the intended pricing rules.
-
-Do not modify the tests.
-Run: `python -m pytest -q`.
+Please investigate the checkout flow and fix the bug without changing the intended pricing rules.
 
 [response 1]
-tokens: input=523 output=37 total=560
-cumulative_tokens: 560
-Thought: Need inspect files.
+tokens: input=500 output=38 total=538
+cumulative_tokens: 538
+Thought: I’ll inspect the workspace to locate the checkout and discount logic before proposing a patch.
 Action: list_files
-
 Action Input:
 
 [response 2]
-tokens: input=547 output=45 total=592
-cumulative_tokens: 1152
-Thought: I need to inspect the checkout implementation and tests to identify the bug before patching.
+tokens: input=524 output=89 total=613
+cumulative_tokens: 1151
+Thought: I need to inspect the source and tests to locate the checkout flow and coupon application logic before proposing a fix.
+Action: list_files
+Action Input: src
+Thought: I need to inspect the source and tests to locate the checkout flow and coupon application logic before proposing a fix.
+Action: list_files
+Action Input: tests
+
+[response 3]
+tokens: input=548 output=51 total=599
+cumulative_tokens: 1750
+Thought: I need to inspect the checkout implementation and tests to find where the coupon may be applied twice and patch it accordingly.
+Action: read_file
+Action Input: src
+
+[response 4]
+tokens: input=585 output=56 total=641
+cumulative_tokens: 2391
+Thought: I need inspect the checkout and tests to find the coupon bug location.
+Action: read_file
+Action Input: /Users/mtov/minixx/test_workspace/bugfix_002_order_totals/tests/test_checkout.py
+
+[response 5]
+tokens: input=628 output=49 total=677
+cumulative_tokens: 3068
+Thought: I need to inspect the source files in the listed workspace root to locate the checkout and coupon logic, then patch the double-application bug.
 Action: list_files
 Action Input: src
 
-[response 3]
-tokens: input=582 output=47 total=629
-cumulative_tokens: 1781
-Thought: I need to inspect the checkout implementation and related pricing/discount logic before patching.
+[response 6]
+tokens: input=635 output=60 total=695
+cumulative_tokens: 3763
+Thought: I’ll inspect the checkout and pricing code to find where percentage coupons may be applied twice, then I’ll patch the bug while preserving the stated rules.
 Action: read_file
 Action Input: src/checkout.py
 
-[response 4]
-tokens: input=737 output=57 total=794
-cumulative_tokens: 2575
-Thought: I’ll inspect the pricing and discount helpers to identify where coupon, shipping, and rounding interactions are going wrong, then I’ll patch `calculate_order_total` accordingly.
-Action: read_file
-Action Input: src/discounts.py
-
-[response 5]
-tokens: input=896 output=46 total=942
-cumulative_tokens: 3517
-Thought: I need to inspect pricing to verify subtotal rounding and how promotional items affect discountable amounts before patching checkout logic.
-Action: read_file
-Action Input: src/pricing.py
-
-[response 6]
-tokens: input=963 output=306 total=1269
-cumulative_tokens: 4786
-Thought: The bug appears to be in how discount eligibility, shipping qualification, and rounding are combined. I’ll patch `calculate_order_total` so it preserves the intended rules: discounts apply only to non-promotional items, free shipping is determined from the pre-discount cart subtotal, and rounding happens once at the end.
+[response 7]
+tokens: input=748 output=243 total=991
+cumulative_tokens: 4754
+Thought: The checkout total is applying the coupon twice: once via `subtotal_after_coupon(...)` and again via `discount_amount(...)`. Fixing this should preserve the intended pricing rules while ensuring percentage coupons only affect the order once, promotional items remain excluded from coupons, invalid codes are ignored, and the final total stays rounded.
 Action: finish
 Action Input: --- a/src/checkout.py
 +++ b/src/checkout.py
-@@ -1,16 +1,18 @@
- from src.discounts import calculate_discount
- from src.pricing import discountable_subtotal, subtotal
- 
- FREE_SHIPPING_THRESHOLD = 100.0
- SHIPPING_FEE = 15.0
+@@ -1,11 +1,7 @@
+ from src.discounts import coupon_percent, discount_amount
+ from src.pricing import subtotal, subtotal_after_coupon
  
  
  def calculate_order_total(items: list[dict], coupon_code: str | None = None) -> float:
-     subtotal_amount = subtotal(items)
-     eligible_amount = discountable_subtotal(items)
-     discount = calculate_discount(eligible_amount, coupon_code)
- 
--    discounted_subtotal = subtotal_amount - discount
--    shipping = 0.0 if discounted_subtotal >= FREE_SHIPPING_THRESHOLD else SHIPPING_FEE
-+    # Free shipping should be based on the cart subtotal before discounts,
-+    # so coupons do not remove shipping that was already earned.
-+    shipping = 0.0 if subtotal_amount >= FREE_SHIPPING_THRESHOLD else SHIPPING_FEE
-+
-+    discounted_subtotal = subtotal_amount - discount
- 
-     return round(discounted_subtotal + shipping, 2)
+     percent = coupon_percent(coupon_code)
+     discounted_subtotal = subtotal_after_coupon(items, percent)
+-
+-    # Bug: the subtotal is already discounted above, but the coupon is
+-    # subtracted a second time here.
+-    extra_discount = discount_amount(subtotal(items), coupon_code)
+-    return round(discounted_subtotal - extra_discount, 2)
++    return round(discounted_subtotal, 2)
 
 [command]
 status: proposed

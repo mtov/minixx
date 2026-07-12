@@ -1,0 +1,12 @@
+{
+  "id": "bugfix_002_order_totals",
+  "title": "Fix double-applied checkout coupon",
+  "category": "bugfix",
+  "difficulty": "medium",
+  "language": "python",
+  "test_command": "python -m pytest -q",
+  "dependencies": [
+    "pytest"
+  ],
+  "notes": "Synthetic, self-contained task about a percentage coupon being applied twice across checkout helpers."
+}

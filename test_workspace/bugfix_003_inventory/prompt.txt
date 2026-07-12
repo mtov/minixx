@@ -1,8 +1,0 @@
-Fix `reserve_items(inventory, order)` in `src/inventory.py`.
-
-The function must reduce inventory for all items in the order.
-If any item does not have enough stock, no change should be made.
-
-Return `True` on success and `False` otherwise.
-
-Do not modify the tests.

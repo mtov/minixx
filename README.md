@@ -42,7 +42,7 @@ export OPENAI_API_KEY="your_key_here"
 Run:
 
 ```bash
-python run_minixx.py ./test_workspace/bugfix_001_slugify
+python run_minixx.py ./test_workspace/bugfix_001_date_range
 ```
 
 The default configuration calls the OpenAI API directly.
@@ -94,7 +94,7 @@ It may also contain:
 Example `prompt.txt`:
 
 ```text
-Fix `slugify(title)` in `src/text_utils.py`.
+Fix the date-range bug without changing the intended inclusive behavior.
 Run: `python -m pytest -q`.
 ```
 
@@ -117,7 +117,7 @@ That means:
 Example:
 
 ```bash
-cd ./test_workspace/bugfix_001_slugify
+cd ./test_workspace/bugfix_001_date_range
 python -m pytest -q
 ```
 
@@ -141,33 +141,17 @@ This has a few important consequences:
 
 ## Example Workspaces
 
-The repository currently ships with six bugfix workspaces:
+The repository currently ships with two bugfix workspaces:
 
-- `./test_workspace/bugfix_001_slugify`: text normalization and fallback slug generation
-- `./test_workspace/bugfix_002_date_range`: inclusive date range generation
-- `./test_workspace/bugfix_003_inventory`: inventory reservation with rollback on failure
-- `./test_workspace/bugfix_004_config_merge`: recursive configuration merge without input mutation
-- `./test_workspace/bugfix_005_lru_cache`: least-recently-used eviction and recency tracking
-- `./test_workspace/bugfix_006_task_scheduler`: staged dependency scheduling with missing dependency and cycle validation
-
-Suggested difficulty progression:
-
-- simpler:
-  - `bugfix_001_slugify`
-  - `bugfix_002_date_range`
-- intermediate:
-  - `bugfix_003_inventory`
-  - `bugfix_004_config_merge`
-- more stateful or structurally complex:
-  - `bugfix_005_lru_cache`
-  - `bugfix_006_task_scheduler`
+- `./test_workspace/bugfix_001_date_range`: a compact date-range bug with an inclusive boundary expectation
+- `./test_workspace/bugfix_002_order_totals`: a checkout bug where a percentage coupon is effectively applied twice
 
 These workspaces are designed so that:
 
 - the tests clearly expose the bug
 - the fix can be expressed as a patch
 - the post-fix behavior is validated by the same suite
-- difficulty increases without requiring a large codebase
+- they stay practical and close to realistic maintenance tasks
 
 ## Tools
 
