@@ -55,9 +55,36 @@ class AgentHistory:
     def contains_action(self, action: str) -> bool:
         return any(agent_response.action == action for _, agent_response, _ in self.entries)
 
+    def _unique_action_inputs(self, action: str) -> list[str]:
+        seen: set[str] = set()
+        items: list[str] = []
+
+        for _, agent_response, _ in self.entries:
+            if agent_response.action != action:
+                continue
+            value = agent_response.action_input.strip()
+            if not value or value in seen:
+                continue
+            seen.add(value)
+            items.append(value)
+
+        return items
+
     def to_text(self) -> str:
         if not self.entries:
             return "No previous steps."
+
+        sections: list[str] = []
+        read_files = self._unique_action_inputs("read_file")
+        find_queries = self._unique_action_inputs("find_text")
+
+        if read_files:
+            sections.append("Files already read:\n" + "\n".join(f"- {path}" for path in read_files))
+        if find_queries:
+            sections.append("Searches already run:\n" + "\n".join(f"- {query}" for query in find_queries))
+        if self.contains_action("run_tests"):
+            sections.append("Tests already run: yes")
+
         formatted_entries = []
         for iteration, agent_response, tool_result in self.entries[-MAX_HISTORY_ENTRIES:]:
             observation = tool_result.strip()
@@ -69,4 +96,5 @@ class AgentHistory:
                 f"Action Input: {agent_response.action_input}\n"
                 f"Observation: {observation}\n"
             )
-        return "\n".join(formatted_entries)
+        sections.append("Recent steps:\n" + "\n".join(formatted_entries))
+        return "\n\n".join(sections)
