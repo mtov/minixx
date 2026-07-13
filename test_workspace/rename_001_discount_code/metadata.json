@@ -1,0 +1,12 @@
+{
+  "id": "rename_001_discount_code",
+  "title": "Rename coupon terminology to discount code",
+  "category": "rename",
+  "difficulty": "medium",
+  "language": "python",
+  "test_command": "python -m pytest -q",
+  "dependencies": [
+    "pytest"
+  ],
+  "notes": "Synthetic, self-contained rename task across checkout and discounts modules with a small serialized payload surface."
+}

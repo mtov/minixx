@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from .context import AgentContext, AgentHistory, AgentResponse
 from .finish_handler import handle_finish
 from .inputs import parse_args, prepare_run
@@ -9,8 +11,20 @@ from .traces import get_total_tokens, trace_validation_error
 from .tools import run_tool
 
 
-def print_iteration_action(iteration: int, action: str) -> None:
-    print(f"[{iteration}] {action}", flush=True)
+def format_iteration_action(agent_response: AgentResponse) -> str:
+    if agent_response.action == "read_file":
+        return f"{agent_response.action} {Path(agent_response.action_input).name}"
+
+    if agent_response.action == "find_text":
+        query = agent_response.action_input.split("|", maxsplit=1)[0].strip()
+        if query:
+            return f'{agent_response.action} "{query}"'
+
+    return agent_response.action
+
+
+def print_iteration_action(iteration: int, agent_response: AgentResponse) -> None:
+    print(f"[{iteration}] {format_iteration_action(agent_response)}", flush=True)
 
 
 def print_total_tokens() -> None:
@@ -35,7 +49,7 @@ Agent history:
 
 
 def agentic_loop(context: AgentContext) -> str:
-    max_iterations = 10
+    max_iterations = 15
     agent_history = AgentHistory()
 
     for iteration in range(1, max_iterations + 1):
@@ -43,10 +57,10 @@ def agentic_loop(context: AgentContext) -> str:
 
         if agent_response.action == "finish":
             agent_response = handle_finish(context, agent_response)
-            print_iteration_action(iteration, agent_response.action)
+            print_iteration_action(iteration, agent_response)
             return agent_response.action_input
 
-        print_iteration_action(iteration, agent_response.action)
+        print_iteration_action(iteration, agent_response)
 
         tool_result = run_tool(agent_response, context.workspace_path)
         agent_history.append(iteration, agent_response, tool_result)

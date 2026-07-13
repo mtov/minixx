@@ -97,7 +97,7 @@ Fix the date-range bug without changing the intended inclusive behavior.
 Run: `python -m pytest -q`.
 ```
 
-In practice, the current bug-fix workspaces also follow this layout:
+In practice, the current example workspaces also follow this layout:
 
 - `src/` contains the buggy implementation
 - `tests/` contains the test suite used by Minixx
@@ -140,17 +140,18 @@ This has a few important consequences:
 
 ## Example Workspaces
 
-The repository currently ships with two bugfix workspaces:
+The repository currently ships with three curated workspaces:
 
 - `./test_workspace/bugfix_001_date_range`: a compact date-range bug with an inclusive boundary expectation
 - `./test_workspace/bugfix_002_order_totals`: a checkout bug where a percentage coupon is effectively applied twice
+- `./test_workspace/rename_001_discount_code`: a checkout refactor that renames `coupon` terminology to `discount_code` across production code and tests
 
 These workspaces are designed so that:
 
-- the tests clearly expose the bug
-- the fix can be expressed as a patch
-- the post-fix behavior is validated by the same suite
-- they stay practical and close to realistic maintenance tasks
+- bugfix tasks start from failing behavior and are validated by tests
+- refactor tasks start from passing behavior and require coordinated updates to code and tests
+- the changes can be expressed as a patch
+- the examples stay practical and close to realistic maintenance tasks
 
 ## Patch Workflow
 
@@ -262,8 +263,9 @@ Available actions:
 
 Behavior notes:
 
-- `read_file` prints `Reading file: <name>` to the console before returning file contents
+- `read_file` shows the filename directly in the iteration line, such as `[3] read_file checkout.py`
 - `find_text` expects `search text | /path/to/directory`
+- `find_text` shows the searched string in the iteration line, such as `[4] find_text "coupon"`
 - `run_tests` uses a fixed `pytest` command instead of an arbitrary shell command
 - for code-change tasks, `finish` must return a unified diff patch in `Action Input`
 

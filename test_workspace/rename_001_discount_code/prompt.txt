@@ -1,0 +1,4 @@
+The checkout code still uses the old "coupon" terminology, but the current product language is "discount code".
+
+Please rename the internal API from "coupon" to "discount_code" consistently across the checkout flow without changing behavior.
+Update the tests as part of the refactoring so they use the new terminology too.
