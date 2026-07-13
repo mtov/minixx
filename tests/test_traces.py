@@ -6,7 +6,7 @@ from minixx.context import TokenUsage
 from minixx import traces
 
 
-def test_trace_response_records_token_usage_and_cumulative_total(
+def test_trace_response_records_responses_and_cumulative_total(
     monkeypatch,
     tmp_path: Path,
 ) -> None:

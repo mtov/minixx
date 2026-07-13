@@ -44,7 +44,9 @@ def _normalize_hunk_lines(text: str) -> str:
             normalized_lines.append(line)
             continue
 
-        if line.startswith("--- ") or line.startswith("+++ ") or line.startswith("diff --git "):
+        if line.startswith(
+            ("--- ", "+++ ", "diff --git ")
+        ):
             in_hunk = False
             normalized_lines.append(line)
             continue
@@ -117,7 +119,12 @@ def auto_repair_patch_text(patch_text: str) -> str:
 
 
 def validate_patch(workspace_path: Path, patch_text: str) -> None:
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".patch", delete=False) as file:
+    with tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        suffix=".patch",
+        delete=False,
+    ) as file:
         file.write(patch_text)
         temp_patch_path = Path(file.name)
 

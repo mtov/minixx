@@ -79,9 +79,15 @@ class AgentHistory:
         find_queries = self._unique_action_inputs("find_text")
 
         if read_files:
-            sections.append("Files already read:\n" + "\n".join(f"- {path}" for path in read_files))
+            sections.append(
+                "Files already read:\n"
+                + "\n".join(f"- {path}" for path in read_files)
+            )
         if find_queries:
-            sections.append("Searches already run:\n" + "\n".join(f"- {query}" for query in find_queries))
+            sections.append(
+                "Searches already run:\n"
+                + "\n".join(f"- {query}" for query in find_queries)
+            )
         if self.contains_action("run_tests"):
             sections.append("Tests already run: yes")
 

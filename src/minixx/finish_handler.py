@@ -6,7 +6,16 @@ from .protocol import looks_like_patch
 from .traces import trace_finish_event
 from .tools import run_tests
 
-CODE_CHANGE_KEYWORDS = ("rename", "refactor", "change", "update", "modify", "fix", "create", "implement")
+CODE_CHANGE_KEYWORDS = (
+    "rename",
+    "refactor",
+    "change",
+    "update",
+    "modify",
+    "fix",
+    "create",
+    "implement",
+)
 BUG_FIX_KEYWORDS = ("bug", "fix", "failing test", "tests pass")
 
 

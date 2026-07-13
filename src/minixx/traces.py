@@ -25,6 +25,7 @@ def clear_trace() -> None:
 def trace_request(user_prompt: str) -> None:
     _append_trace(f"[request]\n{user_prompt}\n\n")
 
+
 def get_total_tokens() -> int | None:
     return TOTAL_TOKENS or None
 
@@ -73,7 +74,7 @@ def trace_command_event(status: str, command: str, cwd: Path) -> None:
 
 
 def trace_finish_event(status: str, stage: str, detail: str | None = None) -> None:
-    trace = "[finish]\n" f"status: {status}\n" f"stage: {stage}\n"
+    trace = f"[finish]\nstatus: {status}\nstage: {stage}\n"
     if detail:
         trace += f"detail: {detail}\n"
     _append_trace(f"{trace}\n")
