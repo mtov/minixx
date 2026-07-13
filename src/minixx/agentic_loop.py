@@ -6,7 +6,7 @@ from .context import AgentContext, AgentHistory, AgentResponse
 from .finish_handler import handle_finish
 from .inputs import parse_args, prepare_run
 from .models import call_model
-from .protocol import parse_response, repair_response
+from .protocol import looks_like_patch, parse_response, repair_response
 from .traces import get_total_tokens, trace_validation_error
 from .tools import run_tool
 
@@ -35,6 +35,11 @@ def print_total_tokens() -> None:
     total_tokens = get_total_tokens()
     if total_tokens is not None:
         print(f"Total tokens: {total_tokens}")
+
+
+def print_final_result(result: str) -> None:
+    if not looks_like_patch(result):
+        print(result)
 
 
 def get_agent_response(context: AgentContext, agent_history: str) -> AgentResponse:
@@ -84,5 +89,5 @@ def main() -> int:
         return 1
 
     print_total_tokens()
-    print(result)
+    print_final_result(result)
     return 0
