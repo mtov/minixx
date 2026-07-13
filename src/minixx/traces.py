@@ -25,18 +25,6 @@ def clear_trace() -> None:
 def trace_request(user_prompt: str) -> None:
     _append_trace(f"[request]\n{user_prompt}\n\n")
 
-
-def format_token_usage(token_usage: TokenUsage) -> str:
-    if token_usage.total_tokens is None:
-        return "tokens: unavailable"
-    return (
-        "tokens: "
-        f"input={token_usage.input_tokens if token_usage.input_tokens is not None else '?'} "
-        f"output={token_usage.output_tokens if token_usage.output_tokens is not None else '?'} "
-        f"total={token_usage.total_tokens}"
-    )
-
-
 def get_total_tokens() -> int | None:
     return TOTAL_TOKENS or None
 
@@ -52,15 +40,8 @@ def trace_response(
     if usage.total_tokens is not None:
         TOTAL_TOKENS += usage.total_tokens
 
-    cumulative_tokens = (
-        f"cumulative_tokens: {TOTAL_TOKENS}\n"
-        if usage.total_tokens is not None
-        else ""
-    )
     _append_trace(
         f"[{label.lower().replace(' ', '_')} {CALL_COUNT}]\n"
-        f"{format_token_usage(usage)}\n"
-        f"{cumulative_tokens}"
         f"{response}\n\n"
     )
 
@@ -89,3 +70,10 @@ def trace_command_event(status: str, command: str, cwd: Path) -> None:
         f"command: {command}\n"
         f"cwd: {cwd}\n\n"
     )
+
+
+def trace_finish_event(status: str, stage: str, detail: str | None = None) -> None:
+    trace = "[finish]\n" f"status: {status}\n" f"stage: {stage}\n"
+    if detail:
+        trace += f"detail: {detail}\n"
+    _append_trace(f"{trace}\n")

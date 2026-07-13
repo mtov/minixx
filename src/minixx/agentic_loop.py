@@ -12,6 +12,10 @@ from .tools import run_tool
 
 
 def format_iteration_action(agent_response: AgentResponse) -> str:
+    if agent_response.action == "list_files":
+        path = agent_response.action_input.strip() or "."
+        return f"{agent_response.action} {path}"
+
     if agent_response.action == "read_file":
         return f"{agent_response.action} {Path(agent_response.action_input).name}"
 

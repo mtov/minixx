@@ -1,0 +1,4 @@
+The order rules module has duplicated logic for selecting eligible items across multiple functions.
+
+Please refactor the module by extracting that duplicated eligibility-selection logic into a helper function without changing behavior.
+Update the tests if needed to reflect the refactoring.

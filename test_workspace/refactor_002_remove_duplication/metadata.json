@@ -1,0 +1,12 @@
+{
+  "id": "refactor_002_remove_duplication",
+  "title": "Extract duplicated order-rule logic into a helper",
+  "category": "refactor",
+  "difficulty": "medium",
+  "language": "python",
+  "test_command": "python -m pytest -q",
+  "dependencies": [
+    "pytest"
+  ],
+  "notes": "Synthetic, self-contained refactoring task with one production file, five functions, and duplicated item-selection logic used in three places."
+}

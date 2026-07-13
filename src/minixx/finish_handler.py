@@ -3,6 +3,7 @@ from __future__ import annotations
 from .context import AgentContext, AgentResponse
 from .patches import apply_patch, save_patch, validate_and_repair_patch
 from .protocol import looks_like_patch
+from .traces import trace_finish_event
 from .tools import run_tests
 
 CODE_CHANGE_KEYWORDS = ("rename", "refactor", "change", "update", "modify", "fix", "create", "implement")
@@ -27,14 +28,39 @@ def handle_finish(
 ) -> AgentResponse:
     prompt = context.user_prompt.lower()
     if looks_like_patch(agent_response.action_input):
-        agent_response.action_input = validate_and_repair_patch(context.workspace_path, agent_response.action_input)
-        save_patch(context.workspace_path, agent_response.action_input)
-        apply_patch(context.workspace_path)
+        try:
+            agent_response.action_input = validate_and_repair_patch(
+                context.workspace_path,
+                agent_response.action_input,
+            )
+        except Exception as exc:  # noqa: BLE001
+            trace_finish_event("failed", "patch_validation", str(exc))
+            raise
+
+        try:
+            save_patch(context.workspace_path, agent_response.action_input)
+        except Exception as exc:  # noqa: BLE001
+            trace_finish_event("failed", "save_patch", str(exc))
+            raise
+
+        try:
+            apply_patch(context.workspace_path)
+        except Exception as exc:  # noqa: BLE001
+            trace_finish_event("failed", "apply_patch", str(exc))
+            raise
+
         if is_bug_fix_task(prompt):
             test_output = run_tests(context.workspace_path)
             if not tests_passed(test_output):
+                trace_finish_event("failed", "post_apply_tests", test_output)
                 raise ValueError(f"Post-apply tests failed:\n{test_output}")
+        trace_finish_event("completed", "finish")
     elif is_code_change_task(prompt):
+        trace_finish_event(
+            "failed",
+            "finish_validation",
+            "Finish output must be a unified diff patch for code-change tasks.",
+        )
         raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
 
     return agent_response

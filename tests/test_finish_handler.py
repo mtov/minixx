@@ -16,7 +16,6 @@ def build_context(tmp_path: Path, user_prompt: str) -> AgentContext:
             openai_base_url=None,
             openai_model="gpt-5.4-mini",
             openai_api_key_env="OPENAI_API_KEY",
-            working_directory=tmp_path,
         ),
         system_prompt="system",
         user_prompt=user_prompt,
@@ -24,7 +23,7 @@ def build_context(tmp_path: Path, user_prompt: str) -> AgentContext:
         workspace_path=tmp_path,
     )
 
-def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: Path, capsys) -> None:
+def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: Path) -> None:
     context = build_context(tmp_path, "Fix the bug in slugify and make tests pass.")
     response = AgentResponse(
         thought="done",
@@ -37,13 +36,12 @@ def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: 
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: calls.append("save_patch"))
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: calls.append("apply_patch"))
     monkeypatch.setattr("minixx.finish_handler.run_tests", lambda *_args: "1 passed")
+    monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
     result = handle_finish(context, response)
-    captured = capsys.readouterr()
 
     assert result is response
     assert calls == ["save_patch", "apply_patch"]
-    assert "Running tests after applying patch..." in captured.out
 
 
 def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: Path) -> None:
@@ -58,9 +56,13 @@ def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: 
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: None)
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
     monkeypatch.setattr("minixx.finish_handler.run_tests", lambda *_args: "1 failed")
+    finish_events: list[tuple[str, str, str | None]] = []
+    monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
     with pytest.raises(ValueError, match="Post-apply tests failed"):
         handle_finish(context, response)
+
+    assert finish_events == [("failed", "post_apply_tests", "1 failed")]
 
 
 def test_handle_finish_skips_post_apply_tests_for_non_bug_fix(monkeypatch, tmp_path: Path) -> None:
@@ -81,6 +83,7 @@ def test_handle_finish_skips_post_apply_tests_for_non_bug_fix(monkeypatch, tmp_p
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: None)
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
     monkeypatch.setattr("minixx.finish_handler.run_tests", fake_run_tests)
+    monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
     result = handle_finish(context, response)
 
@@ -119,9 +122,31 @@ def test_handle_finish_repairs_patch_when_action_input_looks_like_patch(monkeypa
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda _path, patch: saved_patches.append(patch))
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
     monkeypatch.setattr("minixx.finish_handler.run_tests", lambda *_args: "1 passed")
+    monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
     result = handle_finish(context, response)
 
     assert result is response
     assert response.action_input == repaired_patch
     assert saved_patches == [repaired_patch]
+
+
+def test_handle_finish_traces_patch_validation_failures(monkeypatch, tmp_path: Path) -> None:
+    context = build_context(tmp_path, "Refactor the checkout flow.")
+    response = AgentResponse(
+        thought="done",
+        action="finish",
+        action_input="--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new\n",
+    )
+    finish_events: list[tuple[str, str, str | None]] = []
+
+    def raise_patch_error(*_args):
+        raise ValueError("corrupt patch")
+
+    monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", raise_patch_error)
+    monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
+
+    with pytest.raises(ValueError, match="corrupt patch"):
+        handle_finish(context, response)
+
+    assert finish_events == [("failed", "patch_validation", "corrupt patch")]

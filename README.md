@@ -144,7 +144,8 @@ The repository currently ships with three curated workspaces:
 
 - `./test_workspace/bugfix_001_date_range`: a compact date-range bug with an inclusive boundary expectation
 - `./test_workspace/bugfix_002_order_totals`: a checkout bug where a percentage coupon is effectively applied twice
-- `./test_workspace/rename_001_discount_code`: a checkout refactor that renames `coupon` terminology to `discount_code` across production code and tests
+- `./test_workspace/refactor_001_rename`: a checkout refactor that renames `coupon` terminology to `discount_code` across production code and tests
+- `./test_workspace/refactor_002_remove_duplication`: an order-rules refactor that extracts duplicated logic into a helper
 
 These workspaces are designed so that:
 

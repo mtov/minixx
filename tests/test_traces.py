@@ -25,13 +25,33 @@ def test_trace_response_records_token_usage_and_cumulative_total(
 
     content = log_path.read_text(encoding="utf-8")
 
-    assert "Response 1" in content
-    assert "Token Usage: input=10 output=5 total=15" in content
-    assert "Cumulative Tokens: 15" in content
-    assert "Response 2" in content
-    assert "Token Usage: input=4 output=3 total=7" in content
-    assert "Cumulative Tokens: 22" in content
+    assert "[response 1]" in content
+    assert "first response" in content
+    assert "[response 2]" in content
+    assert "second response" in content
+    assert traces.get_total_tokens() == 22
 
 
-def test_format_token_usage_handles_unavailable_usage() -> None:
-    assert traces.format_token_usage(TokenUsage()) == "Token Usage: unavailable"
+def test_get_total_tokens_returns_none_when_usage_is_unavailable(monkeypatch, tmp_path: Path) -> None:
+    log_path = tmp_path / "agent_trace.log"
+    monkeypatch.setattr(traces, "LOG_PATH", log_path)
+
+    traces.clear_trace()
+    traces.trace_response("response without usage", token_usage=TokenUsage())
+
+    assert traces.get_total_tokens() is None
+
+
+def test_trace_finish_event_records_stage_and_detail(monkeypatch, tmp_path: Path) -> None:
+    log_path = tmp_path / "agent_trace.log"
+    monkeypatch.setattr(traces, "LOG_PATH", log_path)
+
+    traces.clear_trace()
+    traces.trace_finish_event("failed", "patch_validation", "corrupt patch")
+
+    content = log_path.read_text(encoding="utf-8")
+
+    assert "[finish]" in content
+    assert "status: failed" in content
+    assert "stage: patch_validation" in content
+    assert "detail: corrupt patch" in content
