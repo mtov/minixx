@@ -10,29 +10,30 @@ def handle_finish(
     context: AgentContext,
     agent_response: AgentResponse,
 ) -> FinishResult:
-    if looks_like_patch(agent_response.action_input):
+    workspace_path = context.workspace_path
+    patch_text = agent_response.action_input
+
+    if looks_like_patch(patch_text):
         try:
-            agent_response.action_input = validate_and_repair_patch(
-                context.workspace_path,
-                agent_response.action_input,
-            )
+            patch_text = validate_and_repair_patch(workspace_path, patch_text)
+            agent_response.action_input = patch_text
         except Exception as exc:  # noqa: BLE001
             trace_finish_event("failed", "patch_validation", str(exc))
             raise
 
         try:
-            save_patch(context.workspace_path, agent_response.action_input)
+            save_patch(workspace_path, patch_text)
         except Exception as exc:  # noqa: BLE001
             trace_finish_event("failed", "save_patch", str(exc))
             raise
 
         try:
-            apply_patch(context.workspace_path)
+            apply_patch(workspace_path)
         except Exception as exc:  # noqa: BLE001
             trace_finish_event("failed", "apply_patch", str(exc))
             raise
 
-        tests_succeeded, test_output = run_tests_with_status(context.workspace_path)
+        tests_succeeded, test_output = run_tests_with_status(workspace_path)
         if not tests_succeeded:
             trace_finish_event("failed", "post_apply_tests", test_output)
             return FinishResult(
