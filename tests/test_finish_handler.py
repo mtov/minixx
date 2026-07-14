@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from minixx.context import AgentContext, AgentResponse, ModelConfig
-from minixx.finish_handler import PostApplyTestsFailedError, handle_finish
+from minixx.finish_handler import handle_finish
 
 
 def build_context(tmp_path: Path, user_prompt: str) -> AgentContext:
@@ -40,7 +40,8 @@ def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: 
 
     result = handle_finish(context, response)
 
-    assert result is response
+    assert result.status == "applied"
+    assert result.agent_response is response
     assert calls == ["save_patch", "apply_patch"]
     assert context.post_apply_tests_passed is True
 
@@ -67,7 +68,8 @@ def test_handle_finish_runs_post_apply_tests_for_feature_task(monkeypatch, tmp_p
 
     result = handle_finish(context, response)
 
-    assert result is response
+    assert result.status == "applied"
+    assert result.agent_response is response
     assert run_tests_called is True
     assert context.post_apply_tests_passed is True
 
@@ -97,7 +99,8 @@ def test_handle_finish_runs_post_apply_tests_for_bugfix_without_keywords(monkeyp
 
     result = handle_finish(context, response)
 
-    assert result is response
+    assert result.status == "applied"
+    assert result.agent_response is response
     assert run_tests_called is True
     assert context.post_apply_tests_passed is True
 
@@ -117,9 +120,11 @@ def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: 
     finish_events: list[tuple[str, str, str | None]] = []
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
-    with pytest.raises(PostApplyTestsFailedError, match="Post-apply tests failed"):
-        handle_finish(context, response)
+    result = handle_finish(context, response)
 
+    assert result.status == "post_apply_tests_failed"
+    assert result.agent_response is response
+    assert result.test_output == "1 failed"
     assert finish_events == [("failed", "post_apply_tests", "1 failed")]
 
 
@@ -145,7 +150,8 @@ def test_handle_finish_runs_post_apply_tests_for_readme_patch(monkeypatch, tmp_p
 
     result = handle_finish(context, response)
 
-    assert result is response
+    assert result.status == "applied"
+    assert result.agent_response is response
     assert run_tests_called is True
     assert context.post_apply_tests_passed is True
 
@@ -185,7 +191,8 @@ def test_handle_finish_repairs_patch_when_action_input_looks_like_patch(monkeypa
 
     result = handle_finish(context, response)
 
-    assert result is response
+    assert result.status == "applied"
+    assert result.agent_response is response
     assert response.action_input == repaired_patch
     assert saved_patches == [repaired_patch]
 
@@ -208,9 +215,10 @@ def test_handle_finish_rejects_mixed_output_when_tests_failed(monkeypatch, tmp_p
     )
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
-    with pytest.raises(PostApplyTestsFailedError, match="Post-apply tests failed"):
-        handle_finish(context, response)
+    result = handle_finish(context, response)
 
+    assert result.status == "post_apply_tests_failed"
+    assert result.test_output == "1 failed, 5 passed"
     assert finish_events == [("failed", "post_apply_tests", "1 failed, 5 passed")]
 
 

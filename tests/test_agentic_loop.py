@@ -4,8 +4,7 @@ from pathlib import Path
 
 from minixx.agentic_loop import INVALID_FINISH_MESSAGE, agentic_loop, summarize_test_failure_output
 from minixx.cli_output import format_failure_message, format_success_message, print_final_result
-from minixx.context import AgentContext, AgentResponse, ModelConfig
-from minixx.finish_handler import PostApplyTestsFailedError
+from minixx.context import AgentContext, AgentResponse, FinishResult, ModelConfig
 
 
 def build_context(post_apply_tests_passed: bool = False) -> AgentContext:
@@ -104,7 +103,10 @@ def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
         return next(responses)
 
     monkeypatch.setattr("minixx.agentic_loop.get_agent_response", fake_get_agent_response)
-    monkeypatch.setattr("minixx.agentic_loop.handle_finish", lambda _context, response: response)
+    monkeypatch.setattr(
+        "minixx.agentic_loop.handle_finish",
+        lambda _context, response: FinishResult(status="applied", agent_response=response),
+    )
 
     result = agentic_loop(context)
     captured = capsys.readouterr()
@@ -144,8 +146,12 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
         nonlocal finish_attempts
         finish_attempts += 1
         if finish_attempts == 1:
-            raise PostApplyTestsFailedError("..F\nassert 1 == 2")
-        return response
+            return FinishResult(
+                status="post_apply_tests_failed",
+                agent_response=response,
+                test_output="..F\nassert 1 == 2",
+            )
+        return FinishResult(status="applied", agent_response=response)
 
     def fake_prepare_runtime_workspace(source_workspace_path: Path) -> Path:
         reset_calls.append(source_workspace_path)

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .cli_output import format_failure_message, print_final_result, print_iteration_action, print_total_tokens
 from .context import AgentContext, AgentHistory, AgentResponse
-from .finish_handler import PostApplyTestsFailedError, handle_finish
+from .finish_handler import handle_finish
 from .inputs import parse_args, prepare_run, prepare_runtime_workspace
 from .models import call_model
 from .protocol import looks_like_patch, parse_response, repair_response
@@ -94,17 +94,17 @@ def agentic_loop(context: AgentContext) -> str:
                 print_iteration_action(iteration, agent_response)
                 agent_history.append(iteration, agent_response, INVALID_FINISH_MESSAGE)
                 continue
-            try:
-                agent_response = handle_finish(context, agent_response)
-            except PostApplyTestsFailedError as exc:
+            finish_result = handle_finish(context, agent_response)
+            if finish_result.status == "post_apply_tests_failed":
                 print_iteration_action(iteration, agent_response)
                 reset_runtime_workspace(context)
                 agent_history.append(
                     iteration,
                     agent_response,
-                    summarize_test_failure_output(exc.test_output),
+                    summarize_test_failure_output(finish_result.test_output or ""),
                 )
                 continue
+            agent_response = finish_result.agent_response
             print_iteration_action(iteration, agent_response)
             return agent_response.action_input
 

@@ -1,186 +1,50 @@
 [request]
-The checkout code still uses the old "coupon" terminology, but the current product language is "discount code".
+Users reported that date-based exports are missing the last day of the selected range.
 
-Please rename the internal API from "coupon" to "discount_code" consistently across the checkout flow without changing behavior.
-Update the tests as part of the refactoring so they use the new terminology too.
+For example, when someone asks for data from `2024-01-10` to `2024-01-12`, they expect the result to include all three dates, not stop one day early.
+
+Expected behavior:
+- the range should include both the start date and the end date;
+- dates should stay in `YYYY-MM-DD` format;
+- if the end date is before the start date, the result should be empty.
 
 [response 1]
-Thought: I need to inspect the checkout-related files and tests to rename coupon terminology consistently without changing behavior.
-Action: find_text
-Action Input: coupon | /Users/mtov/minixx/minixx-workspace
-
-Thought: I need to inspect the checkout-related files and tests to rename coupon terminology consistently without changing behavior.
-Action: find_text
-Action Input: coupon | /Users/mtov/minixx/minixx-workspace
+Thought: I need to inspect the repository to find the date-range export logic and then patch it so the end date is inclusive and invalid reversed ranges return empty.
+Action: list_files
+Action Input:
 
 [response 2]
-Thought: I need to inspect the checkout and test files to rename the internal API consistently and update tests accordingly.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/checkout.py
+Thought: I need to inspect the code handling date ranges and exports to adjust inclusive end-date behavior and validate the expected formatting/empty-range case.
+Action: find_text
+Action Input: date | /Users/mtov/minixx/minixx-workspace/src
+Thought: I need to inspect the code handling date ranges and exports to adjust inclusive end-date behavior and validate the expected formatting/empty-range case.
+Action: find_text
+Action Input: date | /Users/mtov/minixx/minixx-workspace/src
 
 [response 3]
-Thought: I need the tests and any discount helpers to rename the API consistently, so I’ll inspect the relevant files before patching.
-Action: list_files
-Action Input: /Users/mtov/minixx/minixx-workspace/src
+Thought: I need to inspect the date range implementation before patching it.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/src/dates.py
 
 [response 4]
-Thought: I need to inspect the remaining checkout-related and test files to rename the API consistently and update tests without changing behavior.
-Action: find_text
-Action Input: coupon | /Users/mtov/minixx/minixx-workspace/src
-
-[response 5]
-Thought: Need inspect tests and discounts module to rename API consistently without behavior changes.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/discounts.py
-
-[response 6]
-Thought: I need to inspect the test files to rename the API consistently and update assertions without changing behavior.
-Action: find_text
-Action Input: coupon | /Users/mtov/minixx/minixx-workspace
-
-[response 7]
-Thought: I need to inspect the checkout and test files to rename the API consistently and update tests without changing behavior.
-Action: list_files
-Action Input: /Users/mtov/minixx/minixx-workspace
-
-[response 8]
-Thought: I need to inspect the test files before making the refactor so I can rename the API consistently and update expectations without changing behavior.
-Action: list_files
-Action Input: /Users/mtov/minixx/minixx-workspace/tests
-
-[response 9]
-Thought: I need to inspect the checkout tests to rename the API consistently and then I can provide the patch.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/tests/test_checkout.py
-
-[response 10]
-Thought: I need to update the checkout and discount APIs plus tests, but I must inspect the source files again to make a consistent refactor and then return a patch.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/checkout.py
-
-[response 11]
-Thought: I need to rename the checkout API terminology from coupon to discount_code across implementation and tests, but I haven’t read the discounts module yet, so I need that before making a safe patch.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/discounts.py
-
-[response 12]
-Thought: I need to rename the checkout API from coupon to discount_code across source and tests, preserving behavior.
+Thought: Adjust the date range loop to include the end date and handle reversed ranges by returning an empty list.
 Action: finish
-Action Input: --- a/src/discounts.py
-+++ b/src/discounts.py
-@@ -1,15 +1,15 @@
- DISCOUNTS = {
-     "SAVE10": 0.10,
-     "SAVE20": 0.20,
- }
+Action Input: --- a/src/dates.py
++++ b/src/dates.py
+@@ -1,8 +1,10 @@
+ from datetime import date, timedelta
  
- 
--def normalize_coupon_code(coupon_code: str | None) -> str | None:
--    if coupon_code is None:
-+def normalize_discount_code(discount_code: str | None) -> str | None:
-+    if discount_code is None:
-         return None
--    normalized = coupon_code.strip().upper()
-+    normalized = discount_code.strip().upper()
-     return normalized or None
- 
- 
--def lookup_coupon(coupon_code: str | None) -> float:
--    normalized = normalize_coupon_code(coupon_code)
-+def lookup_discount_code(discount_code: str | None) -> float:
-+    normalized = normalize_discount_code(discount_code)
-     if normalized is None:
-         return 0.0
-     return DISCOUNTS.get(normalized, 0.0)
---- a/src/checkout.py
-+++ b/src/checkout.py
-@@ -1,16 +1,16 @@
--from src.discounts import lookup_coupon, normalize_coupon_code
-+from src.discounts import lookup_discount_code, normalize_discount_code
- 
- 
- def subtotal(items: list[dict]) -> float:
-     return sum(item["price"] * item["quantity"] for item in items)
- 
- 
--def calculate_order_total(items: list[dict], coupon_code: str | None = None) -> float:
-+def calculate_order_total(items: list[dict], discount_code: str | None = None) -> float:
-     amount = subtotal(items)
--    discount_rate = lookup_coupon(coupon_code)
-+    discount_rate = lookup_discount_code(discount_code)
-     return round(amount * (1 - discount_rate), 2)
- 
- 
--def build_checkout_summary(items: list[dict], coupon_code: str | None = None) -> dict:
--    normalized_coupon = normalize_coupon_code(coupon_code)
-+def build_checkout_summary(items: list[dict], discount_code: str | None = None) -> dict:
-+    normalized_discount_code = normalize_discount_code(discount_code)
-     return {
-         "subtotal": round(subtotal(items), 2),
--        "couponCode": normalized_coupon,
--        "total": calculate_order_total(items, coupon_code),
-+        "discountCode": normalized_discount_code,
-+        "total": calculate_order_total(items, discount_code),
-     }
---- a/tests/test_checkout.py
-+++ b/tests/test_checkout.py
-@@ -1,31 +1,31 @@
- from src.checkout import build_checkout_summary, calculate_order_total
--from src.discounts import lookup_coupon, normalize_coupon_code
-+from src.discounts import lookup_discount_code, normalize_discount_code
- 
- 
--def test_normalize_coupon_code_trims_and_uppercases():
--    assert normalize_coupon_code(" save10 ") == "SAVE10"
-+def test_normalize_discount_code_trims_and_uppercases():
-+    assert normalize_discount_code(" save10 ") == "SAVE10"
- 
- 
--def test_lookup_coupon_returns_rate():
--    assert lookup_coupon("save20") == 0.20
-+def test_lookup_discount_code_returns_rate():
-+    assert lookup_discount_code("save20") == 0.20
- 
- 
--def test_calculate_order_total_uses_coupon_code_argument():
-+def test_calculate_order_total_uses_discount_code_argument():
-     items = [
-         {"sku": "A", "price": 50.0, "quantity": 2},
-     ]
- 
--    assert calculate_order_total(items, coupon_code="SAVE10") == 90.0
-+    assert calculate_order_total(items, discount_code="SAVE10") == 90.0
- 
- 
--def test_build_checkout_summary_uses_coupon_code_key():
-+def test_build_checkout_summary_uses_discount_code_key():
-     items = [
-         {"sku": "A", "price": 40.0, "quantity": 1},
-         {"sku": "B", "price": 10.0, "quantity": 2},
-     ]
- 
--    assert build_checkout_summary(items, coupon_code=" save10 ") == {
-+    assert build_checkout_summary(items, discount_code=" save10 ") == {
-         "subtotal": 60.0,
--        "couponCode": "SAVE10",
-+        "discountCode": "SAVE10",
-         "total": 54.0,
-     }
- 
- 
--def test_build_checkout_summary_keeps_none_for_missing_code():
-+def test_build_checkout_summary_keeps_none_for_missing_code():
-     items = [
-         {"sku": "A", "price": 30.0, "quantity": 1},
-     ]
- 
--    assert build_checkout_summary(items, coupon_code=None) == {
-+    assert build_checkout_summary(items, discount_code=None) == {
-         "subtotal": 30.0,
--        "couponCode": None,
-+        "discountCode": None,
-         "total": 30.0,
-     }
+ def days_between(start: str, end: str):
+     current = date.fromisoformat(start)
+     stop = date.fromisoformat(end)
++    if stop < current:
++        return []
+     result = []
+-    while current < stop:
++    while current <= stop:
+         result.append(current.isoformat())
+         current += timedelta(days=1)
+     return result
 
 [command]
 status: proposed

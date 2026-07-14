@@ -47,6 +47,13 @@ class AgentResponse:
 
 
 @dataclass
+class FinishResult:
+    status: str
+    agent_response: AgentResponse
+    test_output: str | None = None
+
+
+@dataclass
 class AgentHistory:
     entries: list[tuple[int, AgentResponse, str]] = field(default_factory=list)
 
