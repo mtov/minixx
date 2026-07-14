@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import difflib
 import re
 import shlex
 import subprocess
@@ -108,6 +109,123 @@ def _recalculate_hunk_headers(text: str) -> str:
     return "\n".join(recalculated_lines).strip()
 
 
+def _split_patch_sections(text: str) -> list[tuple[str, str, list[str]]]:
+    lines = text.splitlines()
+    sections: list[tuple[str, str, list[str]]] = []
+    index = 0
+
+    while index < len(lines):
+        line = lines[index]
+        if not line.startswith("--- "):
+            index += 1
+            continue
+
+        if index + 1 >= len(lines) or not lines[index + 1].startswith("+++ "):
+            raise ValueError("Patch is missing the +++ file header.")
+
+        old_path = line.removeprefix("--- ").strip()
+        new_path = lines[index + 1].removeprefix("+++ ").strip()
+        index += 2
+        body: list[str] = []
+
+        while index < len(lines) and not lines[index].startswith("--- "):
+            body.append(lines[index])
+            index += 1
+
+        sections.append((old_path, new_path, body))
+
+    return sections
+
+
+def _strip_diff_prefix(path: str) -> str:
+    if path.startswith(("a/", "b/")):
+        return path[2:]
+    return path
+
+
+def _extract_hunks(body_lines: list[str]) -> list[list[str]]:
+    hunks: list[list[str]] = []
+    current_hunk: list[str] | None = None
+
+    for line in body_lines:
+        if line.startswith("@@ "):
+            if current_hunk is not None:
+                hunks.append(current_hunk)
+            current_hunk = [line]
+            continue
+
+        if current_hunk is not None:
+            current_hunk.append(line)
+
+    if current_hunk is not None:
+        hunks.append(current_hunk)
+
+    return hunks
+
+
+def _rebuild_file_patch(workspace_path: Path, old_path: str, new_path: str, body_lines: list[str]) -> str:
+    target_path = workspace_path / _strip_diff_prefix(old_path)
+    original_text = target_path.read_text(encoding="utf-8")
+    current_lines = original_text.splitlines(keepends=True)
+    rebuilt_lines = current_lines[:]
+    search_start = 0
+
+    for hunk in _extract_hunks(body_lines):
+        old_block: list[str] = []
+        new_block: list[str] = []
+
+        for line in hunk[1:]:
+            if not line:
+                continue
+
+            prefix = line[0]
+            payload = f"{line[1:]}\n"
+
+            if prefix in {" ", "-"}:
+                old_block.append(payload)
+            if prefix in {" ", "+"}:
+                new_block.append(payload)
+
+        if not old_block:
+            raise ValueError(f"Could not rebuild patch for {_strip_diff_prefix(old_path)}.")
+
+        match_index = None
+        max_index = len(rebuilt_lines) - len(old_block) + 1
+        for candidate_index in range(search_start, max_index):
+            if rebuilt_lines[candidate_index : candidate_index + len(old_block)] == old_block:
+                match_index = candidate_index
+                break
+
+        if match_index is None:
+            raise ValueError(f"Could not rebuild patch for {_strip_diff_prefix(old_path)}.")
+
+        rebuilt_lines[match_index : match_index + len(old_block)] = new_block
+        search_start = match_index + len(new_block)
+
+    rebuilt_text = "".join(rebuilt_lines)
+    diff_lines = list(
+        difflib.unified_diff(
+            original_text.splitlines(),
+            rebuilt_text.splitlines(),
+            fromfile=old_path,
+            tofile=new_path,
+            lineterm="",
+        )
+    )
+    return "\n".join(diff_lines)
+
+
+def _rebuild_patch_against_workspace(workspace_path: Path, patch_text: str) -> str:
+    rebuilt_sections = [
+        _rebuild_file_patch(workspace_path, old_path, new_path, body_lines)
+        for old_path, new_path, body_lines in _split_patch_sections(patch_text)
+    ]
+    rebuilt = "\n".join(section for section in rebuilt_sections if section).strip()
+    if rebuilt and not rebuilt.endswith("\n"):
+        rebuilt = f"{rebuilt}\n"
+    return rebuilt
+
+
 def auto_repair_patch_text(patch_text: str) -> str:
     repaired = _strip_code_fences(patch_text)
     repaired = _extract_patch_block(repaired)
@@ -147,8 +265,16 @@ def validate_patch(workspace_path: Path, patch_text: str) -> None:
 
 def validate_and_repair_patch(workspace_path: Path, patch_text: str) -> str:
     repaired_patch = auto_repair_patch_text(patch_text)
-    validate_patch(workspace_path, repaired_patch)
-    return repaired_patch
+    try:
+        validate_patch(workspace_path, repaired_patch)
+        return repaired_patch
+    except ValueError as first_error:
+        rebuilt_patch = _rebuild_patch_against_workspace(workspace_path, repaired_patch)
+        try:
+            validate_patch(workspace_path, rebuilt_patch)
+            return rebuilt_patch
+        except ValueError:
+            raise first_error
 
 
 def _format_command(command: list[str]) -> str:

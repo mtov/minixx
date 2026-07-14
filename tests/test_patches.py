@@ -106,6 +106,138 @@ def test_validate_and_repair_patch_recalculates_hunk_header_counts(tmp_path: Pat
 """
 
 
+def test_validate_and_repair_patch_rebuilds_large_misaligned_hunk(tmp_path: Path) -> None:
+    file_path = tmp_path / "src"
+    file_path.mkdir()
+    order_rules_path = file_path / "order_rules.py"
+    order_rules_path.write_text(
+        """from __future__ import annotations
+
+
+def subtotal(items: list[dict]) -> float:
+    return round(sum(item["price"] * item["quantity"] for item in items), 2)
+
+
+def eligible_subtotal(items: list[dict]) -> float:
+    eligible_items = []
+    for item in items:
+        if item.get("is_cancelled", False):
+            continue
+        if item.get("is_promotional", False):
+            continue
+        eligible_items.append(item)
+
+    return round(
+        sum(item["price"] * item["quantity"] for item in eligible_items),
+        2,
+    )
+
+
+def reward_points(items: list[dict]) -> int:
+    eligible_items = []
+    for item in items:
+        if item.get("is_cancelled", False):
+            continue
+        if item.get("is_promotional", False):
+            continue
+        eligible_items.append(item)
+
+    points = sum(int(item["price"] * item["quantity"]) for item in eligible_items)
+    return points // 10
+
+
+def qualifying_item_count(items: list[dict]) -> int:
+    eligible_items = []
+    for item in items:
+        if item.get("is_cancelled", False):
+            continue
+        if item.get("is_promotional", False):
+            continue
+        eligible_items.append(item)
+
+    return sum(item["quantity"] for item in eligible_items)
+
+
+def order_snapshot(items: list[dict]) -> dict:
+    return {
+        "subtotal": subtotal(items),
+        "eligibleSubtotal": eligible_subtotal(items),
+        "rewardPoints": reward_points(items),
+        "qualifyingItemCount": qualifying_item_count(items),
+    }
+""",
+        encoding="utf-8",
+    )
+    patch_text = """--- a/src/order_rules.py
++++ b/src/order_rules.py
+@@ -1,38 +1,35 @@
+ from __future__ import annotations
+ 
+ 
++def _eligible_items(items: list[dict]) -> list[dict]:
++    eligible_items = []
++    for item in items:
++        if item.get("is_cancelled", False):
++            continue
++        if item.get("is_promotional", False):
++            continue
++        eligible_items.append(item)
++    return eligible_items
++
++
+ def subtotal(items: list[dict]) -> float:
+     return round(sum(item["price"] * item["quantity"] for item in items), 2)
+ 
+ 
+ def eligible_subtotal(items: list[dict]) -> float:
+-    eligible_items = []
+-    for item in items:
+-        if item.get("is_cancelled", False):
+-            continue
+-        if item.get("is_promotional", False):
+-            continue
+-        eligible_items.append(item)
+-
+     return round(
+-        sum(item["price"] * item["quantity"] for item in eligible_items),
++        sum(item["price"] * item["quantity"] for item in _eligible_items(items)),
+         2,
+     )
+ 
+ 
+ def reward_points(items: list[dict]) -> int:
+-    eligible_items = []
+-    for item in items:
+-        if item.get("is_cancelled", False):
+-            continue
+-        if item.get("is_promotional", False):
+-            continue
+-        eligible_items.append(item)
+-
+-    points = sum(int(item["price"] * item["quantity"]) for item in eligible_items)
++    points = sum(int(item["price"] * item["quantity"]) for item in _eligible_items(items))
+     return points // 10
+ 
+ 
+ def qualifying_item_count(items: list[dict]) -> int:
+-    eligible_items = []
+-    for item in items:
+-        if item.get("is_cancelled", False):
+-            continue
+-        if item.get("is_promotional", False):
+-            continue
+-        eligible_items.append(item)
+-
+-    return sum(item["quantity"] for item in eligible_items)
++    return sum(item["quantity"] for item in _eligible_items(items))
+"""
+
+    repaired = validate_and_repair_patch(tmp_path, patch_text)
+
+    assert "def _eligible_items" in repaired
+    assert "def order_snapshot" in repaired
+
+
 def test_run_mutating_command_requires_approval(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr("builtins.input", lambda _: "n")
 
