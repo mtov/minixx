@@ -10,6 +10,11 @@ from .protocol import looks_like_patch, parse_response, repair_response
 from .traces import get_total_tokens, trace_validation_error
 from .tools import run_tool
 
+INVALID_FINISH_MESSAGE = (
+    "Finish output must contain only a unified diff patch. "
+    "Do not end the run yet; inspect any remaining files you need and then return the patch."
+)
+
 
 def format_iteration_action(agent_response: AgentResponse) -> str:
     if agent_response.action == "list_files":
@@ -81,6 +86,10 @@ def agentic_loop(context: AgentContext) -> str:
         agent_response = get_agent_response(context, agent_history.to_text())
 
         if agent_response.action == "finish":
+            if not looks_like_patch(agent_response.action_input):
+                print_iteration_action(iteration, agent_response)
+                agent_history.append(iteration, agent_response, INVALID_FINISH_MESSAGE)
+                continue
             agent_response = handle_finish(context, agent_response)
             print_iteration_action(iteration, agent_response)
             return agent_response.action_input

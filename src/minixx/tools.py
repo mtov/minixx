@@ -104,7 +104,7 @@ def find_text(action_input: str, workspace_path: Path) -> str:
     return "\n".join(matches)
 
 
-def run_tests(workspace_path: Path) -> str:
+def run_tests_with_status(workspace_path: Path) -> tuple[bool, str]:
     environment = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     print("Running tests...", flush=True)
 
@@ -119,9 +119,10 @@ def run_tests(workspace_path: Path) -> str:
         )
     except Exception as exc:  # noqa: BLE001
         print("Tests: failed", flush=True)
-        return f"Could not run tests: {exc}"
+        return False, f"Could not run tests: {exc}"
 
-    if result.returncode == 0:
+    passed = result.returncode == 0
+    if passed:
         print("Tests: passed", flush=True)
     else:
         print("Tests: failed", flush=True)
@@ -129,11 +130,16 @@ def run_tests(workspace_path: Path) -> str:
     output_parts = [result.stdout.strip(), result.stderr.strip()]
     output = "\n".join(part for part in output_parts if part).strip()
 
-    if not output and result.returncode == 0:
-        return "Tests passed."
+    if not output and passed:
+        return True, "Tests passed."
     if not output:
-        return f"Tests failed with exit code {result.returncode}."
+        return False, f"Tests failed with exit code {result.returncode}."
 
+    return passed, output
+
+
+def run_tests(workspace_path: Path) -> str:
+    _passed, output = run_tests_with_status(workspace_path)
     return output
 
 

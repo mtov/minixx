@@ -2,8 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from minixx.agentic_loop import format_failure_message, format_success_message, print_final_result
-from minixx.context import AgentContext, ModelConfig
+from minixx.agentic_loop import (
+    INVALID_FINISH_MESSAGE,
+    agentic_loop,
+    format_failure_message,
+    format_success_message,
+    print_final_result,
+)
+from minixx.context import AgentContext, AgentResponse, ModelConfig
 
 
 def build_context(post_apply_tests_passed: bool = False) -> AgentContext:
@@ -81,3 +87,34 @@ def test_print_final_result_prints_summary_for_non_patch_results(capsys) -> None
     captured = capsys.readouterr()
 
     assert captured.out == "Minixx result: success. Task completed successfully.\n"
+
+
+def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
+    context = build_context()
+    responses = iter(
+        [
+            AgentResponse(thought="need more context", action="finish", action_input="I am done."),
+            AgentResponse(
+                thought="done",
+                action="finish",
+                action_input="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
+            ),
+        ]
+    )
+    seen_histories: list[str] = []
+
+    def fake_get_agent_response(_context: AgentContext, history: str) -> AgentResponse:
+        seen_histories.append(history)
+        return next(responses)
+
+    monkeypatch.setattr("minixx.agentic_loop.get_agent_response", fake_get_agent_response)
+    monkeypatch.setattr("minixx.agentic_loop.handle_finish", lambda _context, response: response)
+
+    result = agentic_loop(context)
+    captured = capsys.readouterr()
+
+    assert result.startswith("--- a/file.py")
+    assert "[1] finish" in captured.out
+    assert "[2] finish" in captured.out
+    assert seen_histories[0] == "No previous steps."
+    assert INVALID_FINISH_MESSAGE in seen_histories[1]

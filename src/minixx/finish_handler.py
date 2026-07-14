@@ -4,7 +4,7 @@ from .context import AgentContext, AgentResponse
 from .patches import apply_patch, save_patch, validate_and_repair_patch
 from .protocol import looks_like_patch
 from .traces import trace_finish_event
-from .tools import run_tests
+from .tools import run_tests_with_status
 
 CODE_CHANGE_KEYWORDS = (
     "rename",
@@ -16,26 +16,16 @@ CODE_CHANGE_KEYWORDS = (
     "create",
     "implement",
 )
-BUG_FIX_KEYWORDS = ("bug", "fix", "failing test", "tests pass")
 
 
 def is_code_change_task(prompt: str) -> bool:
     return any(keyword in prompt for keyword in CODE_CHANGE_KEYWORDS)
 
 
-def is_bug_fix_task(prompt: str) -> bool:
-    return any(keyword in prompt for keyword in BUG_FIX_KEYWORDS)
-
-
-def tests_passed(test_output: str) -> bool:
-    return "passed" in test_output.lower()
-
-
 def handle_finish(
     context: AgentContext,
     agent_response: AgentResponse,
 ) -> AgentResponse:
-    prompt = context.user_prompt.lower()
     if looks_like_patch(agent_response.action_input):
         try:
             agent_response.action_input = validate_and_repair_patch(
@@ -58,14 +48,13 @@ def handle_finish(
             trace_finish_event("failed", "apply_patch", str(exc))
             raise
 
-        if is_bug_fix_task(prompt):
-            test_output = run_tests(context.workspace_path)
-            if not tests_passed(test_output):
-                trace_finish_event("failed", "post_apply_tests", test_output)
-                raise ValueError(f"Post-apply tests failed:\n{test_output}")
-            context.post_apply_tests_passed = True
+        tests_succeeded, test_output = run_tests_with_status(context.workspace_path)
+        if not tests_succeeded:
+            trace_finish_event("failed", "post_apply_tests", test_output)
+            raise ValueError(f"Post-apply tests failed:\n{test_output}")
+        context.post_apply_tests_passed = True
         trace_finish_event("completed", "finish")
-    elif is_code_change_task(prompt):
+    elif is_code_change_task(context.user_prompt.lower()):
         trace_finish_event(
             "failed",
             "finish_validation",

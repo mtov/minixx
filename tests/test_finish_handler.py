@@ -35,13 +35,71 @@ def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: 
     monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: response.action_input)
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: calls.append("save_patch"))
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: calls.append("apply_patch"))
-    monkeypatch.setattr("minixx.finish_handler.run_tests", lambda *_args: "1 passed")
+    monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", lambda *_args: (True, "1 passed"))
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
     result = handle_finish(context, response)
 
     assert result is response
     assert calls == ["save_patch", "apply_patch"]
+    assert context.post_apply_tests_passed is True
+
+
+def test_handle_finish_runs_post_apply_tests_for_feature_task(monkeypatch, tmp_path: Path) -> None:
+    context = build_context(tmp_path, "Implement the BUY2GET50 feature in checkout.")
+    response = AgentResponse(
+        thought="done",
+        action="finish",
+        action_input="--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new\n",
+    )
+    run_tests_called = False
+
+    def fake_run_tests(*_args):
+        nonlocal run_tests_called
+        run_tests_called = True
+        return True, "3 passed"
+
+    monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: response.action_input)
+    monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: None)
+    monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
+    monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", fake_run_tests)
+    monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
+
+    result = handle_finish(context, response)
+
+    assert result is response
+    assert run_tests_called is True
+    assert context.post_apply_tests_passed is True
+
+
+def test_handle_finish_runs_post_apply_tests_for_bugfix_without_keywords(monkeypatch, tmp_path: Path) -> None:
+    context = build_context(
+        tmp_path,
+        "Users reported that date-based exports are missing the last day of the selected range.",
+    )
+    response = AgentResponse(
+        thought="done",
+        action="finish",
+        action_input="--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new\n",
+    )
+    run_tests_called = False
+
+    def fake_run_tests(*_args):
+        nonlocal run_tests_called
+        run_tests_called = True
+        return True, "2 passed"
+
+    monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: response.action_input)
+    monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: None)
+    monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
+    monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", fake_run_tests)
+    monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
+
+    result = handle_finish(context, response)
+
+    assert result is response
+    assert run_tests_called is True
+    assert context.post_apply_tests_passed is True
 
 
 def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: Path) -> None:
@@ -55,7 +113,7 @@ def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: 
     monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: response.action_input)
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: None)
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
-    monkeypatch.setattr("minixx.finish_handler.run_tests", lambda *_args: "1 failed")
+    monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", lambda *_args: (False, "1 failed"))
     finish_events: list[tuple[str, str, str | None]] = []
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
@@ -65,7 +123,7 @@ def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: 
     assert finish_events == [("failed", "post_apply_tests", "1 failed")]
 
 
-def test_handle_finish_skips_post_apply_tests_for_non_bug_fix(monkeypatch, tmp_path: Path) -> None:
+def test_handle_finish_runs_post_apply_tests_for_readme_patch(monkeypatch, tmp_path: Path) -> None:
     context = build_context(tmp_path, "Update the README wording.")
     response = AgentResponse(
         thought="done",
@@ -77,18 +135,19 @@ def test_handle_finish_skips_post_apply_tests_for_non_bug_fix(monkeypatch, tmp_p
     def fake_run_tests(*_args):
         nonlocal run_tests_called
         run_tests_called = True
-        return "1 passed"
+        return True, "1 passed"
 
     monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: response.action_input)
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: None)
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
-    monkeypatch.setattr("minixx.finish_handler.run_tests", fake_run_tests)
+    monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", fake_run_tests)
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
     result = handle_finish(context, response)
 
     assert result is response
-    assert run_tests_called is False
+    assert run_tests_called is True
+    assert context.post_apply_tests_passed is True
 
 
 def test_handle_finish_repairs_patch_when_action_input_looks_like_patch(monkeypatch, tmp_path: Path) -> None:
@@ -121,7 +180,7 @@ def test_handle_finish_repairs_patch_when_action_input_looks_like_patch(monkeypa
     monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: repaired_patch)
     monkeypatch.setattr("minixx.finish_handler.save_patch", lambda _path, patch: saved_patches.append(patch))
     monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
-    monkeypatch.setattr("minixx.finish_handler.run_tests", lambda *_args: "1 passed")
+    monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", lambda *_args: (True, "1 passed"))
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
     result = handle_finish(context, response)
@@ -129,6 +188,30 @@ def test_handle_finish_repairs_patch_when_action_input_looks_like_patch(monkeypa
     assert result is response
     assert response.action_input == repaired_patch
     assert saved_patches == [repaired_patch]
+
+
+def test_handle_finish_rejects_mixed_output_when_tests_failed(monkeypatch, tmp_path: Path) -> None:
+    context = build_context(tmp_path, "Implement the BUY2GET50 feature in checkout.")
+    response = AgentResponse(
+        thought="done",
+        action="finish",
+        action_input="--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new\n",
+    )
+    finish_events: list[tuple[str, str, str | None]] = []
+
+    monkeypatch.setattr("minixx.finish_handler.validate_and_repair_patch", lambda *_args: response.action_input)
+    monkeypatch.setattr("minixx.finish_handler.save_patch", lambda *_args: None)
+    monkeypatch.setattr("minixx.finish_handler.apply_patch", lambda *_args: None)
+    monkeypatch.setattr(
+        "minixx.finish_handler.run_tests_with_status",
+        lambda *_args: (False, "1 failed, 5 passed"),
+    )
+    monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
+
+    with pytest.raises(ValueError, match="Post-apply tests failed"):
+        handle_finish(context, response)
+
+    assert finish_events == [("failed", "post_apply_tests", "1 failed, 5 passed")]
 
 
 def test_handle_finish_traces_patch_validation_failures(monkeypatch, tmp_path: Path) -> None:
