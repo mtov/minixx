@@ -8,8 +8,10 @@ from minixx.agentic_loop import (
     format_failure_message,
     format_success_message,
     print_final_result,
+    summarize_test_failure_output,
 )
 from minixx.context import AgentContext, AgentResponse, ModelConfig
+from minixx.finish_handler import PostApplyTestsFailedError
 
 
 def build_context(post_apply_tests_passed: bool = False) -> AgentContext:
@@ -118,3 +120,84 @@ def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
     assert "[2] finish" in captured.out
     assert seen_histories[0] == "No previous steps."
     assert INVALID_FINISH_MESSAGE in seen_histories[1]
+
+
+def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys) -> None:
+    context = build_context()
+    responses = iter(
+        [
+            AgentResponse(
+                thought="first try",
+                action="finish",
+                action_input="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+attempt1\n",
+            ),
+            AgentResponse(
+                thought="second try",
+                action="finish",
+                action_input="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+attempt2\n",
+            ),
+        ]
+    )
+    seen_histories: list[str] = []
+    reset_calls: list[Path] = []
+    finish_attempts = 0
+
+    def fake_get_agent_response(_context: AgentContext, history: str) -> AgentResponse:
+        seen_histories.append(history)
+        return next(responses)
+
+    def fake_handle_finish(_context: AgentContext, response: AgentResponse) -> AgentResponse:
+        nonlocal finish_attempts
+        finish_attempts += 1
+        if finish_attempts == 1:
+            raise PostApplyTestsFailedError("..F\nassert 1 == 2")
+        return response
+
+    def fake_prepare_runtime_workspace(source_workspace_path: Path) -> Path:
+        reset_calls.append(source_workspace_path)
+        return Path("/tmp/reset-runtime")
+
+    monkeypatch.setattr("minixx.agentic_loop.get_agent_response", fake_get_agent_response)
+    monkeypatch.setattr("minixx.agentic_loop.handle_finish", fake_handle_finish)
+    monkeypatch.setattr("minixx.agentic_loop.prepare_runtime_workspace", fake_prepare_runtime_workspace)
+
+    result = agentic_loop(context)
+    captured = capsys.readouterr()
+
+    assert result.endswith("+attempt2\n")
+    assert "[1] finish" in captured.out
+    assert "[2] finish" in captured.out
+    assert reset_calls == [Path("/tmp/source")]
+    assert context.workspace_path == Path("/tmp/reset-runtime")
+    assert "Post-apply tests failed. The runtime workspace has been reset to the original source state." in seen_histories[1]
+    assert "Use the failed test details below to produce a different patch." in seen_histories[1]
+    assert "..F\nassert 1 == 2" in seen_histories[1]
+
+
+def test_summarize_test_failure_output_extracts_failed_cases() -> None:
+    output = """.....FF                                                                  [100%]
+=================================== FAILURES ===================================
+_________________ test_multiple_groups_discount_multiple_units _________________
+
+>       assert calculate_order_total(items, "BUY2GET50") == 75.0
+E       AssertionError: assert 77.5 == 75.0
+
+tests/test_checkout.py:57: AssertionError
+_______________________ test_rounds_only_the_final_total _______________________
+
+>       assert calculate_order_total(items, "BUY2GET50") == 44.97
+E       AssertionError: assert 44.98 == 44.97
+
+tests/test_checkout.py:66: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_checkout.py::test_multiple_groups_discount_multiple_units - AssertionError: assert 77.5 == 75.0
+FAILED tests/test_checkout.py::test_rounds_only_the_final_total - AssertionError: assert 44.98 == 44.97
+"""
+
+    summary = summarize_test_failure_output(output)
+
+    assert "Use the failed test details below to produce a different patch." in summary
+    assert "- tests/test_checkout.py::test_multiple_groups_discount_multiple_units: AssertionError: assert 77.5 == 75.0" in summary
+    assert "- test_multiple_groups_discount_multiple_units: expected 75.0, got 77.5" in summary
+    assert "- tests/test_checkout.py::test_rounds_only_the_final_total: AssertionError: assert 44.98 == 44.97" in summary
+    assert "- test_rounds_only_the_final_total: expected 44.97, got 44.98" in summary

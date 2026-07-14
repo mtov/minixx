@@ -22,6 +22,12 @@ def is_code_change_task(prompt: str) -> bool:
     return any(keyword in prompt for keyword in CODE_CHANGE_KEYWORDS)
 
 
+class PostApplyTestsFailedError(ValueError):
+    def __init__(self, test_output: str) -> None:
+        super().__init__(f"Post-apply tests failed:\n{test_output}")
+        self.test_output = test_output
+
+
 def handle_finish(
     context: AgentContext,
     agent_response: AgentResponse,
@@ -51,7 +57,7 @@ def handle_finish(
         tests_succeeded, test_output = run_tests_with_status(context.workspace_path)
         if not tests_succeeded:
             trace_finish_event("failed", "post_apply_tests", test_output)
-            raise ValueError(f"Post-apply tests failed:\n{test_output}")
+            raise PostApplyTestsFailedError(test_output)
         context.post_apply_tests_passed = True
         trace_finish_event("completed", "finish")
     elif is_code_change_task(context.user_prompt.lower()):

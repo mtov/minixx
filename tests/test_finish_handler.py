@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from minixx.context import AgentContext, AgentResponse, ModelConfig
-from minixx.finish_handler import handle_finish
+from minixx.finish_handler import PostApplyTestsFailedError, handle_finish
 
 
 def build_context(tmp_path: Path, user_prompt: str) -> AgentContext:
@@ -117,7 +117,7 @@ def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: 
     finish_events: list[tuple[str, str, str | None]] = []
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
-    with pytest.raises(ValueError, match="Post-apply tests failed"):
+    with pytest.raises(PostApplyTestsFailedError, match="Post-apply tests failed"):
         handle_finish(context, response)
 
     assert finish_events == [("failed", "post_apply_tests", "1 failed")]
@@ -208,7 +208,7 @@ def test_handle_finish_rejects_mixed_output_when_tests_failed(monkeypatch, tmp_p
     )
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
-    with pytest.raises(ValueError, match="Post-apply tests failed"):
+    with pytest.raises(PostApplyTestsFailedError, match="Post-apply tests failed"):
         handle_finish(context, response)
 
     assert finish_events == [("failed", "post_apply_tests", "1 failed, 5 passed")]
