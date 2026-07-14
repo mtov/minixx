@@ -3,12 +3,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from .cli_output import format_failure_message, print_final_result, print_iteration_action, print_total_tokens
 from .context import AgentContext, AgentHistory, AgentResponse
 from .finish_handler import PostApplyTestsFailedError, handle_finish
 from .inputs import parse_args, prepare_run, prepare_runtime_workspace
 from .models import call_model
 from .protocol import looks_like_patch, parse_response, repair_response
-from .traces import get_total_tokens, trace_validation_error
+from .traces import trace_validation_error
 from .tools import run_tool
 
 INVALID_FINISH_MESSAGE = (
@@ -19,55 +20,6 @@ FAILED_TEST_LINE = re.compile(r"^FAILED\s+(.+?)\s+-\s+(.+)$")
 ASSERT_EQUALS_LINE = re.compile(r"^E\s+AssertionError:\s+assert\s+(.+?)\s+==\s+(.+)$")
 FAILED_TEST_HEADER = re.compile(r"^_+\s+([A-Za-z0-9_]+)\s+_+$")
 PATCH_FILE_HEADER = re.compile(r"^(?:--- a/|\+\+\+ b/)(.+)$")
-
-
-def format_iteration_action(agent_response: AgentResponse) -> str:
-    if agent_response.action == "list_files":
-        path = agent_response.action_input.strip() or "."
-        return f"{agent_response.action} {path}"
-
-    if agent_response.action == "read_file":
-        return f"{agent_response.action} {Path(agent_response.action_input).name}"
-
-    if agent_response.action == "find_text":
-        query = agent_response.action_input.split("|", maxsplit=1)[0].strip()
-        if query:
-            return f'{agent_response.action} "{query}"'
-
-    return agent_response.action
-
-
-def print_iteration_action(iteration: int, agent_response: AgentResponse) -> None:
-    print(f"[{iteration}] {format_iteration_action(agent_response)}", flush=True)
-
-
-def print_total_tokens() -> None:
-    total_tokens = get_total_tokens()
-    if total_tokens is not None:
-        print(f"Total tokens: {total_tokens}")
-
-
-def format_success_message(context: AgentContext, result: str) -> str:
-    if looks_like_patch(result):
-        if context.post_apply_tests_passed:
-            return "Minixx result: success. Patch applied successfully. Post-apply tests passed."
-        return "Minixx result: success. Patch applied successfully."
-
-    normalized_result = result.strip()
-    if not normalized_result:
-        return "Minixx result: success."
-
-    return f"Minixx result: success. {normalized_result}"
-
-
-def format_failure_message(error: Exception) -> str:
-    return f"Minixx result: failed. {error}"
-
-
-def print_final_result(context: AgentContext, result: str) -> None:
-    print(format_success_message(context, result))
-
-
 def get_agent_response(context: AgentContext, agent_history: str) -> AgentResponse:
     user_message = f"""User task:
 {context.user_prompt}

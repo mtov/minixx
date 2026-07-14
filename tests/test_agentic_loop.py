@@ -2,17 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from minixx.agentic_loop import (
-    INVALID_FINISH_MESSAGE,
-    agentic_loop,
-    format_failure_message,
-    format_success_message,
-    patch_target_paths,
-    print_final_result,
-    summarize_missing_rereads,
-    summarize_test_failure_output,
-    workspace_relative_read_path,
-)
+from minixx.agentic_loop import INVALID_FINISH_MESSAGE, agentic_loop, patch_target_paths, summarize_missing_rereads, summarize_test_failure_output, workspace_relative_read_path
+from minixx.cli_output import format_failure_message, format_success_message, print_final_result
 from minixx.context import AgentContext, AgentResponse, ModelConfig
 from minixx.finish_handler import PostApplyTestsFailedError
 
