@@ -1,0 +1,13 @@
+The checkout team wants to support a new promotion code: `BUY2GET50`.
+
+Please implement that feature in the checkout flow.
+
+Expected behavior:
+- only items marked as eligible may participate in the promotion;
+- clearance items must never count toward the promotion and must never receive the discount;
+- quantities count as repeated units;
+- for each group of three eligible units, apply a 50% discount to the cheapest eligible unit in that group;
+- invalid promotion codes should be ignored;
+- the final total should still be rounded to two decimals.
+
+Do not change the intended non-promotional behavior.

@@ -1,47 +1,113 @@
 [request]
-Users reported that date-based exports are missing the last day of the selected range.
+The checkout team wants to support a new promotion code: `BUY2GET50`.
 
-For example, when someone asks for data from `2024-01-10` to `2024-01-12`, they expect the result to include all three dates, not stop one day early.
+Please implement that feature in the checkout flow.
 
 Expected behavior:
-- the range should include both the start date and the end date;
-- dates should stay in `YYYY-MM-DD` format;
-- if the end date is before the start date, the result should be empty.
+- only items marked as eligible may participate in the promotion;
+- clearance items must never count toward the promotion and must never receive the discount;
+- quantities count as repeated units;
+- for each group of three eligible units, apply a 50% discount to the cheapest eligible unit in that group;
+- invalid promotion codes should be ignored;
+- the final total should still be rounded to two decimals.
+
+Do not change the intended non-promotional behavior.
 
 [response 1]
-Thought: I need to inspect the workspace to find the date range logic before patching it.
+Thought: Need inspect repository to locate checkout flow and pricing logic before patching.
+Action: list_files
+Action Input: 
+Thought: Need inspect repository to locate checkout flow and pricing logic before patching.
+Action: list_files
+
+[response 2]
+Thought: Need inspect source and tests to implement BUY2GET50 in checkout flow without changing non-promotional behavior.
+Action: find_text
+Action Input: BUY2GET50 | /Users/mtov/minixx/minixx-workspace/src
+Thought: Need inspect source and tests to implement BUY2GET50 in checkout flow without changing non-promotional behavior.
+Action: find_text
+Action Input: BUY2GET50 | /Users/mtov/minixx/minixx-workspace/src
+
+[response 3]
+Thought: I need to inspect the promotions implementation and related checkout logic before making the change.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/src/promotions.py
+
+[response 4]
+Thought: I need to inspect the checkout implementation and tests to add the promotion correctly without affecting existing behavior.
+Action: find_text
+Action Input: buy_2_get_50 | /Users/mtov/minixx/minixx-workspace/src
+
+[response 5]
+Thought: I need to inspect the checkout code and tests to implement the new promotion correctly without changing other behavior.
 Action: list_files
 Action Input:
 
-[response 2]
-Thought: I need inspect the code and tests around date range handling before patching.
+[response 6]
+Thought: I need the checkout and item model to implement the promotion correctly, so I’m locating the relevant source and tests next.
 Action: list_files
 Action Input: src
 
-[response 3]
-Thought: I need to inspect the date range implementation and tests before patching the inclusive end-date behavior.
+[response 7]
+Thought: I need to inspect the checkout and pricing code to implement the promotion without changing non-promotional behavior.
 Action: read_file
-Action Input: src/dates.py
+Action Input: /Users/mtov/minixx/minixx-workspace/src/checkout.py
 
-[response 4]
-Thought: The current loop stops before the end date; I’ll switch it to inclusive range and guard against reversed dates by returning empty when end < start.
+[response 8]
+Thought: I need to inspect the promotion logic to implement BUY2GET50 correctly without breaking existing behavior.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/src/promotions.py
+
+[response 9]
+Thought: I need to modify the promotion logic to implement BUY2GET50 while preserving existing non-promotional behavior.
 Action: finish
-Action Input: --- a/src/dates.py
-+++ b/src/dates.py
-@@ -1,10 +1,12 @@
- from datetime import date, timedelta
+Action Input: --- a/src/promotions.py
++++ b/src/promotions.py
+@@ -1,10 +1,38 @@
+ PROMOTIONS = {
+     "BUY2GET50": "buy_2_get_50",
+ }
  
- def days_between(start: str, end: str):
-     current = date.fromisoformat(start)
-     stop = date.fromisoformat(end)
-+    if stop < current:
-+        return []
-     result = []
--    while current < stop:
-+    while current <= stop:
-         result.append(current.isoformat())
-         current += timedelta(days=1)
-     return result
+ 
++def _eligible_units(items: list[dict]) -> list[float]:
++    units: list[float] = []
++    for item in items:
++        if not item.get("eligible", False):
++            continue
++        if item.get("clearance", False):
++            continue
++
++        quantity = int(item.get("quantity", 1) or 0)
++        price = float(item.get("price", 0.0))
++        if quantity > 0:
++            units.extend([price] * quantity)
++    return units
++
++
++def _buy2get50_discount(items: list[dict]) -> float:
++    units = sorted(_eligible_units(items))
++    groups = len(units) // 3
++    discount = 0.0
++
++    for i in range(groups):
++        cheapest = units[i * 3]
++        discount += cheapest * 0.5
++
++    return discount
++
++
+ def promotion_discount(items: list[dict], promotion_code: str | None) -> float:
+     if not promotion_code:
+         return 0.0
+ 
+     if promotion_code not in PROMOTIONS:
+         return 0.0
+ 
+-    return 0.0
++    if promotion_code == "BUY2GET50":
++        return _buy2get50_discount(items)
++
++    return 0.0
 
 [command]
 status: proposed
@@ -61,74 +127,4 @@ cwd: /Users/mtov/minixx/minixx-workspace
 [finish]
 status: completed
 stage: finish
-
-[command]
-status: proposed
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-128/test_run_mutating_command_requ0
-
-[command]
-status: rejected
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-128/test_run_mutating_command_requ0
-
-[command]
-status: proposed
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-128/test_run_mutating_command_exec0
-
-[command]
-status: approved
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-128/test_run_mutating_command_exec0
-
-[command]
-status: executed
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-128/test_run_mutating_command_exec0
-
-[command]
-status: proposed
-command: git apply patch.txt
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-128/test_run_mutating_command_prin0
-
-[command]
-status: rejected
-command: git apply patch.txt
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-128/test_run_mutating_command_prin0
-
-[command]
-status: proposed
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-129/test_run_mutating_command_requ0
-
-[command]
-status: rejected
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-129/test_run_mutating_command_requ0
-
-[command]
-status: proposed
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-129/test_run_mutating_command_exec0
-
-[command]
-status: approved
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-129/test_run_mutating_command_exec0
-
-[command]
-status: executed
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-129/test_run_mutating_command_exec0
-
-[command]
-status: proposed
-command: git apply patch.txt
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-129/test_run_mutating_command_prin0
-
-[command]
-status: rejected
-command: git apply patch.txt
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-129/test_run_mutating_command_prin0
 

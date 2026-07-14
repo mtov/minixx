@@ -125,9 +125,7 @@ def prepare_run(workspace_path_arg: str) -> AgentContext:
     system_prompt = load_system_prompt()
     system_prompt = (
         f"{system_prompt}\n\n"
-        "Source workspace root:\n"
-        f"{source_workspace_path}\n\n"
-        "Runtime workspace root:\n"
+        "Workspace root:\n"
         f"{workspace_path}"
     )
     workspace_instructions = load_workspace_instructions(workspace_path)

@@ -140,10 +140,11 @@ This has a few important consequences:
 
 ## Example Workspaces
 
-The repository currently ships with four curated workspaces:
+The repository currently ships with five curated workspaces:
 
 - `./test_workspace/bugfix_001_date_range`: a compact date-range bug with an inclusive boundary expectation
 - `./test_workspace/bugfix_002_order_totals`: a checkout bug where a percentage coupon is effectively applied twice
+- `./test_workspace/feature_001_buy2get50`: a checkout feature that adds a "buy 2 eligible units, get 50% off the cheapest 3rd unit" promotion
 - `./test_workspace/refactor_001_rename`: a checkout refactor that renames `coupon` terminology to `discount_code` across production code and tests
 - `./test_workspace/refactor_002_remove_duplication`: an order-rules refactor that extracts duplicated eligibility-selection logic into a helper
 

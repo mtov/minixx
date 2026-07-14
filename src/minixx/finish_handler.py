@@ -63,6 +63,7 @@ def handle_finish(
             if not tests_passed(test_output):
                 trace_finish_event("failed", "post_apply_tests", test_output)
                 raise ValueError(f"Post-apply tests failed:\n{test_output}")
+            context.post_apply_tests_passed = True
         trace_finish_event("completed", "finish")
     elif is_code_change_task(prompt):
         trace_finish_event(

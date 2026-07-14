@@ -37,9 +37,25 @@ def print_total_tokens() -> None:
         print(f"Total tokens: {total_tokens}")
 
 
-def print_final_result(result: str) -> None:
-    if not looks_like_patch(result):
-        print(result)
+def format_success_message(context: AgentContext, result: str) -> str:
+    if looks_like_patch(result):
+        if context.post_apply_tests_passed:
+            return "Minixx result: success. Patch applied successfully. Post-apply tests passed."
+        return "Minixx result: success. Patch applied successfully."
+
+    normalized_result = result.strip()
+    if not normalized_result:
+        return "Minixx result: success."
+
+    return f"Minixx result: success. {normalized_result}"
+
+
+def format_failure_message(error: Exception) -> str:
+    return f"Minixx result: failed. {error}"
+
+
+def print_final_result(context: AgentContext, result: str) -> None:
+    print(format_success_message(context, result))
 
 
 def get_agent_response(context: AgentContext, agent_history: str) -> AgentResponse:
@@ -85,9 +101,9 @@ def main() -> int:
         result = agentic_loop(context)
     except Exception as exc:  # noqa: BLE001
         print_total_tokens()
-        print(f"Error executing Minixx: {exc}")
+        print(format_failure_message(exc))
         return 1
 
     print_total_tokens()
-    print_final_result(result)
+    print_final_result(context, result)
     return 0

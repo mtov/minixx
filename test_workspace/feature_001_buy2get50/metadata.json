@@ -1,0 +1,12 @@
+{
+  "id": "feature_001_buy2get50",
+  "title": "Implement buy-2-get-50%-off promotion",
+  "category": "feature",
+  "difficulty": "medium",
+  "language": "python",
+  "test_command": "python -m pytest -q",
+  "dependencies": [
+    "pytest"
+  ],
+  "notes": "Synthetic, self-contained checkout feature task about applying a grouped unit-level promotion to eligible items only."
+}

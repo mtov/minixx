@@ -36,6 +36,7 @@ class AgentContext:
     user_prompt: str
     source_workspace_path: Path
     workspace_path: Path
+    post_apply_tests_passed: bool = False
 
 
 @dataclass
