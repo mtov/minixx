@@ -233,3 +233,22 @@ def test_handle_finish_traces_patch_validation_failures(monkeypatch, tmp_path: P
         handle_finish(context, response)
 
     assert finish_events == [("failed", "patch_validation", "corrupt patch")]
+
+
+def test_handle_finish_rejects_non_patch_finish_output(monkeypatch, tmp_path: Path) -> None:
+    context = build_context(tmp_path, "Any Minixx task.")
+    response = AgentResponse(
+        thought="done",
+        action="finish",
+        action_input="Task completed successfully.",
+    )
+    finish_events: list[tuple[str, str, str | None]] = []
+
+    monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
+
+    with pytest.raises(ValueError, match="Finish output must be a unified diff patch."):
+        handle_finish(context, response)
+
+    assert finish_events == [
+        ("failed", "finish_validation", "Finish output must be a unified diff patch."),
+    ]

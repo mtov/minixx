@@ -6,22 +6,6 @@ from .protocol import looks_like_patch
 from .traces import trace_finish_event
 from .tools import run_tests_with_status
 
-CODE_CHANGE_KEYWORDS = (
-    "rename",
-    "refactor",
-    "change",
-    "update",
-    "modify",
-    "fix",
-    "create",
-    "implement",
-)
-
-
-def is_code_change_task(prompt: str) -> bool:
-    return any(keyword in prompt for keyword in CODE_CHANGE_KEYWORDS)
-
-
 class PostApplyTestsFailedError(ValueError):
     def __init__(self, test_output: str) -> None:
         super().__init__(f"Post-apply tests failed:\n{test_output}")
@@ -60,12 +44,12 @@ def handle_finish(
             raise PostApplyTestsFailedError(test_output)
         context.post_apply_tests_passed = True
         trace_finish_event("completed", "finish")
-    elif is_code_change_task(context.user_prompt.lower()):
+    else:
         trace_finish_event(
             "failed",
             "finish_validation",
-            "Finish output must be a unified diff patch for code-change tasks.",
+            "Finish output must be a unified diff patch.",
         )
-        raise ValueError("Finish output must be a unified diff patch for code-change tasks.")
+        raise ValueError("Finish output must be a unified diff patch.")
 
     return agent_response
