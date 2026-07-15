@@ -3,7 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from minixx.agentic_loop import INVALID_FINISH_MESSAGE, MAX_ITERATIONS_REACHED_MESSAGE, agentic_loop
-from minixx.cli_output import format_failure_message, format_success_message, print_final_result
+from minixx.cli_output import (
+    format_elapsed_time,
+    format_failure_message,
+    format_success_message,
+    print_elapsed_time,
+    print_final_result,
+)
 from minixx.context import AgentContext, AgentHistory, AgentResponse, FinishResult, ModelConfig
 from minixx.test_failures import summarize_test_failure_output
 
@@ -58,6 +64,14 @@ def test_format_failure_message() -> None:
     assert result == "Minixx result: failed. Post-apply tests failed"
 
 
+def test_format_elapsed_time_under_one_minute() -> None:
+    assert format_elapsed_time(12.345) == "Elapsed time: 12.35s"
+
+
+def test_format_elapsed_time_over_one_minute() -> None:
+    assert format_elapsed_time(75.4321) == "Elapsed time: 1m 15.43s"
+
+
 def test_print_final_result_prints_summary_for_unified_diff_patches(capsys) -> None:
     print_final_result(build_context(), "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n")
 
@@ -83,6 +97,14 @@ def test_print_final_result_prints_summary_for_non_patch_results(capsys) -> None
     captured = capsys.readouterr()
 
     assert captured.out == "Minixx result: success. Task completed successfully.\n"
+
+
+def test_print_elapsed_time(capsys) -> None:
+    print_elapsed_time(3.5)
+
+    captured = capsys.readouterr()
+
+    assert captured.out == "Elapsed time: 3.50s\n"
 
 
 def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:

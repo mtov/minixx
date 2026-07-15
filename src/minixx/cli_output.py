@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import floor
 from pathlib import Path
 
 from .context import AgentContext, AgentResponse
@@ -31,6 +32,20 @@ def print_total_tokens() -> None:
     total_tokens = get_total_tokens()
     if total_tokens is not None:
         print(f"Total tokens: {total_tokens}")
+
+
+def format_elapsed_time(elapsed_seconds: float) -> str:
+    total_seconds = max(0.0, elapsed_seconds)
+    if total_seconds < 60:
+        return f"Elapsed time: {total_seconds:.2f}s"
+
+    minutes = floor(total_seconds / 60)
+    seconds = total_seconds - (minutes * 60)
+    return f"Elapsed time: {minutes}m {seconds:.2f}s"
+
+
+def print_elapsed_time(elapsed_seconds: float) -> None:
+    print(format_elapsed_time(elapsed_seconds))
 
 
 def format_success_message(context: AgentContext, result: str) -> str:

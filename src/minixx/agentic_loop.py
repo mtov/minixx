@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from time import perf_counter
 
 from .cli_output import (
+    print_elapsed_time,
     format_failure_message,
     print_final_result,
     print_iteration_action,
@@ -113,20 +115,24 @@ def agentic_loop(context: AgentContext) -> LoopResult:
 
 def main() -> int:
     args = parse_args()
+    start_time = perf_counter()
 
     try:
         context = prepare_run(args.workspace_path)
         loop_result = agentic_loop(context)
     except Exception as exc:  # noqa: BLE001
         print_total_tokens()
+        print_elapsed_time(perf_counter() - start_time)
         print(format_failure_message(exc))
         return 1
 
     if loop_result.status != "success":
         print_total_tokens()
+        print_elapsed_time(perf_counter() - start_time)
         print(format_failure_message(ValueError(loop_result.error or "Unknown error.")))
         return 1
 
     print_total_tokens()
+    print_elapsed_time(perf_counter() - start_time)
     print_final_result(context, loop_result.output or "")
     return 0
