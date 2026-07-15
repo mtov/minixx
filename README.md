@@ -55,6 +55,7 @@ What you should expect during a run:
 - if the model finishes with a patch, Minixx prints the patch and asks for approval before running `git apply`
 - after patch application, Minixx runs tests automatically before reporting success
 - if post-apply tests fail, Minixx resets `./minixx-workspace` and asks the model for a different patch
+- when the run ends, Minixx prints the final status, total token usage, and elapsed time
 
 ## Configuration
 
@@ -207,7 +208,7 @@ sequenceDiagram
     participant Source as SourceWorkspace
     participant Runtime as MinixxWorkspace
     participant AgentLoop as AgenticLoop
-    participant Model as OpenAICompatibleAPI
+    participant Model as LLM
 
     Source->>Runtime: copy workspace
     AgentLoop->>Runtime: read prompt and files
@@ -223,47 +224,44 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[run_minixx.py] --> B[agentic_loop.py]
-    B --> C[inputs.py]
-    B --> D[models.py]
-    B --> E[protocol.py]
-    B --> F[tools.py]
-    B --> G[finish_handler.py]
-    B --> H[cli_output.py]
-    B --> I[test_failures.py]
-    B --> J[traces.py]
-    B --> K[context.py]
-    F --> K
-    G --> L[patches.py]
-    G --> F
-    G --> J
-    D --> J
-    E --> J
-    L --> J
+    A[Setup] --> B[Agent Loop]
+    B --> C[Model Protocol]
+    B --> D[Tools]
+    B --> E[Patch]
+    B --> F[Observability]
 ```
 
-Configuration:
+The codebase is intentionally small and can be read as six main modules:
 
-- `config/config.json` stores model settings
-- `config/system_prompt.txt` stores the main agent instructions
-
-Core:
-
-- `src/minixx/agentic_loop.py` runs the main ReAct-style loop
-- `src/minixx/cli_output.py` formats iteration lines and final success/failure summaries
-- `src/minixx/inputs.py` loads config, prompt files, and prepares `minixx-workspace`
-- `src/minixx/models.py` sends requests to the configured model backend
-- `src/minixx/protocol.py` parses and repairs model responses
-- `src/minixx/test_failures.py` summarizes post-apply test failures for retry prompts
-- `src/minixx/tools.py` implements the available workspace-safe tools
-- `src/minixx/finish_handler.py` validates, repairs, applies, and verifies final `finish` outputs
-- `src/minixx/patches.py` saves, repairs, validates, previews, and applies unified diff patches
-- `src/minixx/traces.py` records the execution trace and token usage
-
-Shared types and support:
-
-- `src/minixx/context.py`
-- `src/minixx/guards.py`
+- `Setup`
+  Files:
+  `run_minixx.py`: repository entry script
+  `src/minixx/__main__.py`: package entry point
+  `src/minixx/__init__.py`: package marker
+  `src/minixx/inputs.py`: loads config and prompts, resolves the source workspace, and prepares `minixx-workspace`
+  `config/config.json`: model and runtime settings
+  `config/system_prompt.txt`: main agent instructions
+- `Agent Loop`
+  Files:
+  `src/minixx/agentic_loop.py`: runs the main ReAct-style loop, handles finish actions, and controls retries
+  `src/minixx/context.py`: shared dataclasses for runtime state, history, and finish/loop results
+- `Model Protocol`
+  Files:
+  `src/minixx/models.py`: sends requests to the configured model backend
+  `src/minixx/protocol.py`: parses, validates, and repairs model responses into Minixx actions
+- `Tools`
+  Files:
+  `src/minixx/tools.py`: implements the available workspace-safe tools
+  `src/minixx/guards.py`: validates safe paths and keeps tool access constrained to the runtime workspace
+- `Patch`
+  Files:
+  `src/minixx/finish_handler.py`: validates `finish` outputs and orchestrates patch apply plus verification
+  `src/minixx/patches.py`: saves, repairs, previews, validates, and applies unified diff patches
+  `src/minixx/test_failures.py`: summarizes post-apply test failures for retry prompts
+- `Observability`
+  Files:
+  `src/minixx/cli_output.py`: formats iteration lines, final status messages, and elapsed time
+  `src/minixx/traces.py`: writes execution traces and related debug artifacts such as `agent_trace.log`
 
 ## Tools
 
@@ -280,7 +278,6 @@ Behavior notes:
 - `read_file` shows the filename directly in the iteration line, such as `[3] read_file checkout.py`
 - `find_text` expects `search text | /path/to/directory`
 - `find_text` shows the searched string in the iteration line, such as `[4] find_text "coupon"`
-- Minixx discourages repeated `find_text` queries with the exact same input when they were already run recently
 - `run_tests` uses a fixed `pytest` command instead of an arbitrary shell command
 - `finish` must return a unified diff patch in `Action Input`
 
@@ -295,6 +292,7 @@ The model responds using:
 Minixx writes execution traces to `agent_trace.log`.
 That file is cleared at the beginning of each new run, so it always represents only the most recent execution.
 Each model response also records token usage when the provider exposes it, plus a cumulative total for the run.
+The CLI also prints the total elapsed time at the end of the run.
 Because the project is didactic, inspecting this trace is often the easiest way to understand how the agent moved through a task.
 
 The trace format is intentionally compact.
