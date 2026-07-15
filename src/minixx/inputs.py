@@ -91,6 +91,11 @@ def prepare_runtime_workspace(source_workspace_path: Path) -> Path:
     return RUNTIME_WORKSPACE_PATH
 
 
+def reset_runtime_workspace(context: AgentContext) -> None:
+    context.workspace_path = prepare_runtime_workspace(context.source_workspace_path)
+    context.post_apply_tests_passed = False
+
+
 def load_user_prompt(workspace_path: Path) -> str:
     prompt_path = workspace_path / "prompt.txt"
 

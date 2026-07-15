@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from minixx.agentic_loop import INVALID_FINISH_MESSAGE, agentic_loop, summarize_test_failure_output
+from minixx.agentic_loop import INVALID_FINISH_MESSAGE, agentic_loop
 from minixx.cli_output import format_failure_message, format_success_message, print_final_result
 from minixx.context import AgentContext, AgentResponse, FinishResult, ModelConfig
+from minixx.test_failures import summarize_test_failure_output
 
 
 def build_context(post_apply_tests_passed: bool = False) -> AgentContext:
@@ -153,13 +154,14 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
             )
         return FinishResult(status="applied", agent_response=response)
 
-    def fake_prepare_runtime_workspace(source_workspace_path: Path) -> Path:
-        reset_calls.append(source_workspace_path)
-        return Path("/tmp/reset-runtime")
+    def fake_reset_runtime_workspace(runtime_context: AgentContext) -> None:
+        reset_calls.append(runtime_context.source_workspace_path)
+        runtime_context.workspace_path = Path("/tmp/reset-runtime")
+        runtime_context.post_apply_tests_passed = False
 
     monkeypatch.setattr("minixx.agentic_loop.get_agent_response", fake_get_agent_response)
     monkeypatch.setattr("minixx.agentic_loop.handle_finish", fake_handle_finish)
-    monkeypatch.setattr("minixx.agentic_loop.prepare_runtime_workspace", fake_prepare_runtime_workspace)
+    monkeypatch.setattr("minixx.agentic_loop.reset_runtime_workspace", fake_reset_runtime_workspace)
     monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _response, _workspace: "file contents")
 
     result = agentic_loop(context)
