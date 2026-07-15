@@ -205,63 +205,59 @@ git apply patch.txt
 
 ```mermaid
 sequenceDiagram
-    participant Source as SourceWorkspace
-    participant Runtime as MinixxWorkspace
+    participant Workspace as Workspace
     participant AgentLoop as AgenticLoop
     participant Model as LLM
 
-    Source->>Runtime: copy workspace
-    AgentLoop->>Runtime: read prompt and files
+    AgentLoop->>Workspace: prepare workspace copy
+    AgentLoop->>Workspace: read prompt and files
     AgentLoop->>Model: request next action
     Model-->>AgentLoop: Thought / Action / Action Input
-    AgentLoop->>Runtime: run tool
-    Runtime-->>AgentLoop: tool result
-    AgentLoop->>Runtime: save and apply patch on finish
-    Runtime-->>AgentLoop: run post-apply tests
+    AgentLoop->>Workspace: run tool
+    Workspace-->>AgentLoop: tool result
+    AgentLoop->>Workspace: save and apply patch on finish
+    Workspace-->>AgentLoop: run post-apply tests
 ```
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A[Setup] --> B[Agent Loop]
-    B --> C[Model Protocol]
-    B --> D[Tools]
-    B --> E[Patch]
-    B --> F[Observability]
+    A[Agent Loop] --> B[Context and History]
+    A --> C[Model Protocol]
+    A --> D[Tools]
+    A --> E[Patch]
+    A --> F[Observability]
 ```
 
 The codebase is intentionally small and can be read as six main modules:
 
-- `Setup`
-  Files:
-  `run_minixx.py`: repository entry script
-  `src/minixx/__main__.py`: package entry point
-  `src/minixx/__init__.py`: package marker
-  `src/minixx/inputs.py`: loads config and prompts, resolves the source workspace, and prepares `minixx-workspace`
-  `config/config.json`: model and runtime settings
-  `config/system_prompt.txt`: main agent instructions
 - `Agent Loop`
-  Files:
-  `src/minixx/agentic_loop.py`: runs the main ReAct-style loop, handles finish actions, and controls retries
-  `src/minixx/context.py`: shared dataclasses for runtime state, history, and finish/loop results
+  - `src/minixx/agentic_loop.py`: runs the main ReAct-style loop, handles finish actions, and controls retries
+- `Context and History`
+  - `src/minixx/context.py`: shared dataclasses for runtime state, history, and finish/loop results
 - `Model Protocol`
-  Files:
-  `src/minixx/models.py`: sends requests to the configured model backend
-  `src/minixx/protocol.py`: parses, validates, and repairs model responses into Minixx actions
+  - `src/minixx/models.py`: sends requests to the configured model backend
+  - `src/minixx/protocol.py`: parses, validates, and repairs model responses into Minixx actions
 - `Tools`
-  Files:
-  `src/minixx/tools.py`: implements the available workspace-safe tools
-  `src/minixx/guards.py`: validates safe paths and keeps tool access constrained to the runtime workspace
+  - `src/minixx/tools.py`: implements the available workspace-safe tools
+  - `src/minixx/guards.py`: validates safe paths and keeps tool access constrained to the runtime workspace
 - `Patch`
-  Files:
-  `src/minixx/finish_handler.py`: validates `finish` outputs and orchestrates patch apply plus verification
-  `src/minixx/patches.py`: saves, repairs, previews, validates, and applies unified diff patches
-  `src/minixx/test_failures.py`: summarizes post-apply test failures for retry prompts
+  - `src/minixx/finish_handler.py`: validates `finish` outputs and orchestrates patch apply plus verification
+  - `src/minixx/patches.py`: saves, repairs, previews, validates, and applies unified diff patches
+  - `src/minixx/test_failures.py`: summarizes post-apply test failures for retry prompts
 - `Observability`
-  Files:
-  `src/minixx/cli_output.py`: formats iteration lines, final status messages, and elapsed time
-  `src/minixx/traces.py`: writes execution traces and related debug artifacts such as `agent_trace.log`
+  - `src/minixx/cli_output.py`: formats iteration lines, final status messages, and elapsed time
+  - `src/minixx/traces.py`: writes execution traces and related debug artifacts such as `agent_trace.log`
+
+Supporting files used around that runtime flow:
+
+- `run_minixx.py`: repository entry script
+- `src/minixx/__main__.py`: package entry point
+- `src/minixx/__init__.py`: package marker
+- `src/minixx/inputs.py`: loads config and prompts, resolves the source workspace, and prepares `minixx-workspace`
+- `config/config.json`: model and runtime settings
+- `config/system_prompt.txt`: main agent instructions
 
 ## Tools
 
