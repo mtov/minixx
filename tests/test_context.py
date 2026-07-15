@@ -5,7 +5,6 @@ from minixx.context import (
     AgentResponse,
     MAX_HISTORY_ENTRIES,
     MAX_OBSERVATION_CHARS,
-    RECENT_DUPLICATE_ACTION_WINDOW,
 )
 
 
@@ -65,34 +64,3 @@ def test_agent_history_contains_action_uses_structured_entries() -> None:
 
     assert history.contains_action("find_text") is True
     assert history.contains_action("run_tests") is False
-
-
-def test_agent_history_detects_recent_duplicate_action_input() -> None:
-    history = AgentHistory()
-    history.append(1, AgentResponse(thought="inspect", action="read_file", action_input="src/a.py"), "a")
-    history.append(2, AgentResponse(thought="search", action="find_text", action_input="needle | src"), "match")
-    history.append(3, AgentResponse(thought="inspect other", action="read_file", action_input="src/b.py"), "b")
-
-    assert history.has_recent_duplicate_action_input("read_file", "src/a.py") is True
-    assert history.has_recent_duplicate_action_input("find_text", "needle | src") is True
-    assert history.has_recent_duplicate_action_input("read_file", "src/b.py") is True
-    assert history.has_recent_duplicate_action_input("read_file", "src/c.py") is False
-    assert history.has_recent_duplicate_action_input("run_tests", "") is False
-
-
-def test_agent_history_ignores_duplicates_outside_recent_action_window() -> None:
-    history = AgentHistory()
-
-    history.append(1, AgentResponse(thought="target", action="read_file", action_input="src/target.py"), "target")
-    for index in range(RECENT_DUPLICATE_ACTION_WINDOW, 0, -1):
-        history.append(
-            RECENT_DUPLICATE_ACTION_WINDOW - index + 2,
-            AgentResponse(
-                thought=f"other {index}",
-                action="read_file",
-                action_input=f"src/other_{index}.py",
-            ),
-            f"other {index}",
-        )
-
-    assert history.has_recent_duplicate_action_input("read_file", "src/target.py") is False

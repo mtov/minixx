@@ -5,7 +5,6 @@ from pathlib import Path
 
 MAX_HISTORY_ENTRIES = 4
 MAX_OBSERVATION_CHARS = 1200
-RECENT_DUPLICATE_ACTION_WINDOW = 5
 
 
 @dataclass
@@ -63,23 +62,6 @@ class AgentHistory:
 
     def contains_action(self, action: str) -> bool:
         return any(agent_response.action == action for _, agent_response, _ in self.entries)
-
-    def has_recent_duplicate_action_input(self, action: str, action_input: str) -> bool:
-        normalized_input = action_input.strip()
-        if not normalized_input:
-            return False
-
-        inspected_matches = 0
-        for _, agent_response, _ in reversed(self.entries):
-            if agent_response.action != action:
-                continue
-            inspected_matches += 1
-            if agent_response.action_input.strip() == normalized_input:
-                return True
-            if inspected_matches >= RECENT_DUPLICATE_ACTION_WINDOW:
-                return False
-
-        return False
 
     def _unique_action_inputs(self, action: str) -> list[str]:
         seen: set[str] = set()

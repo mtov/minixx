@@ -17,63 +17,49 @@ Expected behavior:
 Do not change the intended non-promotional behavior.
 
 [response 1]
-Thought: I need to inspect the checkout code to find where promotions are handled and then implement BUY2GET50 without changing non-promotional behavior.
-Action: list_files
-Action Input: 
-Thought: I need to inspect the checkout code to find where promotions are handled and then implement BUY2GET50 without changing non-promotional behavior.
+Thought: I need to inspect the checkout implementation to find where promo codes are handled and then update the pricing logic for BUY2GET50 without affecting non-promotional behavior.
 Action: list_files
 Action Input:
 
 [response 2]
-Thought: I need to inspect the checkout implementation and tests to add BUY2GET50 without altering non-promotional behavior.
-Action: list_files
-Action Input: src
+Thought: I’ll inspect the source and tests to locate the checkout pricing logic and existing promotion handling so I can implement BUY2GET50 without changing non-promotional behavior.
+Action: find_text
+Action Input: BUY2GET50 | /Users/mtov/minixx/minixx-workspace/src
+Thought: I’ll inspect the source and tests to locate the checkout pricing logic and existing promotion handling so I can implement BUY2GET50 without changing non-promotional behavior.
+Action: find_text
+Action Input: BUY2GET50 | /Users/mtov/minixx/minixx-workspace/src
 
 [response 3]
-Thought: I’ll inspect the checkout and promotion logic to add the new code without affecting non-promotional behavior.
+Thought: I need to inspect the promotions and checkout flow files to implement the new promo without altering non-promotional behavior.
 Action: read_file
-Action Input: src/promotions.py
+Action Input: /Users/mtov/minixx/minixx-workspace/src/promotions.py
+Thought: I need to inspect the promotions and checkout flow files to implement the new promo without altering non-promotional behavior.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/src/promotions.py
 
 [response 4]
-Thought: I need to inspect the checkout/pricing flow to implement the new promotion correctly without affecting non-promotional behavior.
-Action: read_file
-Action Input: src/checkout.py
-
-Thought: I need to inspect the checkout/pricing flow to implement the new promotion correctly without affecting non-promotional behavior.
-Action: read_file
-Action Input: src/checkout.py
+Thought: I need to inspect the checkout logic and tests to implement the new promotion correctly without changing non-promotional behavior.
+Action: find_text
+Action Input: promotion_discount | /Users/mtov/minixx/minixx-workspace/src
 
 [response 5]
-Thought: I need to inspect tests to confirm the expected promotion behavior before making changes.
+Thought: I need to inspect the checkout and promotion implementation to add the new BUY2GET50 logic without affecting non-promotional behavior.
 Action: read_file
-Action Input: tests
+Action Input: /Users/mtov/minixx/minixx-workspace/src/checkout.py
 
 [response 6]
-Thought: I need the tests layout to implement the promotion correctly without changing non-promotional behavior.
-Action: list_files
-Action Input: tests
+Thought: I need to inspect the pricing/item shape to implement the promotion correctly without changing non-promotional behavior.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/src/pricing.py
 
 [response 7]
-Thought: I need the checkout tests to determine the expected item schema and verify how promotion logic should behave before implementing it.
-Action: read_file
-Action Input: tests/test_checkout.py
-
-[response 8]
-Thought: I need to inspect the promotion logic to implement BUY2GET50 without affecting non-promotional totals.
-Action: read_file
-Action Input: src/promotions.py
-
-[response 9]
-Thought: I’ve reviewed the existing promotion hook and the checkout tests; the next step is to inspect the checkout implementation so I can add BUY2GET50 without changing non-promotional totals.
-Action: read_file
-Action Input: src/checkout.py
-
-[response 10]
-Thought: I have enough information to implement the promotion logic in `src/promotions.py` without changing checkout rounding or non-promotional behavior.
+Thought: I need to inspect the existing promotion logic and then update it to implement BUY2GET50 without changing non-promotional behavior.
 Action: finish
 Action Input: --- a/src/promotions.py
 +++ b/src/promotions.py
-@@ -1,9 +1,28 @@
+@@ -1,10 +1,27 @@
++from src.pricing import eligible_unit_prices
++
  PROMOTIONS = {
      "BUY2GET50": "buy_2_get_50",
  }
@@ -87,25 +73,19 @@ Action Input: --- a/src/promotions.py
          return 0.0
  
 -    return 0.0
-+    eligible_unit_prices: list[float] = []
-+    for item in items:
-+        if not item.get("is_eligible"):
-+            continue
-+        if item.get("is_clearance"):
-+            continue
++    if promotion_code == "BUY2GET50":
++        unit_prices = eligible_unit_prices(items)
++        unit_prices.sort(reverse=True)
 +
-+        price = float(item.get("price", 0.0))
-+        quantity = int(item.get("quantity", 0))
-+        eligible_unit_prices.extend([price] * quantity)
++        discount = 0.0
++        for i in range(0, len(unit_prices), 3):
++            group = unit_prices[i : i + 3]
++            if len(group) == 3:
++                discount += min(group) * 0.5
 +
-+    eligible_unit_prices.sort(reverse=True)
++        return discount
 +
-+    discount = 0.0
-+    for i in range(0, len(eligible_unit_prices) - 2, 3):
-+        cheapest_unit = eligible_unit_prices[i + 2]
-+        discount += cheapest_unit * 0.5
-+
-+    return discount
++    return 0.0
 
 [command]
 status: proposed

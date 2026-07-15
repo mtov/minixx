@@ -21,11 +21,6 @@ INVALID_FINISH_MESSAGE = (
     "Finish output must contain only a unified diff patch. "
     "Do not end the run yet; inspect any remaining files you need and then return the patch."
 )
-REDUNDANT_TOOL_MESSAGE = (
-    "That exact read/search was already done recently. "
-    "Use the earlier result already present in agent history and continue from it. "
-    "Only request a different file or query if you still need missing information."
-)
 
 def get_agent_response(context: AgentContext, agent_history: str) -> AgentResponse:
     user_message = (
@@ -89,16 +84,6 @@ def agentic_loop(context: AgentContext) -> str:
             return finish_output
 
         print_iteration_action(iteration, agent_response)
-
-        if (
-            agent_response.action == "find_text"
-            and agent_history.has_recent_duplicate_action_input(
-                agent_response.action,
-                agent_response.action_input,
-            )
-        ):
-            agent_history.append(iteration, agent_response, REDUNDANT_TOOL_MESSAGE)
-            continue
 
         tool_result = run_tool(agent_response, context.workspace_path)
         agent_history.append(iteration, agent_response, tool_result)
