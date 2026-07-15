@@ -43,6 +43,33 @@ def get_agent_response(context: AgentContext, agent_history: str) -> AgentRespon
         return repair_response(context, user_message, str(exc))
 
 
+def handle_finish_action(
+    context: AgentContext,
+    agent_history: AgentHistory,
+    iteration: int,
+    agent_response: AgentResponse,
+) -> str | None:
+    if not looks_like_patch(agent_response.action_input):
+        print_iteration_action(iteration, agent_response)
+        agent_history.append(iteration, agent_response, INVALID_FINISH_MESSAGE)
+        return None
+
+    finish_result = handle_finish(context, agent_response)
+    if finish_result.status == "post_apply_tests_failed":
+        print_iteration_action(iteration, agent_response)
+        reset_runtime_workspace(context)
+        agent_history.append(
+            iteration,
+            agent_response,
+            summarize_test_failure_output(finish_result.test_output or ""),
+        )
+        return None
+
+    finalized_response = finish_result.agent_response
+    print_iteration_action(iteration, finalized_response)
+    return finalized_response.action_input
+
+
 def agentic_loop(context: AgentContext) -> str:
     max_iterations = 15
     agent_history = AgentHistory()
@@ -51,23 +78,15 @@ def agentic_loop(context: AgentContext) -> str:
         agent_response = get_agent_response(context, agent_history.to_text())
 
         if agent_response.action == "finish":
-            if not looks_like_patch(agent_response.action_input):
-                print_iteration_action(iteration, agent_response)
-                agent_history.append(iteration, agent_response, INVALID_FINISH_MESSAGE)
+            finish_output = handle_finish_action(
+                context,
+                agent_history,
+                iteration,
+                agent_response,
+            )
+            if finish_output is None:
                 continue
-            finish_result = handle_finish(context, agent_response)
-            if finish_result.status == "post_apply_tests_failed":
-                print_iteration_action(iteration, agent_response)
-                reset_runtime_workspace(context)
-                agent_history.append(
-                    iteration,
-                    agent_response,
-                    summarize_test_failure_output(finish_result.test_output or ""),
-                )
-                continue
-            agent_response = finish_result.agent_response
-            print_iteration_action(iteration, agent_response)
-            return agent_response.action_input
+            return finish_output
 
         print_iteration_action(iteration, agent_response)
 
