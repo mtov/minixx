@@ -1,122 +1,120 @@
 [request]
-The checkout code still uses the old "coupon" terminology, but the current product language is "discount code".
+The order rules module has duplicated logic for selecting eligible items across multiple functions.
 
-Please rename the internal API from "coupon" to "discount_code" consistently across the checkout flow without changing behavior.
-Update the tests as part of the refactoring so they use the new terminology too.
+Please refactor the module by extracting that duplicated eligibility-selection logic into a helper function without changing behavior.
+Update the tests if needed to reflect the refactoring.
 
 [response 1]
-Thought: I need inspect the checkout code and tests to locate coupon terminology before preparing a refactor patch.
-Action: find_text
-Action Input: coupon | /Users/mtov/minixx/minixx-workspace
-Thought: I found no prior context, so I should inspect the repository structure to identify the relevant checkout files.
-Action: list_files
-Action Input: /Users/mtov/minixx/minixx-workspace
-Thought: I found no prior context, so I should inspect the repository structure to identify the relevant checkout files.
+Thought: I need to inspect the repository to locate the order rules module and its tests before refactoring.
 Action: list_files
 Action Input: /Users/mtov/minixx/minixx-workspace
 
 [response 2]
-Thought: I need to inspect the checkout source and tests to identify all "coupon" references before renaming the internal API.
+Thought: I need to inspect the module and tests to identify the duplicated eligibility-selection logic before refactoring.
 Action: find_text
-Action Input: coupon | /Users/mtov/minixx/minixx-workspace/src
+Action Input: eligibility | /Users/mtov/minixx/minixx-workspace/src
 
 [response 3]
-Thought: I need to inspect the checkout and discount-related files, plus tests, to rename the API consistently.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/checkout.py
+Thought: I need to inspect the source and tests to locate the order rules module and the duplicated selection logic before refactoring.
+Action: list_files
+Action Input: /Users/mtov/minixx/minixx-workspace/src
 
 [response 4]
-Thought: I need to inspect the discount-related source and tests so I can rename the public/internal checkout API from coupon to discount_code consistently without changing behavior.
-Action: find_text
-Action Input: coupon | /Users/mtov/minixx/minixx-workspace/tests
+Thought: I need to inspect the order rules module and tests to extract the duplicated eligibility-selection logic safely before refactoring.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/src/order_rules.py
 
 [response 5]
-Thought: I need to inspect the checkout tests and any discount-related implementation to rename the public/internal checkout API consistently from coupon to discount_code without changing behavior.
+Thought: I need to inspect the rest of the module and tests before making the refactor, since the eligible-item selection is duplicated and I need to preserve behavior exactly.
 Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/tests/test_checkout.py
+Action Input: /Users/mtov/minixx/minixx-workspace/src/order_rules.py
 
 [response 6]
-Thought: I’ve inspected the checkout implementation and tests; now I’ll provide the refactor patch renaming the internal API from coupon to discount_code while preserving behavior.
+Thought: I need the full module and any tests before refactoring so I can preserve behavior and update expectations if necessary.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/src/order_rules.py
+
+[response 7]
+Thought: I need to inspect the rest of the module and any tests to refactor the duplicated eligibility filtering safely.
+Action: find_text
+Action Input: eligibility | /Users/mtov/minixx/minixx-workspace
+
+[response 8]
+Thought: I need to inspect the rest of the module and any tests to refactor safely without changing behavior.
+Action: find_text
+Action Input: order_rules | /Users/mtov/minixx/minixx-workspace
+
+[response 9]
+Thought: I need to inspect the tests to update them alongside the refactor, so I’ll read the existing order_rules test file.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/tests/test_order_rules.py
+
+[response 10]
+Thought: I’ve reviewed the module and tests; the duplicated item-filtering logic can be safely extracted into a shared helper while preserving behavior.
 Action: finish
-Action Input: --- a/src/checkout.py
-+++ b/src/checkout.py
-@@ -1,20 +1,20 @@
--from src.discounts import lookup_coupon, normalize_coupon_code
-+from src.discounts import lookup_coupon, normalize_coupon_code
+Action Input: --- a/src/order_rules.py
++++ b/src/order_rules.py
+@@ -1,38 +1,36 @@
+ from __future__ import annotations
  
  
++def _eligible_items(items: list[dict]) -> list[dict]:
++    eligible_items = []
++    for item in items:
++        if item.get("is_cancelled", False):
++            continue
++        if item.get("is_promotional", False):
++            continue
++        eligible_items.append(item)
++    return eligible_items
++
++
  def subtotal(items: list[dict]) -> float:
-     return sum(item["price"] * item["quantity"] for item in items)
+     return round(sum(item["price"] * item["quantity"] for item in items), 2)
  
  
--def calculate_order_total(items: list[dict], coupon_code: str | None = None) -> float:
-+def calculate_order_total(items: list[dict], discount_code: str | None = None) -> float:
-     amount = subtotal(items)
--    discount_rate = lookup_coupon(coupon_code)
-+    discount_rate = lookup_coupon(discount_code)
-     return round(amount * (1 - discount_rate), 2)
+ def eligible_subtotal(items: list[dict]) -> float:
+-    eligible_items = []
+-    for item in items:
+-        if item.get("is_cancelled", False):
+-            continue
+-        if item.get("is_promotional", False):
+-            continue
+-        eligible_items.append(item)
+-
++    eligible_items = _eligible_items(items)
+     return round(
+         sum(item["price"] * item["quantity"] for item in eligible_items),
+         2,
+     )
  
  
--def build_checkout_summary(items: list[dict], coupon_code: str | None = None) -> dict:
--    normalized_coupon = normalize_coupon_code(coupon_code)
-+def build_checkout_summary(items: list[dict], discount_code: str | None = None) -> dict:
-+    normalized_coupon = normalize_coupon_code(discount_code)
-     return {
-         "subtotal": round(subtotal(items), 2),
-         "couponCode": normalized_coupon,
--        "total": calculate_order_total(items, coupon_code),
-+        "total": calculate_order_total(items, discount_code),
-     }
---- a/tests/test_checkout.py
-+++ b/tests/test_checkout.py
-@@ -1,30 +1,30 @@
- from src.checkout import build_checkout_summary, calculate_order_total
- from src.discounts import lookup_coupon, normalize_coupon_code
+ def reward_points(items: list[dict]) -> int:
+-    eligible_items = []
+-    for item in items:
+-        if item.get("is_cancelled", False):
+-            continue
+-        if item.get("is_promotional", False):
+-            continue
+-        eligible_items.append(item)
+-
++    eligible_items = _eligible_items(items)
+     points = sum(int(item["price"] * item["quantity"]) for item in eligible_items)
+     return points // 10
  
  
--def test_normalize_coupon_code_trims_and_uppercases():
-+def test_normalize_discount_code_trims_and_uppercases():
-     assert normalize_coupon_code(" save10 ") == "SAVE10"
- 
- 
--def test_lookup_coupon_returns_rate():
-+def test_lookup_coupon_returns_rate():
-     assert lookup_coupon("save20") == 0.20
- 
- 
--def test_calculate_order_total_uses_coupon_code_argument():
-+def test_calculate_order_total_uses_discount_code_argument():
-     items = [
-         {"sku": "A", "price": 50.0, "quantity": 2},
-     ]
- 
--    assert calculate_order_total(items, coupon_code="SAVE10") == 90.0
-+    assert calculate_order_total(items, discount_code="SAVE10") == 90.0
- 
- 
--def test_build_checkout_summary_uses_coupon_code_key():
-+def test_build_checkout_summary_uses_discount_code_key():
-     items = [
-         {"sku": "A", "price": 40.0, "quantity": 1},
-         {"sku": "B", "price": 10.0, "quantity": 2},
-     ]
- 
--    assert build_checkout_summary(items, coupon_code=" save10 ") == {
-+    assert build_checkout_summary(items, discount_code=" save10 ") == {
-         "subtotal": 60.0,
-         "couponCode": "SAVE10",
-         "total": 54.0,
-     }
-@@ -35,7 +35,7 @@
-     items = [
-         {"sku": "A", "price": 30.0, "quantity": 1},
-     ]
- 
--    assert build_checkout_summary(items, coupon_code=None) == {
-+    assert build_checkout_summary(items, discount_code=None) == {
-         "subtotal": 30.0,
-         "couponCode": None,
-         "total": 30.0,
+ def qualifying_item_count(items: list[dict]) -> int:
+-    eligible_items = []
+-    for item in items:
+-        if item.get("is_cancelled", False):
+-            continue
+-        if item.get("is_promotional", False):
+-            continue
+-        eligible_items.append(item)
+-
++    eligible_items = _eligible_items(items)
+     return sum(item["quantity"] for item in eligible_items)
+*** End Patch
 
 [command]
 status: proposed

@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .cli_output import format_failure_message, print_final_result, print_iteration_action, print_total_tokens
+from .cli_output import (
+    format_failure_message,
+    print_final_result,
+    print_iteration_action,
+    print_total_tokens,
+)
 from .context import AgentContext, AgentHistory, AgentResponse
 from .finish_handler import handle_finish
 from .inputs import parse_args, prepare_run, reset_runtime_workspace
@@ -18,11 +23,12 @@ INVALID_FINISH_MESSAGE = (
 )
 
 def get_agent_response(context: AgentContext, agent_history: str) -> AgentResponse:
-    user_message = f"""User task:
-{context.user_prompt}
-
-Agent history:
-{agent_history}"""
+    user_message = (
+        "User task:\n"
+        f"{context.user_prompt}\n\n"
+        "Agent history:\n"
+        f"{agent_history}"
+    )
     model_response = call_model(context, user_message)
 
     try:

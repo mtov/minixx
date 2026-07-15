@@ -35,6 +35,23 @@ def _extract_patch_block(text: str) -> str:
     return "\n".join(lines[start:]).strip()
 
 
+def _strip_known_patch_trailers(text: str) -> str:
+    lines = text.splitlines()
+    trailer_prefixes = ("*** End Patch", "*** Begin Patch")
+
+    while lines:
+        candidate = lines[-1].strip()
+        if not candidate:
+            lines.pop()
+            continue
+        if candidate.startswith(trailer_prefixes):
+            lines.pop()
+            continue
+        break
+
+    return "\n".join(lines).strip()
+
+
 def _normalize_hunk_lines(text: str) -> str:
     normalized_lines: list[str] = []
     in_hunk = False
@@ -229,6 +246,7 @@ def _rebuild_patch_against_workspace(workspace_path: Path, patch_text: str) -> s
 def auto_repair_patch_text(patch_text: str) -> str:
     repaired = _strip_code_fences(patch_text)
     repaired = _extract_patch_block(repaired)
+    repaired = _strip_known_patch_trailers(repaired)
     repaired = _normalize_hunk_lines(repaired)
     repaired = _recalculate_hunk_headers(repaired)
     if repaired and not repaired.endswith("\n"):

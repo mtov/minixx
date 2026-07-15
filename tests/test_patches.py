@@ -64,6 +64,27 @@ def test_auto_repair_patch_text_strips_code_fences_and_prose() -> None:
 """
 
 
+def test_auto_repair_patch_text_strips_trailing_patch_wrapper_markers() -> None:
+    patch_text = """--- a/hello.txt
++++ b/hello.txt
+@@ -1,2 +1,2 @@
+-hello
++hi
+ world
+*** End Patch
+"""
+
+    repaired = auto_repair_patch_text(patch_text)
+
+    assert repaired == """--- a/hello.txt
++++ b/hello.txt
+@@ -1,2 +1,2 @@
+-hello
++hi
+ world
+"""
+
+
 def test_validate_and_repair_patch_fixes_missing_context_prefix(tmp_path: Path) -> None:
     write_sample_file(tmp_path)
     patch_text = """--- a/hello.txt
@@ -236,6 +257,32 @@ def order_snapshot(items: list[dict]) -> dict:
 
     assert "def _eligible_items" in repaired
     assert "def order_snapshot" in repaired
+
+
+def test_validate_and_repair_patch_accepts_trailing_end_patch_marker(tmp_path: Path) -> None:
+    order_rules_path = tmp_path / "order_rules.py"
+    order_rules_path.write_text(
+        "hello\nworld\n",
+        encoding="utf-8",
+    )
+    patch_text = """--- a/order_rules.py
++++ b/order_rules.py
+@@ -1,2 +1,2 @@
+-hello
++hi
+ world
+*** End Patch
+"""
+
+    repaired = validate_and_repair_patch(tmp_path, patch_text)
+
+    assert repaired == """--- a/order_rules.py
++++ b/order_rules.py
+@@ -1,2 +1,2 @@
+-hello
++hi
+ world
+"""
 
 
 def test_run_mutating_command_requires_approval(tmp_path: Path, monkeypatch) -> None:
