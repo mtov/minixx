@@ -6,7 +6,10 @@ Expected behavior:
 - only items marked as eligible may participate in the promotion;
 - clearance items must never count toward the promotion and must never receive the discount;
 - quantities count as repeated units;
-- for each group of three eligible units, apply a 50% discount to the cheapest eligible unit in that group;
+- expand eligible, non-clearance items into individual unit prices;
+- sort those eligible unit prices from highest to lowest;
+- split the sorted eligible unit prices into consecutive groups of three units;
+- for each full group of three, apply a 50% discount to the cheapest unit in that group;
 - invalid promotion codes should be ignored;
 - the final total should still be rounded to two decimals.
 

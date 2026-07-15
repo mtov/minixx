@@ -54,7 +54,7 @@ def test_multiple_groups_discount_multiple_units():
         {"sku": "C", "price": 10.0, "quantity": 2, "is_eligible": True, "is_clearance": False},
     ]
 
-    assert calculate_order_total(items, "BUY2GET50") == 75.0
+    assert calculate_order_total(items, "BUY2GET50") == 77.5
 
 
 def test_rounds_only_the_final_total():
@@ -63,4 +63,4 @@ def test_rounds_only_the_final_total():
         {"sku": "B", "price": 9.99, "quantity": 1, "is_eligible": True, "is_clearance": False},
     ]
 
-    assert calculate_order_total(items, "BUY2GET50") == 44.97
+    assert calculate_order_total(items, "BUY2GET50") == 44.98

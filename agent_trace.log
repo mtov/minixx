@@ -1,114 +1,111 @@
 [request]
-The order rules module has duplicated logic for selecting eligible items across multiple functions.
+The checkout team wants to support a new promotion code: `BUY2GET50`.
 
-Please refactor the module by extracting that duplicated eligibility-selection logic into a helper function without changing behavior.
-Update the tests if needed to reflect the refactoring.
+Please implement that feature in the checkout flow.
+
+Expected behavior:
+- only items marked as eligible may participate in the promotion;
+- clearance items must never count toward the promotion and must never receive the discount;
+- quantities count as repeated units;
+- expand eligible, non-clearance items into individual unit prices;
+- sort those eligible unit prices from highest to lowest;
+- split the sorted eligible unit prices into consecutive groups of three units;
+- for each full group of three, apply a 50% discount to the cheapest unit in that group;
+- invalid promotion codes should be ignored;
+- the final total should still be rounded to two decimals.
+
+Do not change the intended non-promotional behavior.
 
 [response 1]
-Thought: Inspect the module and tests to locate the duplicated eligibility-selection logic before refactoring.
+Thought: I need to inspect the checkout code to find where promotions are handled and then implement BUY2GET50 without changing non-promotional behavior.
 Action: list_files
-Action Input: /Users/mtov/minixx/minixx-workspace
-
-[response 2]
-Thought: I need to inspect the source and tests to locate the duplicated eligibility-selection logic before refactoring.
+Action Input: 
+Thought: I need to inspect the checkout code to find where promotions are handled and then implement BUY2GET50 without changing non-promotional behavior.
 Action: list_files
-Action Input: /Users/mtov/minixx/minixx-workspace/src
-
-[response 3]
-Thought: I need to inspect the module and tests to identify the duplicated eligibility-selection logic before refactoring.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/order_rules.py
-
-[response 4]
-Thought: I need to inspect the rest of the module and the tests before refactoring, then I can extract the shared eligibility-selection logic without changing behavior.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/order_rules.py
-
-[response 5]
-Thought: I need to inspect the tests to refactor safely and update them only if necessary.
-Action: list_files
-Action Input: /Users/mtov/minixx/minixx-workspace/tests
-
-[response 6]
-Thought: I need to inspect the tests before refactoring, but I can only take one action per turn, so I’ll read the test file next.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/tests/test_order_rules.py
-
-[response 7]
-Thought: I’ll inspect the remaining part of the module and tests only if needed, then refactor the shared eligibility filter into a helper while preserving behavior and keeping tests aligned.
-Action: finish
 Action Input:
 
-[response 8]
-Thought: I need the rest of the module to refactor duplicated eligibility logic safely and update tests only if necessary.
+[response 2]
+Thought: I need to inspect the checkout implementation and tests to add BUY2GET50 without altering non-promotional behavior.
+Action: list_files
+Action Input: src
+
+[response 3]
+Thought: I’ll inspect the checkout and promotion logic to add the new code without affecting non-promotional behavior.
 Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/order_rules.py
+Action Input: src/promotions.py
+
+[response 4]
+Thought: I need to inspect the checkout/pricing flow to implement the new promotion correctly without affecting non-promotional behavior.
+Action: read_file
+Action Input: src/checkout.py
+
+Thought: I need to inspect the checkout/pricing flow to implement the new promotion correctly without affecting non-promotional behavior.
+Action: read_file
+Action Input: src/checkout.py
+
+[response 5]
+Thought: I need to inspect tests to confirm the expected promotion behavior before making changes.
+Action: read_file
+Action Input: tests
+
+[response 6]
+Thought: I need the tests layout to implement the promotion correctly without changing non-promotional behavior.
+Action: list_files
+Action Input: tests
+
+[response 7]
+Thought: I need the checkout tests to determine the expected item schema and verify how promotion logic should behave before implementing it.
+Action: read_file
+Action Input: tests/test_checkout.py
+
+[response 8]
+Thought: I need to inspect the promotion logic to implement BUY2GET50 without affecting non-promotional totals.
+Action: read_file
+Action Input: src/promotions.py
 
 [response 9]
-Thought: I’ll refactor the duplicated eligibility filtering into a shared helper and leave behavior unchanged.
+Thought: I’ve reviewed the existing promotion hook and the checkout tests; the next step is to inspect the checkout implementation so I can add BUY2GET50 without changing non-promotional totals.
+Action: read_file
+Action Input: src/checkout.py
+
+[response 10]
+Thought: I have enough information to implement the promotion logic in `src/promotions.py` without changing checkout rounding or non-promotional behavior.
 Action: finish
-Action Input: --- a/src/order_rules.py
-+++ b/src/order_rules.py
-@@ -1,44 +1,38 @@
- from __future__ import annotations
-+
-+
-+def _eligible_items(items: list[dict]) -> list[dict]:
-+    eligible_items = []
+Action Input: --- a/src/promotions.py
++++ b/src/promotions.py
+@@ -1,9 +1,28 @@
+ PROMOTIONS = {
+     "BUY2GET50": "buy_2_get_50",
+ }
+ 
+ 
+ def promotion_discount(items: list[dict], promotion_code: str | None) -> float:
+     if not promotion_code:
+         return 0.0
+ 
+     if promotion_code not in PROMOTIONS:
+         return 0.0
+ 
+-    return 0.0
++    eligible_unit_prices: list[float] = []
 +    for item in items:
-+        if item.get("is_cancelled", False):
++        if not item.get("is_eligible"):
 +            continue
-+        if item.get("is_promotional", False):
++        if item.get("is_clearance"):
 +            continue
-+        eligible_items.append(item)
-+    return eligible_items
- 
- 
- def subtotal(items: list[dict]) -> float:
-     return round(sum(item["price"] * item["quantity"] for item in items), 2)
- 
- 
- def eligible_subtotal(items: list[dict]) -> float:
--    eligible_items = []
--    for item in items:
--        if item.get("is_cancelled", False):
--            continue
--        if item.get("is_promotional", False):
--            continue
--        eligible_items.append(item)
--
-+    eligible_items = _eligible_items(items)
-     return round(
-         sum(item["price"] * item["quantity"] for item in eligible_items),
-         2,
-     )
- 
- 
- def reward_points(items: list[dict]) -> int:
--    eligible_items = []
--    for item in items:
--        if item.get("is_cancelled", False):
--            continue
--        if item.get("is_promotional", False):
--            continue
--        eligible_items.append(item)
--
-+    eligible_items = _eligible_items(items)
-     points = sum(int(item["price"] * item["quantity"]) for item in eligible_items)
-     return points // 10
- 
- 
- def qualifying_item_count(items: list[dict]) -> int:
--    eligible_items = []
--    for item in items:
--        if item.get("is_cancelled", False):
--            continue
--        if item.get("is_promotional", False):
--            continue
--        eligible_items.append(item)
--
-+    eligible_items = _eligible_items(items)
-     return sum(item["quantity"] for item in eligible_items)
++
++        price = float(item.get("price", 0.0))
++        quantity = int(item.get("quantity", 0))
++        eligible_unit_prices.extend([price] * quantity)
++
++    eligible_unit_prices.sort(reverse=True)
++
++    discount = 0.0
++    for i in range(0, len(eligible_unit_prices) - 2, 3):
++        cheapest_unit = eligible_unit_prices[i + 2]
++        discount += cheapest_unit * 0.5
++
++    return discount
 
 [command]
 status: proposed
