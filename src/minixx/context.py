@@ -54,6 +54,13 @@ class FinishResult:
 
 
 @dataclass
+class LoopResult:
+    status: str
+    output: str | None = None
+    error: str | None = None
+
+
+@dataclass
 class AgentHistory:
     entries: list[tuple[int, AgentResponse, str]] = field(default_factory=list)
 

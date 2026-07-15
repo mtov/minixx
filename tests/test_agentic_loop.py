@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from minixx.agentic_loop import INVALID_FINISH_MESSAGE, agentic_loop
+from minixx.agentic_loop import INVALID_FINISH_MESSAGE, MAX_ITERATIONS_REACHED_MESSAGE, agentic_loop
 from minixx.cli_output import format_failure_message, format_success_message, print_final_result
-from minixx.context import AgentContext, AgentResponse, FinishResult, ModelConfig
+from minixx.context import AgentContext, AgentHistory, AgentResponse, FinishResult, ModelConfig
 from minixx.test_failures import summarize_test_failure_output
 
 
@@ -99,8 +99,8 @@ def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
     )
     seen_histories: list[str] = []
 
-    def fake_get_agent_response(_context: AgentContext, history: str) -> AgentResponse:
-        seen_histories.append(history)
+    def fake_get_agent_response(_context: AgentContext, history: AgentHistory) -> AgentResponse:
+        seen_histories.append(history.to_text())
         return next(responses)
 
     monkeypatch.setattr("minixx.agentic_loop.get_agent_response", fake_get_agent_response)
@@ -112,7 +112,9 @@ def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
     result = agentic_loop(context)
     captured = capsys.readouterr()
 
-    assert result.startswith("--- a/file.py")
+    assert result.status == "success"
+    assert result.output is not None
+    assert result.output.startswith("--- a/file.py")
     assert "[1] finish" in captured.out
     assert "[2] finish" in captured.out
     assert seen_histories[0] == "No previous steps."
@@ -139,8 +141,8 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
     reset_calls: list[Path] = []
     finish_attempts = 0
 
-    def fake_get_agent_response(_context: AgentContext, history: str) -> AgentResponse:
-        seen_histories.append(history)
+    def fake_get_agent_response(_context: AgentContext, history: AgentHistory) -> AgentResponse:
+        seen_histories.append(history.to_text())
         return next(responses)
 
     def fake_handle_finish(_context: AgentContext, response: AgentResponse) -> AgentResponse:
@@ -167,7 +169,9 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
     result = agentic_loop(context)
     captured = capsys.readouterr()
 
-    assert result.endswith("+attempt2\n")
+    assert result.status == "success"
+    assert result.output is not None
+    assert result.output.endswith("+attempt2\n")
     assert "[1] finish" in captured.out
     assert "[2] finish" in captured.out
     assert reset_calls == [Path("/tmp/source")]
@@ -204,3 +208,23 @@ FAILED tests/test_checkout.py::test_rounds_only_the_final_total - AssertionError
     assert "- test_multiple_groups_discount_multiple_units: expected 75.0, got 77.5" in summary
     assert "- tests/test_checkout.py::test_rounds_only_the_final_total: AssertionError: assert 44.98 == 44.97" in summary
     assert "- test_rounds_only_the_final_total: expected 44.97, got 44.98" in summary
+
+
+def test_agentic_loop_returns_error_result_when_max_iterations_reached(monkeypatch) -> None:
+    context = build_context()
+
+    monkeypatch.setattr(
+        "minixx.agentic_loop.get_agent_response",
+        lambda _context, _history: AgentResponse(
+            thought="still exploring",
+            action="list_files",
+            action_input=".",
+        ),
+    )
+    monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _response, _workspace: "src\ntests")
+
+    result = agentic_loop(context)
+
+    assert result.status == "max_iterations_reached"
+    assert result.output is None
+    assert result.error == MAX_ITERATIONS_REACHED_MESSAGE

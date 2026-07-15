@@ -8,7 +8,7 @@ from .cli_output import (
     print_iteration_action,
     print_total_tokens,
 )
-from .context import AgentContext, AgentHistory, AgentResponse
+from .context import AgentContext, AgentHistory, AgentResponse, LoopResult
 from .finish_handler import handle_finish
 from .inputs import parse_args, prepare_run, reset_runtime_workspace
 from .models import call_model
@@ -21,13 +21,15 @@ INVALID_FINISH_MESSAGE = (
     "Finish output must contain only a unified diff patch. "
     "Do not end the run yet; inspect any remaining files you need and then return the patch."
 )
+MAX_ITERATIONS = 15
+MAX_ITERATIONS_REACHED_MESSAGE = "Agent stopped after reaching the maximum number of steps."
 
-def get_agent_response(context: AgentContext, agent_history: str) -> AgentResponse:
+def get_agent_response(context: AgentContext, agent_history: AgentHistory) -> AgentResponse:
     user_message = (
         "User task:\n"
         f"{context.user_prompt}\n\n"
         "Agent history:\n"
-        f"{agent_history}"
+        f"{agent_history.to_text()}"
     )
     model_response = call_model(context, user_message)
 
@@ -36,6 +38,22 @@ def get_agent_response(context: AgentContext, agent_history: str) -> AgentRespon
     except ValueError as exc:
         trace_validation_error(str(exc), model_response.content)
         return repair_response(context, user_message, str(exc))
+
+
+def handle_post_apply_test_failure(
+    context: AgentContext,
+    agent_history: AgentHistory,
+    iteration: int,
+    agent_response: AgentResponse,
+    test_output: str | None,
+) -> None:
+    print_iteration_action(iteration, agent_response)
+    reset_runtime_workspace(context)
+    agent_history.append(
+        iteration,
+        agent_response,
+        summarize_test_failure_output(test_output or ""),
+    )
 
 
 def handle_finish_action(
@@ -51,12 +69,12 @@ def handle_finish_action(
 
     finish_result = handle_finish(context, agent_response)
     if finish_result.status == "post_apply_tests_failed":
-        print_iteration_action(iteration, agent_response)
-        reset_runtime_workspace(context)
-        agent_history.append(
+        handle_post_apply_test_failure(
+            context,
+            agent_history,
             iteration,
             agent_response,
-            summarize_test_failure_output(finish_result.test_output or ""),
+            finish_result.test_output,
         )
         return None
 
@@ -65,12 +83,11 @@ def handle_finish_action(
     return finalized_response.action_input
 
 
-def agentic_loop(context: AgentContext) -> str:
-    max_iterations = 15
+def agentic_loop(context: AgentContext) -> LoopResult:
     agent_history = AgentHistory()
 
-    for iteration in range(1, max_iterations + 1):
-        agent_response = get_agent_response(context, agent_history.to_text())
+    for iteration in range(1, MAX_ITERATIONS + 1):
+        agent_response = get_agent_response(context, agent_history)
 
         if agent_response.action == "finish":
             finish_output = handle_finish_action(
@@ -81,14 +98,17 @@ def agentic_loop(context: AgentContext) -> str:
             )
             if finish_output is None:
                 continue
-            return finish_output
+            return LoopResult(status="success", output=finish_output)
 
         print_iteration_action(iteration, agent_response)
 
         tool_result = run_tool(agent_response, context.workspace_path)
         agent_history.append(iteration, agent_response, tool_result)
 
-    raise ValueError("Agent stopped after reaching the maximum number of steps.")
+    return LoopResult(
+        status="max_iterations_reached",
+        error=MAX_ITERATIONS_REACHED_MESSAGE,
+    )
 
 
 def main() -> int:
@@ -96,12 +116,17 @@ def main() -> int:
 
     try:
         context = prepare_run(args.workspace_path)
-        result = agentic_loop(context)
+        loop_result = agentic_loop(context)
     except Exception as exc:  # noqa: BLE001
         print_total_tokens()
         print(format_failure_message(exc))
         return 1
 
+    if loop_result.status != "success":
+        print_total_tokens()
+        print(format_failure_message(ValueError(loop_result.error or "Unknown error.")))
+        return 1
+
     print_total_tokens()
-    print_final_result(context, result)
+    print_final_result(context, loop_result.output or "")
     return 0
