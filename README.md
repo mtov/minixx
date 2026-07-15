@@ -12,12 +12,12 @@ It is an ongoing research project developed by [ASERG](https://aserg.labsoft.dcc
 Minixx is intentionally small.
 It focuses on one narrow workflow:
 
-1. load a bug-fix workspace
+1. load a workspace
 2. copy it to an internal runtime directory
 3. let a model inspect files and run tests
 4. require the model to finish with a unified diff patch
 5. ask the user for approval before applying that patch
-6. run tests again after patch application for bug-fix tasks
+6. run tests again after patch application before accepting the run
 
 The project is meant for learning, experimentation, and research rather than broad production automation.
 
@@ -53,7 +53,8 @@ What you should expect during a run:
 - it creates or refreshes `./minixx-workspace`
 - the model chooses among a small set of tools
 - if the model finishes with a patch, Minixx prints the patch and asks for approval before running `git apply`
-- for bug-fix tasks, Minixx runs tests automatically after patch application
+- after patch application, Minixx runs tests automatically before reporting success
+- if post-apply tests fail, Minixx resets `./minixx-workspace` and asks the model for a different patch
 
 ## Configuration
 
@@ -120,7 +121,7 @@ cd ./test_workspace/bugfix_001_date_range
 python -m pytest -q
 ```
 
-Minixx itself uses a fixed test command based on `python -m pytest -q` and does not allow arbitrary shell commands for testing.
+Minixx itself uses a fixed test command based on `python -m pytest -q -p no:cacheprovider` and does not allow arbitrary shell commands for testing.
 
 ## Runtime Workspace
 
@@ -144,20 +145,21 @@ The repository currently ships with five curated workspaces:
 
 - `./test_workspace/bugfix_001_date_range`: a compact date-range bug with an inclusive boundary expectation
 - `./test_workspace/bugfix_002_order_totals`: a checkout bug where a percentage coupon is effectively applied twice
-- `./test_workspace/feature_001_buy2get50`: a checkout feature that adds a "buy 2 eligible units, get 50% off the cheapest 3rd unit" promotion
+- `./test_workspace/feature_001_buy2get50`: a checkout feature that adds a `BUY2GET50` promotion over grouped eligible unit prices
 - `./test_workspace/refactor_001_rename`: a checkout refactor that renames `coupon` terminology to `discount_code` across production code and tests
 - `./test_workspace/refactor_002_remove_duplication`: an order-rules refactor that extracts duplicated eligibility-selection logic into a helper
 
 These workspaces are designed so that:
 
 - bugfix tasks start from failing behavior and are validated by tests
+- feature tasks start from missing behavior and are validated by tests
 - refactor tasks start from passing behavior and require coordinated updates to code and tests
 - the changes can be expressed as a patch
 - the examples stay practical and close to realistic maintenance tasks
 
 ## Patch Workflow
 
-When Minixx finishes a code-change task, it expects a unified diff patch.
+When Minixx finishes a task, it expects a unified diff patch.
 That patch is saved to `minixx-workspace/patch.txt`.
 
 Before applying the patch, Minixx:
@@ -170,8 +172,9 @@ Before applying the patch, Minixx:
 
 If the user approves, Minixx runs `git apply patch.txt` inside `minixx-workspace`.
 
-For bug-fixing tasks, Minixx also runs tests automatically after the patch is applied.
-If the post-apply test run does not pass, the `finish` step is rejected.
+After the patch is applied, Minixx also runs tests automatically.
+If the post-apply test run does not pass, the runtime workspace is reset to the original source state and the model must try again with a different patch.
+If the model tries to `finish` without returning a unified diff patch, that finish is rejected and the run continues.
 
 The patch helper also normalizes a few common formatting problems before validation, such as:
 
@@ -197,7 +200,7 @@ git apply patch.txt
 5. `agentic_loop.py` asks the configured model for the next action.
 6. `tools.py` executes the selected tool inside `minixx-workspace`.
 7. When the model returns `finish`, `finish_handler.py` validates the output and routes patch application through `patches.py`.
-8. If a patch is approved and applied, Minixx runs post-apply tests for bug-fix tasks before accepting the run.
+8. If a patch is approved and applied, Minixx runs post-apply tests before accepting the run.
 
 ```mermaid
 sequenceDiagram
@@ -213,23 +216,30 @@ sequenceDiagram
     AgentLoop->>Runtime: run tool
     Runtime-->>AgentLoop: tool result
     AgentLoop->>Runtime: save and apply patch on finish
+    Runtime-->>AgentLoop: run post-apply tests
 ```
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A[run_minixx.py] --> B[inputs.py]
-    A --> C[agentic_loop.py]
-    C --> D[models.py]
-    C --> E[protocol.py]
-    C --> F[tools.py]
-    C --> G[finish_handler.py]
-    G --> H[patches.py]
-    C --> I[traces.py]
-    D --> I
-    G --> I
-    H --> I
+    A[run_minixx.py] --> B[agentic_loop.py]
+    B --> C[inputs.py]
+    B --> D[models.py]
+    B --> E[protocol.py]
+    B --> F[tools.py]
+    B --> G[finish_handler.py]
+    B --> H[cli_output.py]
+    B --> I[test_failures.py]
+    B --> J[traces.py]
+    B --> K[context.py]
+    F --> K
+    G --> L[patches.py]
+    G --> F
+    G --> J
+    D --> J
+    E --> J
+    L --> J
 ```
 
 Configuration:
@@ -240,9 +250,11 @@ Configuration:
 Core:
 
 - `src/minixx/agentic_loop.py` runs the main ReAct-style loop
+- `src/minixx/cli_output.py` formats iteration lines and final success/failure summaries
 - `src/minixx/inputs.py` loads config, prompt files, and prepares `minixx-workspace`
 - `src/minixx/models.py` sends requests to the configured model backend
 - `src/minixx/protocol.py` parses and repairs model responses
+- `src/minixx/test_failures.py` summarizes post-apply test failures for retry prompts
 - `src/minixx/tools.py` implements the available workspace-safe tools
 - `src/minixx/finish_handler.py` validates, repairs, applies, and verifies final `finish` outputs
 - `src/minixx/patches.py` saves, repairs, validates, previews, and applies unified diff patches
@@ -268,8 +280,9 @@ Behavior notes:
 - `read_file` shows the filename directly in the iteration line, such as `[3] read_file checkout.py`
 - `find_text` expects `search text | /path/to/directory`
 - `find_text` shows the searched string in the iteration line, such as `[4] find_text "coupon"`
+- Minixx discourages repeated `find_text` queries with the exact same input when they were already run recently
 - `run_tests` uses a fixed `pytest` command instead of an arbitrary shell command
-- for code-change tasks, `finish` must return a unified diff patch in `Action Input`
+- `finish` must return a unified diff patch in `Action Input`
 
 The model responds using:
 
@@ -280,6 +293,7 @@ The model responds using:
 ## Tracing
 
 Minixx writes execution traces to `agent_trace.log`.
+That file is cleared at the beginning of each new run, so it always represents only the most recent execution.
 Each model response also records token usage when the provider exposes it, plus a cumulative total for the run.
 Because the project is didactic, inspecting this trace is often the easiest way to understand how the agent moved through a task.
 
@@ -292,6 +306,7 @@ It uses short section headers such as:
 - `[validation_error]`
 - `[repair_attempt]`
 - `[command]`
+- `[finish]`
 
 ## Security and Limits
 
@@ -318,4 +333,4 @@ Instead, it is a compact reference implementation for studying:
 - patch-based code modification
 - approval before mutation
 - post-apply validation with tests
-- curated bug-fix tasks in a small, practical setup
+- curated workspace tasks in a small, practical setup
