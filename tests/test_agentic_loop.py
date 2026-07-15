@@ -119,13 +119,13 @@ def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
     assert INVALID_FINISH_MESSAGE in seen_histories[1]
 
 
-def test_agentic_loop_skips_recent_duplicate_read(monkeypatch, capsys) -> None:
+def test_agentic_loop_skips_recent_duplicate_search(monkeypatch, capsys) -> None:
     context = build_context()
     responses = iter(
         [
-            AgentResponse(thought="read source", action="read_file", action_input="/tmp/runtime/src/file.py"),
-            AgentResponse(thought="read tests", action="read_file", action_input="/tmp/runtime/tests/test_file.py"),
-            AgentResponse(thought="read again", action="read_file", action_input="/tmp/runtime/src/file.py"),
+            AgentResponse(thought="search source", action="find_text", action_input="eligible | /tmp/runtime/src"),
+            AgentResponse(thought="search other", action="find_text", action_input="order_rules | /tmp/runtime"),
+            AgentResponse(thought="search again", action="find_text", action_input="eligible | /tmp/runtime/src"),
             AgentResponse(
                 thought="done",
                 action="finish",
@@ -155,10 +155,10 @@ def test_agentic_loop_skips_recent_duplicate_read(monkeypatch, capsys) -> None:
     captured = capsys.readouterr()
 
     assert result.startswith("--- a/file.py")
-    assert "[1] read_file" in captured.out
-    assert "[2] read_file" in captured.out
-    assert "[3] read_file" in captured.out
-    assert tool_calls == ["/tmp/runtime/src/file.py", "/tmp/runtime/tests/test_file.py"]
+    assert "[1] find_text" in captured.out
+    assert "[2] find_text" in captured.out
+    assert "[3] find_text" in captured.out
+    assert tool_calls == ["eligible | /tmp/runtime/src", "order_rules | /tmp/runtime"]
     assert REDUNDANT_TOOL_MESSAGE in seen_histories[3]
 
 

@@ -23,7 +23,8 @@ INVALID_FINISH_MESSAGE = (
 )
 REDUNDANT_TOOL_MESSAGE = (
     "That exact read/search was already done recently. "
-    "Use the earlier result unless you still need different information."
+    "Use the earlier result already present in agent history and continue from it. "
+    "Only request a different file or query if you still need missing information."
 )
 
 def get_agent_response(context: AgentContext, agent_history: str) -> AgentResponse:
@@ -71,7 +72,7 @@ def agentic_loop(context: AgentContext) -> str:
         print_iteration_action(iteration, agent_response)
 
         if (
-            agent_response.action in {"read_file", "find_text"}
+            agent_response.action == "find_text"
             and agent_history.has_recent_duplicate_action_input(
                 agent_response.action,
                 agent_response.action_input,
