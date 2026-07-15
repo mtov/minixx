@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from minixx.agentic_loop import INVALID_FINISH_MESSAGE, agentic_loop
+from minixx.agentic_loop import INVALID_FINISH_MESSAGE, REDUNDANT_TOOL_MESSAGE, agentic_loop
 from minixx.cli_output import format_failure_message, format_success_message, print_final_result
 from minixx.context import AgentContext, AgentResponse, FinishResult, ModelConfig
 from minixx.test_failures import summarize_test_failure_output
@@ -117,6 +117,49 @@ def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
     assert "[2] finish" in captured.out
     assert seen_histories[0] == "No previous steps."
     assert INVALID_FINISH_MESSAGE in seen_histories[1]
+
+
+def test_agentic_loop_skips_recent_duplicate_read(monkeypatch, capsys) -> None:
+    context = build_context()
+    responses = iter(
+        [
+            AgentResponse(thought="read source", action="read_file", action_input="/tmp/runtime/src/file.py"),
+            AgentResponse(thought="read tests", action="read_file", action_input="/tmp/runtime/tests/test_file.py"),
+            AgentResponse(thought="read again", action="read_file", action_input="/tmp/runtime/src/file.py"),
+            AgentResponse(
+                thought="done",
+                action="finish",
+                action_input="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
+            ),
+        ]
+    )
+    seen_histories: list[str] = []
+    tool_calls: list[str] = []
+
+    def fake_get_agent_response(_context: AgentContext, history: str) -> AgentResponse:
+        seen_histories.append(history)
+        return next(responses)
+
+    def fake_run_tool(response: AgentResponse, _workspace: Path) -> str:
+        tool_calls.append(response.action_input)
+        return "file contents"
+
+    monkeypatch.setattr("minixx.agentic_loop.get_agent_response", fake_get_agent_response)
+    monkeypatch.setattr("minixx.agentic_loop.run_tool", fake_run_tool)
+    monkeypatch.setattr(
+        "minixx.agentic_loop.handle_finish",
+        lambda _context, response: FinishResult(status="applied", agent_response=response),
+    )
+
+    result = agentic_loop(context)
+    captured = capsys.readouterr()
+
+    assert result.startswith("--- a/file.py")
+    assert "[1] read_file" in captured.out
+    assert "[2] read_file" in captured.out
+    assert "[3] read_file" in captured.out
+    assert tool_calls == ["/tmp/runtime/src/file.py", "/tmp/runtime/tests/test_file.py"]
+    assert REDUNDANT_TOOL_MESSAGE in seen_histories[3]
 
 
 def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys) -> None:

@@ -13,6 +13,7 @@ Use only files and directories that were returned by tools or already appear in 
 Do not invent paths or guessed roots such as `/`, `/workspace`, or `/config`.
 
 Do not repeat the same read or search unless you still need missing information.
+If you already read a file or ran the same search, use the earlier result instead of repeating it unless you need a different file or query.
 Prefer files and searches already listed in agent history.
 
 For retrieval tasks, do not use Action: finish before using read_file or find_text.
