@@ -4,7 +4,7 @@ import re
 
 from .context import AgentContext, AgentResponse
 from .models import call_model
-from .traces import trace_repair_attempt, trace_validation_error
+from .traces import trace_repair_attempt
 
 REPAIR_PROMPT = (
     "Your previous response was invalid. "
@@ -14,6 +14,7 @@ REPAIR_PROMPT = (
     "Action Input: ... "
     "Do not include Observation."
 )
+HUNK_HEADER_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@")
 
 def parse_response(text: str) -> AgentResponse:
     thought = ""
@@ -44,10 +45,9 @@ def parse_response(text: str) -> AgentResponse:
 
 
 def looks_like_patch(text: str) -> bool:
-    hunk_header_pattern = re.compile(r"^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@")
     has_file_headers = "--- " in text and "+++ " in text
     has_valid_hunk_header = any(
-        hunk_header_pattern.match(line) for line in text.splitlines()
+        HUNK_HEADER_PATTERN.match(line) for line in text.splitlines()
     )
     return has_file_headers and has_valid_hunk_header
 

@@ -14,11 +14,17 @@ TEST_COMMAND = (sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider")
 TEST_TIMEOUT_SECONDS = 30
 
 
-def list_files(action_input: str, workspace_path: Path) -> str:
+def _resolve_workspace_target(action_input: str, workspace_path: Path) -> Path | str:
     try:
-        path = resolve_tool_path(action_input, workspace_path)
+        return resolve_tool_path(action_input, workspace_path)
     except ValueError as exc:
         return str(exc)
+
+
+def list_files(action_input: str, workspace_path: Path) -> str:
+    path = _resolve_workspace_target(action_input, workspace_path)
+    if isinstance(path, str):
+        return path
 
     if not path.exists():
         return f"Directory not found inside the workspace: {path}"
@@ -33,10 +39,9 @@ def list_files(action_input: str, workspace_path: Path) -> str:
 
 
 def read_file(action_input: str, workspace_path: Path) -> str:
-    try:
-        path = resolve_tool_path(action_input, workspace_path)
-    except ValueError as exc:
-        return str(exc)
+    path = _resolve_workspace_target(action_input, workspace_path)
+    if isinstance(path, str):
+        return path
 
     if not path.exists():
         return f"File not found inside the workspace: {path}"
@@ -69,11 +74,9 @@ def find_text(action_input: str, workspace_path: Path) -> str:
         return parsed_input
 
     query, directory = parsed_input
-
-    try:
-        path = resolve_tool_path(directory, workspace_path)
-    except ValueError as exc:
-        return str(exc)
+    path = _resolve_workspace_target(directory, workspace_path)
+    if isinstance(path, str):
+        return path
 
     if not path.exists():
         return f"Directory not found inside the workspace: {path}"
@@ -127,8 +130,9 @@ def run_tests_with_status(workspace_path: Path) -> tuple[bool, str]:
     else:
         print("Tests: failed", flush=True)
 
-    output_parts = [result.stdout.strip(), result.stderr.strip()]
-    output = "\n".join(part for part in output_parts if part).strip()
+    output = "\n".join(
+        part for part in (result.stdout.strip(), result.stderr.strip()) if part
+    ).strip()
 
     if not output and passed:
         return True, "Tests passed."

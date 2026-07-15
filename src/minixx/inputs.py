@@ -16,6 +16,26 @@ SYSTEM_PROMPT_PATH = CONFIG_DIR / "system_prompt.txt"
 WORKSPACE_INSTRUCTIONS_PATH = "AGENTS.md"
 
 
+def _read_text_file(
+    path: Path,
+    *,
+    missing_message: str,
+    read_message: str,
+    empty_message: str | None = None,
+) -> str | None:
+    try:
+        content = path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(missing_message) from exc
+    except OSError as exc:
+        raise OSError(read_message) from exc
+
+    if not content and empty_message is not None:
+        raise ValueError(empty_message)
+
+    return content or None
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Minixx")
     parser.add_argument("workspace_path", help="Path to the test workspace directory")
@@ -45,15 +65,13 @@ def load_model_config() -> ModelConfig:
 
 
 def load_system_prompt() -> str:
-    try:
-        prompt = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8").strip()
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(f"System prompt file not found: {SYSTEM_PROMPT_PATH}") from exc
-    except OSError as exc:
-        raise OSError(f"Could not read system prompt file: {SYSTEM_PROMPT_PATH}") from exc
-
-    if not prompt:
-        raise ValueError("System prompt file is empty.")
+    prompt = _read_text_file(
+        SYSTEM_PROMPT_PATH,
+        missing_message=f"System prompt file not found: {SYSTEM_PROMPT_PATH}",
+        read_message=f"Could not read system prompt file: {SYSTEM_PROMPT_PATH}",
+        empty_message="System prompt file is empty.",
+    )
+    assert prompt is not None
     return prompt
 
 
@@ -62,16 +80,11 @@ def load_workspace_instructions(workspace_path: Path) -> str | None:
     if not instructions_path.exists():
         return None
 
-    try:
-        instructions = instructions_path.read_text(encoding="utf-8").strip()
-    except OSError as exc:
-        raise OSError(
-            f"Could not read workspace instructions file: {instructions_path}"
-        ) from exc
-
-    if not instructions:
-        return None
-    return instructions
+    return _read_text_file(
+        instructions_path,
+        missing_message=f"Workspace instructions file not found: {instructions_path}",
+        read_message=f"Could not read workspace instructions file: {instructions_path}",
+    )
 
 
 def resolve_workspace_path(raw_path: str) -> Path:
@@ -98,16 +111,13 @@ def reset_runtime_workspace(context: AgentContext) -> None:
 
 def load_user_prompt(workspace_path: Path) -> str:
     prompt_path = workspace_path / "prompt.txt"
-
-    try:
-        prompt = prompt_path.read_text(encoding="utf-8").strip()
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(f"User prompt file not found: {prompt_path}") from exc
-    except OSError as exc:
-        raise OSError(f"Could not read user prompt file: {prompt_path}") from exc
-
-    if not prompt:
-        raise ValueError("User prompt file is empty.")
+    prompt = _read_text_file(
+        prompt_path,
+        missing_message=f"User prompt file not found: {prompt_path}",
+        read_message=f"Could not read user prompt file: {prompt_path}",
+        empty_message="User prompt file is empty.",
+    )
+    assert prompt is not None
     return prompt
 
 
