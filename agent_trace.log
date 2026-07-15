@@ -1,91 +1,96 @@
 [request]
-The checkout team wants to support a new promotion code: `BUY2GET50`.
+The discounts module has a function named `lookup_coupon`, but the current naming standard is `lookup_discount_rate`.
 
-Please implement that feature in the checkout flow.
-
-Expected behavior:
-- only items marked as eligible may participate in the promotion;
-- clearance items must never count toward the promotion and must never receive the discount;
-- quantities count as repeated units;
-- expand eligible, non-clearance items into individual unit prices;
-- sort those eligible unit prices from highest to lowest;
-- split the sorted eligible unit prices into consecutive groups of three units;
-- for each full group of three, apply a 50% discount to the cheapest unit in that group;
-- invalid promotion codes should be ignored;
-- the final total should still be rounded to two decimals.
-
-Do not change the intended non-promotional behavior.
+Please rename that function to `lookup_discount_rate` and update every import and call site.
+This refactor should include the function definition and at least three explicit call sites across production code and tests.
+Do not change behavior.
 
 [response 1]
-Thought: I need to inspect the checkout implementation to find where promo codes are handled and then update the pricing logic for BUY2GET50 without affecting non-promotional behavior.
-Action: list_files
-Action Input:
+Thought: Need inspect repository for lookup_coupon definitions and usages, plus files to modify.
+Action: find_text
+Action Input: lookup_coupon | /Users/mtov/minixx/minixx-workspace
 
 [response 2]
-Thought: I’ll inspect the source and tests to locate the checkout pricing logic and existing promotion handling so I can implement BUY2GET50 without changing non-promotional behavior.
-Action: find_text
-Action Input: BUY2GET50 | /Users/mtov/minixx/minixx-workspace/src
-Thought: I’ll inspect the source and tests to locate the checkout pricing logic and existing promotion handling so I can implement BUY2GET50 without changing non-promotional behavior.
-Action: find_text
-Action Input: BUY2GET50 | /Users/mtov/minixx/minixx-workspace/src
+Thought: I need to inspect the files that define and call the coupon lookup function before renaming it, so I can update imports and call sites consistently.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/src/discounts.py
+Thought: I need to inspect the files that define and call the coupon lookup function before renaming it, so I can update imports and call sites consistently.
+Action: read_file
+Action Input: /Users/mtov/minixx/minixx-workspace/src/discounts.py
 
 [response 3]
-Thought: I need to inspect the promotions and checkout flow files to implement the new promo without altering non-promotional behavior.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/promotions.py
-Thought: I need to inspect the promotions and checkout flow files to implement the new promo without altering non-promotional behavior.
-Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/promotions.py
-
-[response 4]
-Thought: I need to inspect the checkout logic and tests to implement the new promotion correctly without changing non-promotional behavior.
-Action: find_text
-Action Input: promotion_discount | /Users/mtov/minixx/minixx-workspace/src
-
-[response 5]
-Thought: I need to inspect the checkout and promotion implementation to add the new BUY2GET50 logic without affecting non-promotional behavior.
+Thought: I found the function and its import/call sites, but I need to read the other affected files before producing a safe refactor patch.
 Action: read_file
 Action Input: /Users/mtov/minixx/minixx-workspace/src/checkout.py
 
-[response 6]
-Thought: I need to inspect the pricing/item shape to implement the promotion correctly without changing non-promotional behavior.
+[response 4]
+Thought: I need to inspect the tests file before making the refactor, since I must update every import/call site and only edit files I've read.
 Action: read_file
-Action Input: /Users/mtov/minixx/minixx-workspace/src/pricing.py
+Action Input: /Users/mtov/minixx/minixx-workspace/tests/test_checkout.py
 
-[response 7]
-Thought: I need to inspect the existing promotion logic and then update it to implement BUY2GET50 without changing non-promotional behavior.
+[response 5]
+Thought: I have enough information to make the refactor cleanly across the definition, imports, and call sites in production code and tests.
 Action: finish
-Action Input: --- a/src/promotions.py
-+++ b/src/promotions.py
-@@ -1,10 +1,27 @@
-+from src.pricing import eligible_unit_prices
-+
- PROMOTIONS = {
-     "BUY2GET50": "buy_2_get_50",
- }
+Action Input: --- a/src/discounts.py
++++ b/src/discounts.py
+@@ -11,9 +11,9 @@
+     normalized = coupon_code.strip().upper()
+     return normalized or None
  
  
- def promotion_discount(items: list[dict], promotion_code: str | None) -> float:
-     if not promotion_code:
+-def lookup_coupon(coupon_code: str | None) -> float:
++def lookup_discount_rate(coupon_code: str | None) -> float:
+     normalized = normalize_coupon_code(coupon_code)
+     if normalized is None:
          return 0.0
+     return DISCOUNTS.get(normalized, 0.0)
+--- a/src/checkout.py
++++ b/src/checkout.py
+@@ -1,12 +1,12 @@
+-from src.discounts import lookup_coupon, normalize_coupon_code
++from src.discounts import lookup_discount_rate, normalize_coupon_code
  
-     if promotion_code not in PROMOTIONS:
-         return 0.0
  
--    return 0.0
-+    if promotion_code == "BUY2GET50":
-+        unit_prices = eligible_unit_prices(items)
-+        unit_prices.sort(reverse=True)
-+
-+        discount = 0.0
-+        for i in range(0, len(unit_prices), 3):
-+            group = unit_prices[i : i + 3]
-+            if len(group) == 3:
-+                discount += min(group) * 0.5
-+
-+        return discount
-+
-+    return 0.0
+ def subtotal(items: list[dict]) -> float:
+     return sum(item["price"] * item["quantity"] for item in items)
+ 
+ 
+ def calculate_order_total(items: list[dict], coupon_code: str | None = None) -> float:
+     amount = subtotal(items)
+-    discount_rate = lookup_coupon(coupon_code)
++    discount_rate = lookup_discount_rate(coupon_code)
+     return round(amount * (1 - discount_rate), 2)
+ 
+ 
+ def build_checkout_summary(items: list[dict], coupon_code: str | None = None) -> dict:
+     normalized_coupon = normalize_coupon_code(coupon_code)
+--- a/tests/test_checkout.py
++++ b/tests/test_checkout.py
+@@ -1,17 +1,17 @@
+ from src.checkout import build_checkout_summary, calculate_order_total
+-from src.discounts import lookup_coupon, normalize_coupon_code
++from src.discounts import lookup_discount_rate, normalize_coupon_code
+ 
+ 
+ def test_normalize_coupon_code_trims_and_uppercases():
+     assert normalize_coupon_code(" save10 ") == "SAVE10"
+ 
+ 
+-def test_lookup_coupon_returns_rate():
+-    assert lookup_coupon("save20") == 0.20
++def test_lookup_discount_rate_returns_rate():
++    assert lookup_discount_rate("save20") == 0.20
+ 
+ 
+-def test_lookup_coupon_returns_zero_for_invalid_code():
+-    assert lookup_coupon("nope") == 0.0
++def test_lookup_discount_rate_returns_zero_for_invalid_code():
++    assert lookup_discount_rate("nope") == 0.0
+ 
+ 
+ def test_calculate_order_total_uses_coupon_code_argument():
+     items = [
+         {"sku": "A", "price": 50.0, "quantity": 2},
 
 [command]
 status: proposed
@@ -105,39 +110,4 @@ cwd: /Users/mtov/minixx/minixx-workspace
 [finish]
 status: completed
 stage: finish
-
-[command]
-status: proposed
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-25/test_run_mutating_command_requ0
-
-[command]
-status: rejected
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-25/test_run_mutating_command_requ0
-
-[command]
-status: proposed
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-25/test_run_mutating_command_exec0
-
-[command]
-status: approved
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-25/test_run_mutating_command_exec0
-
-[command]
-status: executed
-command: git status
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-25/test_run_mutating_command_exec0
-
-[command]
-status: proposed
-command: git apply patch.txt
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-25/test_run_mutating_command_prin0
-
-[command]
-status: rejected
-command: git apply patch.txt
-cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-25/test_run_mutating_command_prin0
 

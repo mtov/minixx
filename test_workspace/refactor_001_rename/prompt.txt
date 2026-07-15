@@ -1,4 +1,5 @@
-The checkout code still uses the old "coupon" terminology, but the current product language is "discount code".
+The discounts module has a function named `lookup_coupon`, but the current naming standard is `lookup_discount_rate`.
 
-Please rename the internal API from "coupon" to "discount_code" consistently across the checkout flow without changing behavior.
-Update the tests as part of the refactoring so they use the new terminology too.
+Please rename that function to `lookup_discount_rate` and update every import and call site.
+This refactor should include the function definition and at least three explicit call sites across production code and tests.
+Do not change behavior.

@@ -10,6 +10,10 @@ def test_lookup_coupon_returns_rate():
     assert lookup_coupon("save20") == 0.20
 
 
+def test_lookup_coupon_returns_zero_for_invalid_code():
+    assert lookup_coupon("nope") == 0.0
+
+
 def test_calculate_order_total_uses_coupon_code_argument():
     items = [
         {"sku": "A", "price": 50.0, "quantity": 2},

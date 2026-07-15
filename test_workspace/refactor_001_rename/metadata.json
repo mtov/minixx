@@ -1,6 +1,6 @@
 {
   "id": "refactor_001_rename",
-  "title": "Rename coupon terminology to discount code",
+  "title": "Rename a function and all call sites",
   "category": "rename",
   "difficulty": "medium",
   "language": "python",
@@ -8,5 +8,5 @@
   "dependencies": [
     "pytest"
   ],
-  "notes": "Synthetic, self-contained rename task across checkout and discounts modules with a small serialized payload surface."
+  "notes": "Synthetic, self-contained rename task focused on renaming one function definition and propagating the change through imports, call sites, and tests."
 }

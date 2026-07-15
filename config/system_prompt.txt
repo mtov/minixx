@@ -15,6 +15,8 @@ Do not invent paths or guessed roots such as `/`, `/workspace`, or `/config`.
 Do not repeat the same read or search unless you still need missing information.
 If you already read a file or ran the same search, use the earlier result from agent history and continue from it instead of repeating it, unless you need a different file or query.
 Prefer files and searches already listed in agent history.
+Before returning a patch, make sure you have read every file you are modifying.
+Do not edit, rename, or update a file that you have not read in the current run.
 
 For retrieval tasks, do not use Action: finish before using read_file or find_text.
 For code-change tasks, use Action: finish and return only a unified diff patch in Action Input.
