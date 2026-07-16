@@ -3,29 +3,29 @@ from __future__ import annotations
 from math import floor
 from pathlib import Path
 
-from .context import AgentContext, AgentResponse
+from .context import AgentAction, AgentContext
 from .protocol import looks_like_patch
 from .traces import get_total_tokens
 
 
-def format_iteration_action(agent_response: AgentResponse) -> str:
-    if agent_response.action == "list_files":
-        path = agent_response.action_input.strip() or "."
-        return f"{agent_response.action} {path}"
+def format_iteration_action(action: AgentAction) -> str:
+    if action.tool == "list_files":
+        path = action.tool_args.strip() or "."
+        return f"{action.tool} {path}"
 
-    if agent_response.action == "read_file":
-        return f"{agent_response.action} {Path(agent_response.action_input).name}"
+    if action.tool == "read_file":
+        return f"{action.tool} {Path(action.tool_args).name}"
 
-    if agent_response.action == "find_text":
-        query = agent_response.action_input.split("|", maxsplit=1)[0].strip()
+    if action.tool == "find_text":
+        query = action.tool_args.split("|", maxsplit=1)[0].strip()
         if query:
-            return f'{agent_response.action} "{query}"'
+            return f'{action.tool} "{query}"'
 
-    return agent_response.action
+    return action.tool
 
 
-def print_iteration_action(iteration: int, agent_response: AgentResponse) -> None:
-    print(f"[{iteration}] {format_iteration_action(agent_response)}", flush=True)
+def print_iteration_action(iteration: int, action: AgentAction) -> None:
+    print(f"[{iteration}] {format_iteration_action(action)}", flush=True)
 
 
 def print_total_tokens() -> None:

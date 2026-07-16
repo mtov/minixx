@@ -12,9 +12,9 @@ from minixx.cli_output import (
 )
 from minixx.context import (
     MAX_ITERATIONS_REACHED_MESSAGE,
+    AgentAction,
     AgentContext,
     AgentHistory,
-    AgentResponse,
     FinishResult,
     ModelConfig,
 )
@@ -118,24 +118,24 @@ def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
     context = build_context()
     responses = iter(
         [
-            AgentResponse(thought="need more context", action="finish", action_input="I am done."),
-            AgentResponse(
+            AgentAction(thought="need more context", tool="finish", tool_args="I am done."),
+            AgentAction(
                 thought="done",
-                action="finish",
-                action_input="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
+                tool="finish",
+                tool_args="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
             ),
         ]
     )
     seen_histories: list[str] = []
 
-    def fake_get_agent_response(_context: AgentContext, history: AgentHistory) -> AgentResponse:
+    def fake_get_next_agent_action(_context: AgentContext, history: AgentHistory) -> AgentAction:
         seen_histories.append(history.to_text())
         return next(responses)
 
-    monkeypatch.setattr("minixx.agentic_loop.get_agent_response", fake_get_agent_response)
+    monkeypatch.setattr("minixx.agentic_loop.get_next_agent_action", fake_get_next_agent_action)
     monkeypatch.setattr(
         "minixx.agentic_loop.handle_finish",
-        lambda _context, response: FinishResult(status="applied", agent_response=response),
+        lambda _context, action: FinishResult(status="applied", action=action),
     )
 
     result = agentic_loop(context)
@@ -154,15 +154,15 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
     context = build_context()
     responses = iter(
         [
-            AgentResponse(
+            AgentAction(
                 thought="first try",
-                action="finish",
-                action_input="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+attempt1\n",
+                tool="finish",
+                tool_args="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+attempt1\n",
             ),
-            AgentResponse(
+            AgentAction(
                 thought="second try",
-                action="finish",
-                action_input="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+attempt2\n",
+                tool="finish",
+                tool_args="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+attempt2\n",
             ),
         ]
     )
@@ -170,30 +170,30 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
     reset_calls: list[Path] = []
     finish_attempts = 0
 
-    def fake_get_agent_response(_context: AgentContext, history: AgentHistory) -> AgentResponse:
+    def fake_get_next_agent_action(_context: AgentContext, history: AgentHistory) -> AgentAction:
         seen_histories.append(history.to_text())
         return next(responses)
 
-    def fake_handle_finish(_context: AgentContext, response: AgentResponse) -> AgentResponse:
+    def fake_handle_finish(_context: AgentContext, action: AgentAction) -> FinishResult:
         nonlocal finish_attempts
         finish_attempts += 1
         if finish_attempts == 1:
             return FinishResult(
                 status="post_apply_tests_failed",
-                agent_response=response,
+                action=action,
                 test_output="..F\nassert 1 == 2",
             )
-        return FinishResult(status="applied", agent_response=response)
+        return FinishResult(status="applied", action=action)
 
     def fake_reset_runtime_workspace(runtime_context: AgentContext) -> None:
         reset_calls.append(runtime_context.source_workspace_path)
         runtime_context.workspace_path = Path("/tmp/reset-runtime")
         runtime_context.post_apply_tests_passed = False
 
-    monkeypatch.setattr("minixx.agentic_loop.get_agent_response", fake_get_agent_response)
+    monkeypatch.setattr("minixx.agentic_loop.get_next_agent_action", fake_get_next_agent_action)
     monkeypatch.setattr("minixx.agentic_loop.handle_finish", fake_handle_finish)
     monkeypatch.setattr("minixx.agentic_loop.reset_runtime_workspace", fake_reset_runtime_workspace)
-    monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _response, _context: "file contents")
+    monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _action, _context: "file contents")
 
     result = agentic_loop(context)
     captured = capsys.readouterr()
@@ -243,14 +243,14 @@ def test_agentic_loop_returns_error_result_when_max_iterations_reached(monkeypat
     context = build_context()
 
     monkeypatch.setattr(
-        "minixx.agentic_loop.get_agent_response",
-        lambda _context, _history: AgentResponse(
+        "minixx.agentic_loop.get_next_agent_action",
+        lambda _context, _history: AgentAction(
             thought="still exploring",
-            action="list_files",
-            action_input=".",
+            tool="list_files",
+            tool_args=".",
         ),
     )
-    monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _response, _context: "src\ntests")
+    monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _action, _context: "src\ntests")
 
     result = agentic_loop(context)
 

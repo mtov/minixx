@@ -41,16 +41,16 @@ class AgentContext:
 
 
 @dataclass
-class AgentResponse:
+class AgentAction:
     thought: str
-    action: str
-    action_input: str
+    tool: str
+    tool_args: str
 
 
 @dataclass
 class FinishResult:
     status: str
-    agent_response: AgentResponse
+    action: AgentAction
     test_output: str | None = None
 
 
@@ -78,22 +78,22 @@ class LoopResult:
 
 @dataclass
 class AgentHistory:
-    entries: list[tuple[int, AgentResponse, str]] = field(default_factory=list)
+    entries: list[tuple[int, AgentAction, str]] = field(default_factory=list)
 
-    def append(self, iteration: int, agent_response: AgentResponse, tool_result: str) -> None:
-        self.entries.append((iteration, agent_response, tool_result))
+    def append(self, iteration: int, action: AgentAction, tool_result: str) -> None:
+        self.entries.append((iteration, action, tool_result))
 
-    def contains_action(self, action: str) -> bool:
-        return any(agent_response.action == action for _, agent_response, _ in self.entries)
+    def contains_tool(self, tool: str) -> bool:
+        return any(action.tool == tool for _, action, _ in self.entries)
 
-    def _unique_action_inputs(self, action: str) -> list[str]:
+    def _unique_tool_args(self, tool: str) -> list[str]:
         seen: set[str] = set()
         items: list[str] = []
 
-        for _, agent_response, _ in self.entries:
-            if agent_response.action != action:
+        for _, action, _ in self.entries:
+            if action.tool != tool:
                 continue
-            value = agent_response.action_input.strip()
+            value = action.tool_args.strip()
             if not value or value in seen:
                 continue
             seen.add(value)
@@ -106,8 +106,8 @@ class AgentHistory:
             return "No previous steps."
 
         sections: list[str] = []
-        read_files = self._unique_action_inputs("read_file")
-        find_queries = self._unique_action_inputs("find_text")
+        read_files = self._unique_tool_args("read_file")
+        find_queries = self._unique_tool_args("find_text")
 
         if read_files:
             sections.append(
@@ -119,18 +119,18 @@ class AgentHistory:
                 "Searches already run:\n"
                 + "\n".join(f"- {query}" for query in find_queries)
             )
-        if self.contains_action("run_tests"):
+        if self.contains_tool("run_tests"):
             sections.append("Tests already run: yes")
 
         formatted_entries = []
-        for iteration, agent_response, tool_result in self.entries[-MAX_HISTORY_ENTRIES:]:
+        for iteration, action, tool_result in self.entries[-MAX_HISTORY_ENTRIES:]:
             observation = tool_result.strip()
             if len(observation) > MAX_OBSERVATION_CHARS:
                 observation = f"{observation[:MAX_OBSERVATION_CHARS].rstrip()}..."
             formatted_entries.append(
                 f"Iteration {iteration}\n"
-                f"Action: {agent_response.action}\n"
-                f"Action Input: {agent_response.action_input}\n"
+                f"Tool: {action.tool}\n"
+                f"Tool Args: {action.tool_args}\n"
                 f"Observation: {observation}\n"
             )
         sections.append("Recent steps:\n" + "\n".join(formatted_entries))

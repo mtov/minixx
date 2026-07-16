@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from minixx.context import (
+    AgentAction,
     AgentHistory,
-    AgentResponse,
     MAX_HISTORY_ENTRIES,
     MAX_OBSERVATION_CHARS,
 )
@@ -14,7 +14,7 @@ def test_agent_history_to_text_omits_thought_and_limits_entries() -> None:
     for iteration in range(1, MAX_HISTORY_ENTRIES + 3):
         history.append(
             iteration,
-            AgentResponse(thought=f"thought {iteration}", action="read_file", action_input=f"file_{iteration}.py"),
+            AgentAction(thought=f"thought {iteration}", tool="read_file", tool_args=f"file_{iteration}.py"),
             f"contents {iteration}",
         )
 
@@ -32,7 +32,7 @@ def test_agent_history_to_text_truncates_long_observations() -> None:
     long_observation = "x" * (MAX_OBSERVATION_CHARS + 50)
     history.append(
         1,
-        AgentResponse(thought="inspect", action="read_file", action_input="demo.py"),
+        AgentAction(thought="inspect", tool="read_file", tool_args="demo.py"),
         long_observation,
     )
 
@@ -45,10 +45,10 @@ def test_agent_history_to_text_truncates_long_observations() -> None:
 
 def test_agent_history_to_text_summarizes_unique_reads_and_searches() -> None:
     history = AgentHistory()
-    history.append(1, AgentResponse(thought="inspect", action="read_file", action_input="src/a.py"), "a")
-    history.append(2, AgentResponse(thought="repeat", action="read_file", action_input="src/a.py"), "a")
-    history.append(3, AgentResponse(thought="search", action="find_text", action_input="coupon | src"), "match")
-    history.append(4, AgentResponse(thought="test", action="run_tests", action_input=""), "passed")
+    history.append(1, AgentAction(thought="inspect", tool="read_file", tool_args="src/a.py"), "a")
+    history.append(2, AgentAction(thought="repeat", tool="read_file", tool_args="src/a.py"), "a")
+    history.append(3, AgentAction(thought="search", tool="find_text", tool_args="coupon | src"), "match")
+    history.append(4, AgentAction(thought="test", tool="run_tests", tool_args=""), "passed")
 
     text = history.to_text()
 
@@ -58,9 +58,9 @@ def test_agent_history_to_text_summarizes_unique_reads_and_searches() -> None:
     assert "Tests already run: yes" in text
 
 
-def test_agent_history_contains_action_uses_structured_entries() -> None:
+def test_agent_history_contains_tool_uses_structured_entries() -> None:
     history = AgentHistory()
-    history.append(1, AgentResponse(thought="inspect", action="find_text", action_input="needle | ."), "match")
+    history.append(1, AgentAction(thought="inspect", tool="find_text", tool_args="needle | ."), "match")
 
-    assert history.contains_action("find_text") is True
-    assert history.contains_action("run_tests") is False
+    assert history.contains_tool("find_text") is True
+    assert history.contains_tool("run_tests") is False
