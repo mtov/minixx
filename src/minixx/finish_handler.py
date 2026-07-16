@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .context import AgentAction, AgentContext, FinishResult
+from .context import AgentContext, FinishResult, ToolRequest
 from .patches import apply_patch, save_patch, validate_and_repair_patch
 from .protocol import looks_like_patch
 from .traces import trace_finish_event
@@ -16,10 +16,10 @@ def _trace_and_raise(stage: str, exc: Exception) -> None:
 
 def handle_finish(
     context: AgentContext,
-    action: AgentAction,
+    tool_request: ToolRequest,
 ) -> FinishResult:
     workspace_path = context.workspace_path
-    patch_text = action.tool_args
+    patch_text = tool_request.args
 
     if not looks_like_patch(patch_text):
         trace_finish_event(
@@ -31,7 +31,7 @@ def handle_finish(
 
     try:
         patch_text = validate_and_repair_patch(workspace_path, patch_text)
-        action.tool_args = patch_text
+        tool_request.args = patch_text
     except Exception as exc:  # noqa: BLE001
         _trace_and_raise("patch_validation", exc)
 
@@ -50,10 +50,10 @@ def handle_finish(
         trace_finish_event("failed", "post_apply_tests", test_output)
         return FinishResult(
             status="post_apply_tests_failed",
-            action=action,
+            request=tool_request,
             test_output=test_output,
         )
 
     context.post_apply_tests_passed = True
     trace_finish_event("completed", "finish")
-    return FinishResult(status="applied", action=action)
+    return FinishResult(status="applied", request=tool_request)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from .context import AgentAction, AgentContext
+from .context import AgentContext, ToolRequest
 from .models import call_model
 from .traces import trace_repair_attempt
 
@@ -16,7 +16,7 @@ REPAIR_PROMPT = (
 )
 HUNK_HEADER_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@")
 
-def parse_response(text: str) -> AgentAction:
+def parse_response(text: str) -> ToolRequest:
     thought = ""
     action = ""
     action_input_lines: list[str] = []
@@ -41,7 +41,7 @@ def parse_response(text: str) -> AgentAction:
         raise ValueError("Model response is missing the required Action field.")
 
     action_input = "\n".join(action_input_lines).strip()
-    return AgentAction(thought=thought, tool=action, tool_args=action_input)
+    return ToolRequest(thought=thought, name=action, args=action_input)
 
 
 def looks_like_patch(text: str) -> bool:
@@ -52,7 +52,7 @@ def looks_like_patch(text: str) -> bool:
     return has_file_headers and has_valid_hunk_header
 
 
-def repair_response(context: AgentContext, user_message: str, reason: str) -> AgentAction:
+def repair_response(context: AgentContext, user_message: str, reason: str) -> ToolRequest:
     trace_repair_attempt("Protocol repair", reason)
     repair_message = f"{user_message}\n\n{REPAIR_PROMPT}"
     response = call_model(context, repair_message, "Repair Response")

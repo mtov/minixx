@@ -10,7 +10,7 @@ from .cli_output import (
     print_iteration_action,
     print_total_tokens,
 )
-from .context import AgentAction, AgentContext, AgentHistory, LoopResult
+from .context import AgentContext, AgentHistory, LoopResult, ToolRequest
 from .finish_handler import handle_finish
 from .inputs import parse_args, prepare_run, reset_runtime_workspace
 from .models import call_model
@@ -25,7 +25,7 @@ INVALID_FINISH_MESSAGE = (
 )
 MAX_ITERATIONS = 15
 
-def get_next_agent_action(context: AgentContext, history: AgentHistory) -> AgentAction:
+def get_next_tool_request(context: AgentContext, history: AgentHistory) -> ToolRequest:
     user_message = (
         "User task:\n"
         f"{context.user_prompt}\n\n"
@@ -45,14 +45,14 @@ def handle_post_apply_test_failure(
     context: AgentContext,
     history: AgentHistory,
     iteration: int,
-    action: AgentAction,
+    tool_request: ToolRequest,
     test_output: str | None,
 ) -> None:
-    print_iteration_action(iteration, action)
+    print_iteration_action(iteration, tool_request)
     reset_runtime_workspace(context)
     history.append(
         iteration,
-        action,
+        tool_request,
         summarize_test_failure_output(test_output or ""),
     )
 
@@ -61,50 +61,45 @@ def handle_finish_action(
     context: AgentContext,
     history: AgentHistory,
     iteration: int,
-    action: AgentAction,
+    tool_request: ToolRequest,
 ) -> str | None:
-    if not looks_like_patch(action.tool_args):
-        print_iteration_action(iteration, action)
-        history.append(iteration, action, INVALID_FINISH_MESSAGE)
+    if not looks_like_patch(tool_request.args):
+        print_iteration_action(iteration, tool_request)
+        history.append(iteration, tool_request, INVALID_FINISH_MESSAGE)
         return None
 
-    finish_result = handle_finish(context, action)
+    finish_result = handle_finish(context, tool_request)
     if finish_result.status == "post_apply_tests_failed":
         handle_post_apply_test_failure(
             context,
             history,
             iteration,
-            action,
+            tool_request,
             finish_result.test_output,
         )
         return None
 
-    action = finish_result.action
-    print_iteration_action(iteration, action)
-    return action.tool_args
+    tool_request = finish_result.request
+    print_iteration_action(iteration, tool_request)
+    return tool_request.args
 
 
 def agentic_loop(context: AgentContext) -> LoopResult:
     history = AgentHistory()
 
     for iteration in range(1, MAX_ITERATIONS + 1):
-        action = get_next_agent_action(context, history)
+        tool_request = get_next_tool_request(context, history)
 
-        if action.tool == "finish":
-            finish_output = handle_finish_action(
-                context,
-                history,
-                iteration,
-                action,
-            )
+        if tool_request.name == "finish":
+            finish_output = handle_finish_action(context, history, iteration, tool_request)
             if finish_output is None:
                 continue
             return LoopResult.success(finish_output)
 
-        print_iteration_action(iteration, action)
+        print_iteration_action(iteration, tool_request)
 
-        tool_result = run_tool(action, context)
-        history.append(iteration, action, tool_result)
+        tool_result = run_tool(tool_request, context)
+        history.append(iteration, tool_request, tool_result)
 
     return LoopResult.max_iterations_reached()
 

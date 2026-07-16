@@ -41,16 +41,16 @@ class AgentContext:
 
 
 @dataclass
-class AgentAction:
+class ToolRequest:
     thought: str
-    tool: str
-    tool_args: str
+    name: str
+    args: str
 
 
 @dataclass
 class FinishResult:
     status: str
-    action: AgentAction
+    request: ToolRequest
     test_output: str | None = None
 
 
@@ -78,22 +78,22 @@ class LoopResult:
 
 @dataclass
 class AgentHistory:
-    entries: list[tuple[int, AgentAction, str]] = field(default_factory=list)
+    entries: list[tuple[int, ToolRequest, str]] = field(default_factory=list)
 
-    def append(self, iteration: int, action: AgentAction, tool_result: str) -> None:
-        self.entries.append((iteration, action, tool_result))
+    def append(self, iteration: int, request: ToolRequest, tool_result: str) -> None:
+        self.entries.append((iteration, request, tool_result))
 
-    def contains_tool(self, tool: str) -> bool:
-        return any(action.tool == tool for _, action, _ in self.entries)
+    def contains_tool(self, name: str) -> bool:
+        return any(request.name == name for _, request, _ in self.entries)
 
-    def _unique_tool_args(self, tool: str) -> list[str]:
+    def _unique_tool_args(self, name: str) -> list[str]:
         seen: set[str] = set()
         items: list[str] = []
 
-        for _, action, _ in self.entries:
-            if action.tool != tool:
+        for _, request, _ in self.entries:
+            if request.name != name:
                 continue
-            value = action.tool_args.strip()
+            value = request.args.strip()
             if not value or value in seen:
                 continue
             seen.add(value)
@@ -123,14 +123,14 @@ class AgentHistory:
             sections.append("Tests already run: yes")
 
         formatted_entries = []
-        for iteration, action, tool_result in self.entries[-MAX_HISTORY_ENTRIES:]:
+        for iteration, request, tool_result in self.entries[-MAX_HISTORY_ENTRIES:]:
             observation = tool_result.strip()
             if len(observation) > MAX_OBSERVATION_CHARS:
                 observation = f"{observation[:MAX_OBSERVATION_CHARS].rstrip()}..."
             formatted_entries.append(
                 f"Iteration {iteration}\n"
-                f"Tool: {action.tool}\n"
-                f"Tool Args: {action.tool_args}\n"
+                f"Tool: {request.name}\n"
+                f"Tool Args: {request.args}\n"
                 f"Observation: {observation}\n"
             )
         sections.append("Recent steps:\n" + "\n".join(formatted_entries))
