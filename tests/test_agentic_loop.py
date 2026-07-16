@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from minixx.agentic_loop import INVALID_FINISH_MESSAGE, MAX_ITERATIONS_REACHED_MESSAGE, agentic_loop
+from minixx.agentic_loop import INVALID_FINISH_MESSAGE, agentic_loop
 from minixx.cli_output import (
     format_elapsed_time,
     format_failure_message,
@@ -10,7 +10,14 @@ from minixx.cli_output import (
     print_elapsed_time,
     print_final_result,
 )
-from minixx.context import AgentContext, AgentHistory, AgentResponse, FinishResult, ModelConfig
+from minixx.context import (
+    MAX_ITERATIONS_REACHED_MESSAGE,
+    AgentContext,
+    AgentHistory,
+    AgentResponse,
+    FinishResult,
+    ModelConfig,
+)
 from minixx.test_failures import summarize_test_failure_output
 
 
@@ -186,7 +193,7 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
     monkeypatch.setattr("minixx.agentic_loop.get_agent_response", fake_get_agent_response)
     monkeypatch.setattr("minixx.agentic_loop.handle_finish", fake_handle_finish)
     monkeypatch.setattr("minixx.agentic_loop.reset_runtime_workspace", fake_reset_runtime_workspace)
-    monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _response, _workspace: "file contents")
+    monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _response, _context: "file contents")
 
     result = agentic_loop(context)
     captured = capsys.readouterr()
@@ -243,7 +250,7 @@ def test_agentic_loop_returns_error_result_when_max_iterations_reached(monkeypat
             action_input=".",
         ),
     )
-    monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _response, _workspace: "src\ntests")
+    monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _response, _context: "src\ntests")
 
     result = agentic_loop(context)
 

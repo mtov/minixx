@@ -209,14 +209,11 @@ sequenceDiagram
     participant AgentLoop as AgenticLoop
     participant Model as LLM
 
-    AgentLoop->>Workspace: prepare workspace copy
-    AgentLoop->>Workspace: read prompt and files
     AgentLoop->>Model: request next action
     Model-->>AgentLoop: Thought / Action / Action Input
     AgentLoop->>Workspace: run tool
     Workspace-->>AgentLoop: tool result
     AgentLoop->>Workspace: save and apply patch on finish
-    Workspace-->>AgentLoop: run post-apply tests
 ```
 
 ## Architecture

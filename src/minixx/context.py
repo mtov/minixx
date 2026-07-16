@@ -5,6 +5,7 @@ from pathlib import Path
 
 MAX_HISTORY_ENTRIES = 4
 MAX_OBSERVATION_CHARS = 1200
+MAX_ITERATIONS_REACHED_MESSAGE = "Agent stopped after reaching the maximum number of steps."
 
 
 @dataclass
@@ -58,6 +59,21 @@ class LoopResult:
     status: str
     output: str | None = None
     error: str | None = None
+
+    @classmethod
+    def success(cls, output: str) -> LoopResult:
+        return cls(status="success", output=output)
+
+    @classmethod
+    def error(cls, message: str, *, status: str = "error") -> LoopResult:
+        return cls(status=status, error=message)
+
+    @classmethod
+    def max_iterations_reached(cls) -> LoopResult:
+        return cls(
+            status="max_iterations_reached",
+            error=MAX_ITERATIONS_REACHED_MESSAGE,
+        )
 
 
 @dataclass

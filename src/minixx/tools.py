@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .context import AgentResponse
+from .context import AgentContext, AgentResponse
 from .guards import resolve_tool_path
 
 MAX_FIND_TEXT_MATCHES = 20
@@ -147,7 +147,9 @@ def run_tests(workspace_path: Path) -> str:
     return output
 
 
-def run_tool(agent_response: AgentResponse, workspace_path: Path) -> str:
+def run_tool(agent_response: AgentResponse, context: AgentContext) -> str:
+    workspace_path = context.workspace_path
+
     if agent_response.action == "list_files":
         return list_files(agent_response.action_input, workspace_path)
     if agent_response.action == "read_file":
