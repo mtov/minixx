@@ -63,3 +63,38 @@ cwd: /Users/mtov/minixx/minixx-workspace
 status: completed
 stage: finish
 
+[command]
+status: proposed
+command: git status
+cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-29/test_run_mutating_command_requ0
+
+[command]
+status: rejected
+command: git status
+cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-29/test_run_mutating_command_requ0
+
+[command]
+status: proposed
+command: git status
+cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-29/test_run_mutating_command_exec0
+
+[command]
+status: approved
+command: git status
+cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-29/test_run_mutating_command_exec0
+
+[command]
+status: executed
+command: git status
+cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-29/test_run_mutating_command_exec0
+
+[command]
+status: proposed
+command: git apply patch.txt
+cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-29/test_run_mutating_command_prin0
+
+[command]
+status: rejected
+command: git apply patch.txt
+cwd: /private/var/folders/2x/ffl8yc4s0tz1nlpsz7zyvntc0000gn/T/pytest-of-mtov/pytest-29/test_run_mutating_command_prin0
+

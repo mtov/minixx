@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from minixx.context import (
-    AgentHistory,
-    ToolRequest,
     MAX_HISTORY_ENTRIES,
     MAX_OBSERVATION_CHARS,
+    AgentHistory,
+    ToolRequest,
 )
 
 

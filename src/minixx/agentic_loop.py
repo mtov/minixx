@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 from time import perf_counter
 
 from .cli_output import (
-    print_elapsed_time,
     format_failure_message,
+    print_elapsed_time,
     print_final_result,
     print_iteration_action,
     print_total_tokens,
@@ -16,8 +15,8 @@ from .inputs import parse_args, prepare_run, reset_runtime_workspace
 from .models import call_model
 from .protocol import looks_like_patch, parse_response, repair_response
 from .test_failures import summarize_test_failure_output
-from .traces import trace_validation_error
 from .tools import run_tool
+from .traces import trace_validation_error
 
 INVALID_FINISH_MESSAGE = (
     "Finish output must contain only a unified diff patch. "

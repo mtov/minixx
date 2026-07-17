@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from minixx.context import TokenUsage
 from minixx import traces
+from minixx.context import TokenUsage
 
 
 def test_trace_response_records_responses_and_cumulative_total(
