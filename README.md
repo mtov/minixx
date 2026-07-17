@@ -96,7 +96,7 @@ Example `prompt.txt`:
 
 ```text
 Fix the date-range bug without changing the intended inclusive behavior.
-Run: `python -m pytest -q`.
+Validate the result with the available test action before finishing.
 ```
 
 In practice, the current example workspaces also follow this layout:
@@ -220,7 +220,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[Agent Loop] --> B[Config and Memory]
+    A[Agent Loop and Memory] --> B[Setup and Config]
     A --> C[Model Protocol]
     A --> D[Tools]
     A --> E[Patch]
@@ -229,9 +229,9 @@ flowchart LR
 
 The codebase is intentionally small and can be read as six main modules:
 
-- `Agent Loop`
-  - `src/minixx/agentic_loop.py`: runs the main ReAct-style loop and owns loop-local runtime structures such as `Memory` and `LoopResult`
-- `Config and Memory`
+- `Agent Loop and Memory`
+  - `src/minixx/agentic_loop.py`: runs the main ReAct-style loop and owns loop-local runtime structures such as `Memory`, `MemoryEntry`, and `LoopResult`
+- `Setup and Config`
   - `src/minixx/inputs.py`: loads config and prompts, resolves the source workspace, prepares `minixx-workspace`, and defines `AgentConfig`
 - `Model Protocol`
   - `src/minixx/models.py`: defines model request and response dataclasses and sends requests to the configured model backend
@@ -268,7 +268,7 @@ Available actions:
 Behavior notes:
 
 - `read_file` shows the filename directly in the iteration line, such as `[3] read_file checkout.py`
-- `find_text` expects `search text | /path/to/directory`
+- `find_text` expects `search text | relative/or-known/workspace/path`
 - `find_text` shows the searched string in the iteration line, such as `[4] find_text "coupon"`
 - `run_tests` uses a fixed `pytest` command instead of an arbitrary shell command
 - `finish` must return a unified diff patch in `Action Input`
