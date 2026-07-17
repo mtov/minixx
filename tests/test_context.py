@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from minixx.context import (
+    Memory,
     MAX_HISTORY_ENTRIES,
     MAX_OBSERVATION_CHARS,
-    AgentHistory,
     ToolRequest,
 )
 
 
 def test_agent_history_to_text_omits_thought_and_limits_entries() -> None:
-    history = AgentHistory()
+    history = Memory()
 
     for iteration in range(1, MAX_HISTORY_ENTRIES + 3):
         history.append(
@@ -28,7 +28,7 @@ def test_agent_history_to_text_omits_thought_and_limits_entries() -> None:
 
 
 def test_agent_history_to_text_truncates_long_observations() -> None:
-    history = AgentHistory()
+    history = Memory()
     long_observation = "x" * (MAX_OBSERVATION_CHARS + 50)
     history.append(
         1,
@@ -44,7 +44,7 @@ def test_agent_history_to_text_truncates_long_observations() -> None:
 
 
 def test_agent_history_to_text_summarizes_unique_reads_and_searches() -> None:
-    history = AgentHistory()
+    history = Memory()
     history.append(1, ToolRequest(thought="inspect", name="read_file", args="src/a.py"), "a")
     history.append(2, ToolRequest(thought="repeat", name="read_file", args="src/a.py"), "a")
     history.append(3, ToolRequest(thought="search", name="find_text", args="coupon | src"), "match")
@@ -59,7 +59,7 @@ def test_agent_history_to_text_summarizes_unique_reads_and_searches() -> None:
 
 
 def test_agent_history_contains_tool_uses_structured_entries() -> None:
-    history = AgentHistory()
+    history = Memory()
     history.append(1, ToolRequest(thought="inspect", name="find_text", args="needle | ."), "match")
 
     assert history.contains_tool("find_text") is True

@@ -9,7 +9,7 @@ from .cli_output import (
     print_iteration_action,
     print_total_tokens,
 )
-from .context import AgentContext, AgentHistory, LoopResult, ToolRequest
+from .context import AgentConfig, LoopResult, Memory, ToolRequest
 from .finish_handler import handle_finish
 from .inputs import parse_args, prepare_run, reset_runtime_workspace
 from .models import call_model
@@ -24,32 +24,32 @@ INVALID_FINISH_MESSAGE = (
 )
 MAX_ITERATIONS = 15
 
-def get_next_tool_request(context: AgentContext, history: AgentHistory) -> ToolRequest:
+def get_next_tool_request(config: AgentConfig, memory: Memory) -> ToolRequest:
     user_message = (
         "User task:\n"
-        f"{context.user_prompt}\n\n"
+        f"{config.user_prompt}\n\n"
         "Agent history:\n"
-        f"{history.to_text()}"
+        f"{memory.to_text()}"
     )
-    model_response = call_model(context, user_message)
+    model_response = call_model(config, user_message)
 
     try:
         return parse_response(model_response.content)
     except ValueError as exc:
         trace_validation_error(str(exc), model_response.content)
-        return repair_response(context, user_message, str(exc))
+        return repair_response(config, user_message, str(exc))
 
 
 def handle_post_apply_test_failure(
-    context: AgentContext,
-    history: AgentHistory,
+    config: AgentConfig,
+    memory: Memory,
     iteration: int,
     tool_request: ToolRequest,
     test_output: str | None,
 ) -> None:
     print_iteration_action(iteration, tool_request)
-    reset_runtime_workspace(context)
-    history.append(
+    reset_runtime_workspace(config)
+    memory.append(
         iteration,
         tool_request,
         summarize_test_failure_output(test_output or ""),
@@ -57,21 +57,21 @@ def handle_post_apply_test_failure(
 
 
 def handle_finish_action(
-    context: AgentContext,
-    history: AgentHistory,
+    config: AgentConfig,
+    memory: Memory,
     iteration: int,
     tool_request: ToolRequest,
 ) -> str | None:
     if not looks_like_patch(tool_request.args):
         print_iteration_action(iteration, tool_request)
-        history.append(iteration, tool_request, INVALID_FINISH_MESSAGE)
+        memory.append(iteration, tool_request, INVALID_FINISH_MESSAGE)
         return None
 
-    finish_result = handle_finish(context, tool_request)
+    finish_result = handle_finish(config, tool_request)
     if finish_result.status == "post_apply_tests_failed":
         handle_post_apply_test_failure(
-            context,
-            history,
+            config,
+            memory,
             iteration,
             tool_request,
             finish_result.test_output,
@@ -83,22 +83,22 @@ def handle_finish_action(
     return tool_request.args
 
 
-def agentic_loop(context: AgentContext) -> LoopResult:
-    history = AgentHistory()
+def agentic_loop(config: AgentConfig) -> LoopResult:
+    memory = Memory()
 
     for iteration in range(1, MAX_ITERATIONS + 1):
-        tool_request = get_next_tool_request(context, history)
+        tool_request = get_next_tool_request(config, memory)
 
         if tool_request.name == "finish":
-            finish_output = handle_finish_action(context, history, iteration, tool_request)
+            finish_output = handle_finish_action(config, memory, iteration, tool_request)
             if finish_output is None:
                 continue
             return LoopResult.success(finish_output)
 
         print_iteration_action(iteration, tool_request)
 
-        tool_result = run_tool(tool_request, context)
-        history.append(iteration, tool_request, tool_result)
+        tool_result = run_tool(tool_request, config)
+        memory.append(iteration, tool_request, tool_result)
 
     return LoopResult.max_iterations_reached()
 
@@ -108,8 +108,8 @@ def main() -> int:
     start_time = perf_counter()
 
     try:
-        context = prepare_run(args.workspace_path)
-        loop_result = agentic_loop(context)
+        config = prepare_run(args.workspace_path)
+        loop_result = agentic_loop(config)
     except Exception as exc:  # noqa: BLE001
         print_total_tokens()
         print_elapsed_time(perf_counter() - start_time)
@@ -124,5 +124,5 @@ def main() -> int:
 
     print_total_tokens()
     print_elapsed_time(perf_counter() - start_time)
-    print_final_result(context, loop_result.output or "")
+    print_final_result(config, loop_result.output or "")
     return 0

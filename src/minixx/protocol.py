@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from .context import AgentContext, ToolRequest
+from .context import AgentConfig, ToolRequest
 from .models import call_model
 from .traces import trace_repair_attempt
 
@@ -52,8 +52,8 @@ def looks_like_patch(text: str) -> bool:
     return has_file_headers and has_valid_hunk_header
 
 
-def repair_response(context: AgentContext, user_message: str, reason: str) -> ToolRequest:
+def repair_response(config: AgentConfig, user_message: str, reason: str) -> ToolRequest:
     trace_repair_attempt("Protocol repair", reason)
     repair_message = f"{user_message}\n\n{REPAIR_PROMPT}"
-    response = call_model(context, repair_message, "Repair Response")
+    response = call_model(config, repair_message, "Repair Response")
     return parse_response(response.content)

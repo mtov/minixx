@@ -31,7 +31,7 @@ class ModelResponse:
 
 
 @dataclass
-class AgentContext:
+class AgentConfig:
     model_config: ModelConfig
     system_prompt: str
     user_prompt: str
@@ -77,7 +77,7 @@ class LoopResult:
 
 
 @dataclass
-class AgentHistory:
+class Memory:
     entries: list[tuple[int, ToolRequest, str]] = field(default_factory=list)
 
     def append(self, iteration: int, request: ToolRequest, tool_result: str) -> None:

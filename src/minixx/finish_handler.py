@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .context import AgentContext, FinishResult, ToolRequest
+from .context import AgentConfig, FinishResult, ToolRequest
 from .patches import apply_patch, save_patch, validate_and_repair_patch
 from .protocol import looks_like_patch
 from .traces import trace_finish_event
@@ -15,10 +15,10 @@ def _trace_and_raise(stage: str, exc: Exception) -> None:
 
 
 def handle_finish(
-    context: AgentContext,
+    config: AgentConfig,
     tool_request: ToolRequest,
 ) -> FinishResult:
-    workspace_path = context.workspace_path
+    workspace_path = config.workspace_path
     patch_text = tool_request.args
 
     if not looks_like_patch(patch_text):
@@ -54,6 +54,6 @@ def handle_finish(
             test_output=test_output,
         )
 
-    context.post_apply_tests_passed = True
+    config.post_apply_tests_passed = True
     trace_finish_event("completed", "finish")
     return FinishResult(status="applied", request=tool_request)

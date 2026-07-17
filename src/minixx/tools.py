@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .context import AgentContext, ToolRequest
+from .context import AgentConfig, ToolRequest
 from .guards import resolve_tool_path
 
 MAX_FIND_TEXT_MATCHES = 20
@@ -147,8 +147,8 @@ def run_tests(workspace_path: Path) -> str:
     return output
 
 
-def run_tool(request: ToolRequest, context: AgentContext) -> str:
-    workspace_path = context.workspace_path
+def run_tool(request: ToolRequest, config: AgentConfig) -> str:
+    workspace_path = config.workspace_path
 
     if request.name == "list_files":
         return list_files(request.args, workspace_path)

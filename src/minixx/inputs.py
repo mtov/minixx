@@ -5,7 +5,7 @@ import json
 import shutil
 from pathlib import Path
 
-from .context import AgentContext, ModelConfig
+from .context import AgentConfig, ModelConfig
 from .traces import clear_trace, trace_request
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -104,9 +104,9 @@ def prepare_runtime_workspace(source_workspace_path: Path) -> Path:
     return RUNTIME_WORKSPACE_PATH
 
 
-def reset_runtime_workspace(context: AgentContext) -> None:
-    context.workspace_path = prepare_runtime_workspace(context.source_workspace_path)
-    context.post_apply_tests_passed = False
+def reset_runtime_workspace(config: AgentConfig) -> None:
+    config.workspace_path = prepare_runtime_workspace(config.source_workspace_path)
+    config.post_apply_tests_passed = False
 
 
 def load_user_prompt(workspace_path: Path) -> str:
@@ -131,7 +131,7 @@ def print_user_prompt(user_prompt: str) -> None:
     print(user_prompt)
 
 
-def prepare_run(workspace_path_arg: str) -> AgentContext:
+def prepare_run(workspace_path_arg: str) -> AgentConfig:
     clear_trace()
     source_workspace_path = resolve_workspace_path(workspace_path_arg)
     workspace_path = prepare_runtime_workspace(source_workspace_path)
@@ -154,7 +154,7 @@ def prepare_run(workspace_path_arg: str) -> AgentContext:
     user_prompt = load_user_prompt(workspace_path)
     print_user_prompt(user_prompt)
     trace_request(user_prompt)
-    return AgentContext(
+    return AgentConfig(
         model_config=model_config,
         system_prompt=system_prompt,
         user_prompt=user_prompt,

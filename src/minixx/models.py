@@ -3,7 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 import os
 
-from .context import AgentContext, ModelResponse, TokenUsage
+from .context import AgentConfig, ModelResponse, TokenUsage
 from .traces import trace_response
 
 
@@ -82,8 +82,8 @@ def extract_openai_usage(response: object) -> TokenUsage:
     )
 
 
-def resolve_openai_api_key(context: AgentContext) -> str:
-    api_key_env = context.model_config.openai_api_key_env
+def resolve_openai_api_key(config: AgentConfig) -> str:
+    api_key_env = config.model_config.openai_api_key_env
     if api_key_env:
         return require_config_value(
             os.environ.get(api_key_env),
@@ -94,20 +94,20 @@ def resolve_openai_api_key(context: AgentContext) -> str:
     return os.environ.get("OPENAI_API_KEY", "minixx")
 
 
-def call_openai_compatible(context: AgentContext, user_prompt: str) -> ModelResponse:
+def call_openai_compatible(config: AgentConfig, user_prompt: str) -> ModelResponse:
     try:
         from openai import OpenAI
     except ImportError as exc:
         raise RuntimeError("OpenAI Python package not installed. Run pip install -r requirements.txt.") from exc
 
     openai_model = require_config_value(
-        context.model_config.openai_model,
+        config.model_config.openai_model,
         "openai_model",
         "OpenAI-compatible",
     )
     client = OpenAI(
-        api_key=resolve_openai_api_key(context),
-        base_url=context.model_config.openai_base_url,
+        api_key=resolve_openai_api_key(config),
+        base_url=config.model_config.openai_base_url,
     )
 
     try:
@@ -116,17 +116,17 @@ def call_openai_compatible(context: AgentContext, user_prompt: str) -> ModelResp
                 client.chat.completions.create,
                 model=openai_model,
                 messages=[
-                    {"role": "system", "content": context.system_prompt},
+                    {"role": "system", "content": config.system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
             )
-            response = future.result(timeout=context.model_config.timeout_seconds)
+            response = future.result(timeout=config.model_config.timeout_seconds)
     except FuturesTimeoutError as exc:
         raise RuntimeError(
-            f"OpenAI-compatible request timed out after {context.model_config.timeout_seconds} seconds."
+            f"OpenAI-compatible request timed out after {config.model_config.timeout_seconds} seconds."
         ) from exc
     except Exception as exc:  # noqa: BLE001
-        base_url = context.model_config.openai_base_url or "default OpenAI endpoint"
+        base_url = config.model_config.openai_base_url or "default OpenAI endpoint"
         raise RuntimeError(
             f"OpenAI-compatible request failed for {base_url}: {exc.__class__.__name__}: {exc}"
         ) from exc
@@ -138,14 +138,14 @@ def call_openai_compatible(context: AgentContext, user_prompt: str) -> ModelResp
 
 
 def call_model(
-    context: AgentContext,
+    config: AgentConfig,
     user_prompt: str,
     response_label: str = "Response",
 ) -> ModelResponse:
-    model = context.model_config.model
+    model = config.model_config.model
 
     if model == "openai-compatible":
-        response = call_openai_compatible(context, user_prompt)
+        response = call_openai_compatible(config, user_prompt)
     else:
         raise ValueError(f"Unsupported model: {model}")
 

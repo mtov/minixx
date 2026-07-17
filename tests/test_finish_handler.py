@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from minixx.context import AgentContext, ModelConfig, ToolRequest
+from minixx.context import AgentConfig, ModelConfig, ToolRequest
 from minixx.finish_handler import handle_finish
 
 
-def build_context(tmp_path: Path, user_prompt: str) -> AgentContext:
-    return AgentContext(
+def build_context(tmp_path: Path, user_prompt: str) -> AgentConfig:
+    return AgentConfig(
         model_config=ModelConfig(
             model="openai-compatible",
             timeout_seconds=30,

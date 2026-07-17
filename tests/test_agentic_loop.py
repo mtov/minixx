@@ -12,17 +12,17 @@ from minixx.cli_output import (
 )
 from minixx.context import (
     MAX_ITERATIONS_REACHED_MESSAGE,
-    AgentContext,
-    AgentHistory,
+    AgentConfig,
     FinishResult,
+    Memory,
     ModelConfig,
     ToolRequest,
 )
 from minixx.test_failures import summarize_test_failure_output
 
 
-def build_context(post_apply_tests_passed: bool = False) -> AgentContext:
-    return AgentContext(
+def build_context(post_apply_tests_passed: bool = False) -> AgentConfig:
+    return AgentConfig(
         model_config=ModelConfig(
             model="openai-compatible",
             timeout_seconds=30,
@@ -128,7 +128,7 @@ def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
     )
     seen_histories: list[str] = []
 
-    def fake_get_next_tool_request(_context: AgentContext, history: AgentHistory) -> ToolRequest:
+    def fake_get_next_tool_request(_context: AgentConfig, history: Memory) -> ToolRequest:
         seen_histories.append(history.to_text())
         return next(responses)
 
@@ -170,11 +170,11 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
     reset_calls: list[Path] = []
     finish_attempts = 0
 
-    def fake_get_next_tool_request(_context: AgentContext, history: AgentHistory) -> ToolRequest:
+    def fake_get_next_tool_request(_context: AgentConfig, history: Memory) -> ToolRequest:
         seen_histories.append(history.to_text())
         return next(responses)
 
-    def fake_handle_finish(_context: AgentContext, tool_request: ToolRequest) -> FinishResult:
+    def fake_handle_finish(_context: AgentConfig, tool_request: ToolRequest) -> FinishResult:
         nonlocal finish_attempts
         finish_attempts += 1
         if finish_attempts == 1:
@@ -185,7 +185,7 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
             )
         return FinishResult(status="applied", request=tool_request)
 
-    def fake_reset_runtime_workspace(runtime_context: AgentContext) -> None:
+    def fake_reset_runtime_workspace(runtime_context: AgentConfig) -> None:
         reset_calls.append(runtime_context.source_workspace_path)
         runtime_context.workspace_path = Path("/tmp/reset-runtime")
         runtime_context.post_apply_tests_passed = False
