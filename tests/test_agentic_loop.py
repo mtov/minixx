@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from minixx.agentic_loop import INVALID_FINISH_MESSAGE, MAX_ITERATIONS_REACHED_MESSAGE, Memory, agentic_loop
+from minixx.agentic_loop import (
+    INVALID_FINISH_MESSAGE,
+    MAX_ITERATIONS_REACHED_MESSAGE,
+    LoopResult,
+    Memory,
+    agentic_loop,
+)
 from minixx.cli_output import (
     format_elapsed_time,
     format_failure_message,
@@ -17,7 +23,7 @@ from minixx.protocol import ToolRequest
 from minixx.test_failures import summarize_test_failure_output
 
 
-def build_context(post_apply_tests_passed: bool = False) -> AgentConfig:
+def build_context() -> AgentConfig:
     return AgentConfig(
         model_config=ModelConfig(
             model="openai-compatible",
@@ -30,33 +36,41 @@ def build_context(post_apply_tests_passed: bool = False) -> AgentConfig:
         user_prompt="prompt",
         source_workspace_path=Path("/tmp/source"),
         workspace_path=Path("/tmp/runtime"),
-        post_apply_tests_passed=post_apply_tests_passed,
     )
 
 
 def test_format_success_message_for_unified_diff_patch() -> None:
-    result = format_success_message(build_context(), "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n")
+    result = format_success_message(
+        "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
+        LoopResult.success("--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n"),
+    )
 
     assert result == "Minixx result: success. Patch applied successfully."
 
 
 def test_format_success_message_mentions_post_apply_tests_when_available() -> None:
     result = format_success_message(
-        build_context(post_apply_tests_passed=True),
         "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
+        LoopResult.success(
+            "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
+            post_apply_tests_passed=True,
+        ),
     )
 
     assert result == "Minixx result: success. Patch applied successfully. Post-apply tests passed."
 
 
 def test_format_success_message_for_non_patch_results() -> None:
-    result = format_success_message(build_context(), "Task completed successfully.")
+    result = format_success_message(
+        "Task completed successfully.",
+        LoopResult.success("Task completed successfully."),
+    )
 
     assert result == "Minixx result: success. Task completed successfully."
 
 
 def test_format_success_message_for_empty_results() -> None:
-    result = format_success_message(build_context(), "  ")
+    result = format_success_message("  ", LoopResult.success("  "))
 
     assert result == "Minixx result: success."
 
@@ -76,7 +90,10 @@ def test_format_elapsed_time_over_one_minute() -> None:
 
 
 def test_print_final_result_prints_summary_for_unified_diff_patches(capsys) -> None:
-    print_final_result(build_context(), "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n")
+    print_final_result(
+        "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
+        LoopResult.success("--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n"),
+    )
 
     captured = capsys.readouterr()
 
@@ -85,8 +102,11 @@ def test_print_final_result_prints_summary_for_unified_diff_patches(capsys) -> N
 
 def test_print_final_result_mentions_post_apply_tests_when_available(capsys) -> None:
     print_final_result(
-        build_context(post_apply_tests_passed=True),
         "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
+        LoopResult.success(
+            "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new\n",
+            post_apply_tests_passed=True,
+        ),
     )
 
     captured = capsys.readouterr()
@@ -95,7 +115,10 @@ def test_print_final_result_mentions_post_apply_tests_when_available(capsys) -> 
 
 
 def test_print_final_result_prints_summary_for_non_patch_results(capsys) -> None:
-    print_final_result(build_context(), "Task completed successfully.")
+    print_final_result(
+        "Task completed successfully.",
+        LoopResult.success("Task completed successfully."),
+    )
 
     captured = capsys.readouterr()
 
@@ -184,7 +207,6 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
     def fake_reset_runtime_workspace(runtime_context: AgentConfig) -> None:
         reset_calls.append(runtime_context.source_workspace_path)
         runtime_context.workspace_path = Path("/tmp/reset-runtime")
-        runtime_context.post_apply_tests_passed = False
 
     monkeypatch.setattr("minixx.agentic_loop.get_next_tool_request", fake_get_next_tool_request)
     monkeypatch.setattr("minixx.agentic_loop.apply_finish", fake_apply_finish)

@@ -24,7 +24,6 @@ class AgentConfig:
     user_prompt: str
     source_workspace_path: Path
     workspace_path: Path
-    post_apply_tests_passed: bool = False
 
 
 def _read_text_file(
@@ -117,7 +116,6 @@ def prepare_runtime_workspace(source_workspace_path: Path) -> Path:
 
 def reset_runtime_workspace(config: AgentConfig) -> None:
     config.workspace_path = prepare_runtime_workspace(config.source_workspace_path)
-    config.post_apply_tests_passed = False
 
 
 def load_user_prompt(workspace_path: Path) -> str:

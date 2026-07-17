@@ -63,6 +63,5 @@ def apply_finish(
             test_output=test_output,
         )
 
-    config.post_apply_tests_passed = True
     trace_finish_event("completed", "finish")
     return FinishResult(status="applied", request=tool_request)

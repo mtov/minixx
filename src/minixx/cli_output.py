@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from math import floor
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from .inputs import AgentConfig
 from .protocol import ToolRequest, looks_like_patch
 from .traces import get_total_tokens
+
+if TYPE_CHECKING:
+    from .agentic_loop import LoopResult
 
 
 def format_iteration_action(tool_request: ToolRequest) -> str:
@@ -48,9 +51,9 @@ def print_elapsed_time(elapsed_seconds: float) -> None:
     print(format_elapsed_time(elapsed_seconds))
 
 
-def format_success_message(config: AgentConfig, result: str) -> str:
+def format_success_message(result: str, loop_result: LoopResult) -> str:
     if looks_like_patch(result):
-        if config.post_apply_tests_passed:
+        if loop_result.post_apply_tests_passed:
             return "Minixx result: success. Patch applied successfully. Post-apply tests passed."
         return "Minixx result: success. Patch applied successfully."
 
@@ -65,5 +68,5 @@ def format_failure_message(error: Exception) -> str:
     return f"Minixx result: failed. {error}"
 
 
-def print_final_result(config: AgentConfig, result: str) -> None:
-    print(format_success_message(config, result))
+def print_final_result(result: str, loop_result: LoopResult) -> None:
+    print(format_success_message(result, loop_result))

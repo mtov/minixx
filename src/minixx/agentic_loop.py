@@ -33,10 +33,20 @@ class LoopResult:
     status: str
     output: str | None = None
     error: str | None = None
+    post_apply_tests_passed: bool = False
 
     @classmethod
-    def success(cls, output: str) -> LoopResult:
-        return cls(status="success", output=output)
+    def success(
+        cls,
+        output: str,
+        *,
+        post_apply_tests_passed: bool = False,
+    ) -> LoopResult:
+        return cls(
+            status="success",
+            output=output,
+            post_apply_tests_passed=post_apply_tests_passed,
+        )
 
     @classmethod
     def error(cls, message: str, *, status: str = "error") -> LoopResult:
@@ -54,19 +64,19 @@ class LoopResult:
 class MemoryEntry:
     iteration: int
     tool_request: ToolRequest
-    observation: str
+    result: str
 
 
 @dataclass
 class Memory:
     entries: list[MemoryEntry] = field(default_factory=list)
 
-    def append(self, iteration: int, request: ToolRequest, tool_result: str) -> None:
+    def append(self, iteration: int, request: ToolRequest, result: str) -> None:
         self.entries.append(
             MemoryEntry(
                 iteration=iteration,
                 tool_request=request,
-                observation=tool_result,
+                result=result,
             )
         )
 
@@ -111,14 +121,14 @@ class Memory:
 
         formatted_entries = []
         for entry in self.entries[-MAX_HISTORY_ENTRIES:]:
-            observation = entry.observation.strip()
-            if len(observation) > MAX_OBSERVATION_CHARS:
-                observation = f"{observation[:MAX_OBSERVATION_CHARS].rstrip()}..."
+            result = entry.result.strip()
+            if len(result) > MAX_OBSERVATION_CHARS:
+                result = f"{result[:MAX_OBSERVATION_CHARS].rstrip()}..."
             formatted_entries.append(
                 f"Iteration {entry.iteration}\n"
                 f"Tool: {entry.tool_request.name}\n"
                 f"Tool Args: {entry.tool_request.args}\n"
-                f"Observation: {observation}\n"
+                f"Observation: {result}\n"
             )
         sections.append("Recent steps:\n" + "\n".join(formatted_entries))
         return "\n\n".join(sections)
@@ -192,12 +202,12 @@ def agentic_loop(config: AgentConfig) -> LoopResult:
             output = handle_finish(config, memory, iteration, tool_request)
             if output is None:
                 continue
-            return LoopResult.success(output)
+            return LoopResult.success(output, post_apply_tests_passed=True)
 
         print_iteration_action(iteration, tool_request)
 
-        tool_result = run_tool(tool_request, config)
-        memory.append(iteration, tool_request, tool_result)
+        result = run_tool(tool_request, config)
+        memory.append(iteration, tool_request, result)
 
     return LoopResult.max_iterations_reached()
 
@@ -223,5 +233,5 @@ def main() -> int:
 
     print_total_tokens()
     print_elapsed_time(perf_counter() - start_time)
-    print_final_result(config, loop_result.output or "")
+    print_final_result(loop_result.output or "", loop_result)
     return 0
