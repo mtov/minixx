@@ -1,11 +1,7 @@
 from __future__ import annotations
 
-from minixx.context import (
-    Memory,
-    MAX_HISTORY_ENTRIES,
-    MAX_OBSERVATION_CHARS,
-    ToolRequest,
-)
+from minixx.agentic_loop import MAX_HISTORY_ENTRIES, MAX_OBSERVATION_CHARS, Memory
+from minixx.protocol import ToolRequest
 
 
 def test_agent_history_to_text_omits_thought_and_limits_entries() -> None:

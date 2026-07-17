@@ -1,12 +1,21 @@
 from __future__ import annotations
 
-from .context import AgentConfig, FinishResult, ToolRequest
+from dataclasses import dataclass
+
+from .inputs import AgentConfig
 from .patches import apply_patch, save_patch, validate_and_repair_patch
-from .protocol import looks_like_patch
+from .protocol import ToolRequest, looks_like_patch
 from .traces import trace_finish_event
 from .tools import run_tests_with_status
 
 INVALID_FINISH_PATCH_MESSAGE = "Finish output must be a unified diff patch."
+
+
+@dataclass
+class FinishResult:
+    status: str
+    request: ToolRequest
+    test_output: str | None = None
 
 
 def _trace_and_raise(stage: str, exc: Exception) -> None:

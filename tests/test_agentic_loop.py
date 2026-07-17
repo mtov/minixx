@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from minixx.agentic_loop import INVALID_FINISH_MESSAGE, agentic_loop
+from minixx.agentic_loop import INVALID_FINISH_MESSAGE, MAX_ITERATIONS_REACHED_MESSAGE, Memory, agentic_loop
 from minixx.cli_output import (
     format_elapsed_time,
     format_failure_message,
@@ -10,14 +10,10 @@ from minixx.cli_output import (
     print_elapsed_time,
     print_final_result,
 )
-from minixx.context import (
-    MAX_ITERATIONS_REACHED_MESSAGE,
-    AgentConfig,
-    FinishResult,
-    Memory,
-    ModelConfig,
-    ToolRequest,
-)
+from minixx.finish_handler import FinishResult
+from minixx.inputs import AgentConfig
+from minixx.models import ModelConfig
+from minixx.protocol import ToolRequest
 from minixx.test_failures import summarize_test_failure_output
 
 

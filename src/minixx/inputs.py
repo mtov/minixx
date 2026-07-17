@@ -3,9 +3,10 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
-from .context import AgentConfig, ModelConfig
+from .models import ModelConfig
 from .traces import clear_trace, trace_request
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -14,6 +15,16 @@ CONFIG_DIR = PROJECT_ROOT / "config"
 CONFIG_PATH = CONFIG_DIR / "config.json"
 SYSTEM_PROMPT_PATH = CONFIG_DIR / "system_prompt.txt"
 WORKSPACE_INSTRUCTIONS_PATH = "AGENTS.md"
+
+
+@dataclass
+class AgentConfig:
+    model_config: ModelConfig
+    system_prompt: str
+    user_prompt: str
+    source_workspace_path: Path
+    workspace_path: Path
+    post_apply_tests_passed: bool = False
 
 
 def _read_text_file(

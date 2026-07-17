@@ -1,10 +1,36 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from dataclasses import dataclass
 import os
+from typing import TYPE_CHECKING
 
-from .context import AgentConfig, ModelResponse, TokenUsage
 from .traces import trace_response
+
+if TYPE_CHECKING:
+    from .inputs import AgentConfig
+
+
+@dataclass
+class ModelConfig:
+    model: str
+    timeout_seconds: int
+    openai_base_url: str | None
+    openai_model: str | None
+    openai_api_key_env: str | None
+
+
+@dataclass
+class TokenUsage:
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    total_tokens: int | None = None
+
+
+@dataclass
+class ModelResponse:
+    content: str
+    token_usage: TokenUsage
 
 
 def require_config_value(value: str | None, key: str, model_name: str) -> str:

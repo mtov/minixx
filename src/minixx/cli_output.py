@@ -3,8 +3,8 @@ from __future__ import annotations
 from math import floor
 from pathlib import Path
 
-from .context import AgentConfig, ToolRequest
-from .protocol import looks_like_patch
+from .inputs import AgentConfig
+from .protocol import ToolRequest, looks_like_patch
 from .traces import get_total_tokens
 
 

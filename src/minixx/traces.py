@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from .context import TokenUsage
+if TYPE_CHECKING:
+    from .models import TokenUsage
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LOG_PATH = PROJECT_ROOT / "agent_trace.log"
@@ -37,9 +39,9 @@ def trace_response(
 ) -> None:
     global CALL_COUNT, TOTAL_TOKENS
     CALL_COUNT += 1
-    usage = token_usage or TokenUsage()
-    if usage.total_tokens is not None:
-        TOTAL_TOKENS += usage.total_tokens
+    total_tokens = token_usage.total_tokens if token_usage is not None else None
+    if total_tokens is not None:
+        TOTAL_TOKENS += total_tokens
 
     _append_trace(
         f"[{label.lower().replace(' ', '_')} {CALL_COUNT}]\n"

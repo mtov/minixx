@@ -220,7 +220,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[Agent Loop] --> B[Context and History]
+    A[Agent Loop] --> B[Config and Memory]
     A --> C[Model Protocol]
     A --> D[Tools]
     A --> E[Patch]
@@ -230,17 +230,17 @@ flowchart LR
 The codebase is intentionally small and can be read as six main modules:
 
 - `Agent Loop`
-  - `src/minixx/agentic_loop.py`: runs the main ReAct-style loop, handles finish actions, and controls retries
-- `Context and History`
-  - `src/minixx/context.py`: shared dataclasses for runtime state, history, and finish/loop results
+  - `src/minixx/agentic_loop.py`: runs the main ReAct-style loop and owns loop-local runtime structures such as `Memory` and `LoopResult`
+- `Config and Memory`
+  - `src/minixx/inputs.py`: loads config and prompts, resolves the source workspace, prepares `minixx-workspace`, and defines `AgentConfig`
 - `Model Protocol`
-  - `src/minixx/models.py`: sends requests to the configured model backend
-  - `src/minixx/protocol.py`: parses, validates, and repairs model responses into Minixx actions
+  - `src/minixx/models.py`: defines model request and response dataclasses and sends requests to the configured model backend
+  - `src/minixx/protocol.py`: defines `ToolRequest` and parses, validates, and repairs model responses into Minixx actions
 - `Tools`
   - `src/minixx/tools.py`: implements the available workspace-safe tools
   - `src/minixx/guards.py`: validates safe paths and keeps tool access constrained to the runtime workspace
 - `Patch`
-  - `src/minixx/finish_handler.py`: validates `finish` outputs and orchestrates patch apply plus verification
+  - `src/minixx/finish_handler.py`: validates `finish` outputs, defines `FinishResult`, and orchestrates patch apply plus verification
   - `src/minixx/patches.py`: saves, repairs, previews, validates, and applies unified diff patches
   - `src/minixx/test_failures.py`: summarizes post-apply test failures for retry prompts
 - `Observability`
@@ -252,7 +252,6 @@ Supporting files used around that runtime flow:
 - `run_minixx.py`: repository entry script
 - `src/minixx/__main__.py`: package entry point
 - `src/minixx/__init__.py`: package marker
-- `src/minixx/inputs.py`: loads config and prompts, resolves the source workspace, and prepares `minixx-workspace`
 - `config/config.json`: model and runtime settings
 - `config/system_prompt.txt`: main agent instructions
 

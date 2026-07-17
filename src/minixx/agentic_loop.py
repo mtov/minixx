@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from time import perf_counter
 
 from .cli_output import (
@@ -9,20 +10,105 @@ from .cli_output import (
     print_iteration_action,
     print_total_tokens,
 )
-from .context import AgentConfig, LoopResult, Memory, ToolRequest
 from .finish_handler import handle_finish
-from .inputs import parse_args, prepare_run, reset_runtime_workspace
+from .inputs import AgentConfig, parse_args, prepare_run, reset_runtime_workspace
 from .models import call_model
-from .protocol import looks_like_patch, parse_response, repair_response
+from .protocol import ToolRequest, looks_like_patch, parse_response, repair_response
 from .test_failures import summarize_test_failure_output
 from .tools import run_tool
 from .traces import trace_validation_error
 
+MAX_HISTORY_ENTRIES = 4
+MAX_OBSERVATION_CHARS = 1200
+MAX_ITERATIONS_REACHED_MESSAGE = "Agent stopped after reaching the maximum number of steps."
 INVALID_FINISH_MESSAGE = (
     "Finish output must contain only a unified diff patch. "
     "Do not end the run yet; inspect any remaining files you need and then return the patch."
 )
 MAX_ITERATIONS = 15
+
+
+@dataclass
+class LoopResult:
+    status: str
+    output: str | None = None
+    error: str | None = None
+
+    @classmethod
+    def success(cls, output: str) -> LoopResult:
+        return cls(status="success", output=output)
+
+    @classmethod
+    def error(cls, message: str, *, status: str = "error") -> LoopResult:
+        return cls(status=status, error=message)
+
+    @classmethod
+    def max_iterations_reached(cls) -> LoopResult:
+        return cls(
+            status="max_iterations_reached",
+            error=MAX_ITERATIONS_REACHED_MESSAGE,
+        )
+
+
+@dataclass
+class Memory:
+    entries: list[tuple[int, ToolRequest, str]] = field(default_factory=list)
+
+    def append(self, iteration: int, request: ToolRequest, tool_result: str) -> None:
+        self.entries.append((iteration, request, tool_result))
+
+    def contains_tool(self, name: str) -> bool:
+        return any(request.name == name for _, request, _ in self.entries)
+
+    def _unique_tool_args(self, name: str) -> list[str]:
+        seen: set[str] = set()
+        items: list[str] = []
+
+        for _, request, _ in self.entries:
+            if request.name != name:
+                continue
+            value = request.args.strip()
+            if not value or value in seen:
+                continue
+            seen.add(value)
+            items.append(value)
+
+        return items
+
+    def to_text(self) -> str:
+        if not self.entries:
+            return "No previous steps."
+
+        sections: list[str] = []
+        read_files = self._unique_tool_args("read_file")
+        find_queries = self._unique_tool_args("find_text")
+
+        if read_files:
+            sections.append(
+                "Files already read:\n"
+                + "\n".join(f"- {path}" for path in read_files)
+            )
+        if find_queries:
+            sections.append(
+                "Searches already run:\n"
+                + "\n".join(f"- {query}" for query in find_queries)
+            )
+        if self.contains_tool("run_tests"):
+            sections.append("Tests already run: yes")
+
+        formatted_entries = []
+        for iteration, request, tool_result in self.entries[-MAX_HISTORY_ENTRIES:]:
+            observation = tool_result.strip()
+            if len(observation) > MAX_OBSERVATION_CHARS:
+                observation = f"{observation[:MAX_OBSERVATION_CHARS].rstrip()}..."
+            formatted_entries.append(
+                f"Iteration {iteration}\n"
+                f"Tool: {request.name}\n"
+                f"Tool Args: {request.args}\n"
+                f"Observation: {observation}\n"
+            )
+        sections.append("Recent steps:\n" + "\n".join(formatted_entries))
+        return "\n\n".join(sections)
 
 def get_next_tool_request(config: AgentConfig, memory: Memory) -> ToolRequest:
     user_message = (
@@ -90,10 +176,10 @@ def agentic_loop(config: AgentConfig) -> LoopResult:
         tool_request = get_next_tool_request(config, memory)
 
         if tool_request.name == "finish":
-            finish_output = handle_finish_action(config, memory, iteration, tool_request)
-            if finish_output is None:
+            output = handle_finish_action(config, memory, iteration, tool_request)
+            if output is None:
                 continue
-            return LoopResult.success(finish_output)
+            return LoopResult.success(output)
 
         print_iteration_action(iteration, tool_request)
 

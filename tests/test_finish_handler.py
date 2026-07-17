@@ -4,8 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from minixx.context import AgentConfig, ModelConfig, ToolRequest
 from minixx.finish_handler import handle_finish
+from minixx.inputs import AgentConfig
+from minixx.models import ModelConfig
+from minixx.protocol import ToolRequest
 
 
 def build_context(tmp_path: Path, user_prompt: str) -> AgentConfig:

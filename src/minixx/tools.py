@@ -5,8 +5,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .context import AgentConfig, ToolRequest
 from .guards import resolve_tool_path
+from .inputs import AgentConfig
+from .protocol import ToolRequest
 
 MAX_FIND_TEXT_MATCHES = 20
 SKIPPED_DIRECTORIES = {".git", ".venv", "__pycache__"}

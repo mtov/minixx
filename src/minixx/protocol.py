@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from .context import AgentConfig, ToolRequest
 from .models import call_model
 from .traces import trace_repair_attempt
+
+if TYPE_CHECKING:
+    from .inputs import AgentConfig
+
+
+@dataclass
+class ToolRequest:
+    thought: str
+    name: str
+    args: str
 
 REPAIR_PROMPT = (
     "Your previous response was invalid. "
