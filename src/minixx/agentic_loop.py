@@ -51,23 +51,36 @@ class LoopResult:
 
 
 @dataclass
+class MemoryEntry:
+    iteration: int
+    tool_request: ToolRequest
+    observation: str
+
+
+@dataclass
 class Memory:
-    entries: list[tuple[int, ToolRequest, str]] = field(default_factory=list)
+    entries: list[MemoryEntry] = field(default_factory=list)
 
     def append(self, iteration: int, request: ToolRequest, tool_result: str) -> None:
-        self.entries.append((iteration, request, tool_result))
+        self.entries.append(
+            MemoryEntry(
+                iteration=iteration,
+                tool_request=request,
+                observation=tool_result,
+            )
+        )
 
     def contains_tool(self, name: str) -> bool:
-        return any(request.name == name for _, request, _ in self.entries)
+        return any(entry.tool_request.name == name for entry in self.entries)
 
     def _unique_tool_args(self, name: str) -> list[str]:
         seen: set[str] = set()
         items: list[str] = []
 
-        for _, request, _ in self.entries:
-            if request.name != name:
+        for entry in self.entries:
+            if entry.tool_request.name != name:
                 continue
-            value = request.args.strip()
+            value = entry.tool_request.args.strip()
             if not value or value in seen:
                 continue
             seen.add(value)
@@ -97,14 +110,14 @@ class Memory:
             sections.append("Tests already run: yes")
 
         formatted_entries = []
-        for iteration, request, tool_result in self.entries[-MAX_HISTORY_ENTRIES:]:
-            observation = tool_result.strip()
+        for entry in self.entries[-MAX_HISTORY_ENTRIES:]:
+            observation = entry.observation.strip()
             if len(observation) > MAX_OBSERVATION_CHARS:
                 observation = f"{observation[:MAX_OBSERVATION_CHARS].rstrip()}..."
             formatted_entries.append(
-                f"Iteration {iteration}\n"
-                f"Tool: {request.name}\n"
-                f"Tool Args: {request.args}\n"
+                f"Iteration {entry.iteration}\n"
+                f"Tool: {entry.tool_request.name}\n"
+                f"Tool Args: {entry.tool_request.args}\n"
                 f"Observation: {observation}\n"
             )
         sections.append("Recent steps:\n" + "\n".join(formatted_entries))
