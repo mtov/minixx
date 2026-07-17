@@ -10,7 +10,7 @@ from .cli_output import (
     print_iteration_action,
     print_total_tokens,
 )
-from .finish_handler import handle_finish
+from .finish_handler import apply_finish
 from .inputs import AgentConfig, parse_args, prepare_run, reset_runtime_workspace
 from .models import call_model
 from .protocol import ToolRequest, looks_like_patch, parse_response, repair_response
@@ -155,7 +155,7 @@ def handle_post_apply_test_failure(
     )
 
 
-def handle_finish_action(
+def handle_finish(
     config: AgentConfig,
     memory: Memory,
     iteration: int,
@@ -166,7 +166,7 @@ def handle_finish_action(
         memory.append(iteration, tool_request, INVALID_FINISH_MESSAGE)
         return None
 
-    finish_result = handle_finish(config, tool_request)
+    finish_result = apply_finish(config, tool_request)
     if finish_result.status == "post_apply_tests_failed":
         handle_post_apply_test_failure(
             config,
@@ -189,7 +189,7 @@ def agentic_loop(config: AgentConfig) -> LoopResult:
         tool_request = get_next_tool_request(config, memory)
 
         if tool_request.name == "finish":
-            output = handle_finish_action(config, memory, iteration, tool_request)
+            output = handle_finish(config, memory, iteration, tool_request)
             if output is None:
                 continue
             return LoopResult.success(output)

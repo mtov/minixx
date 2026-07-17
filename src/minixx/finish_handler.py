@@ -23,7 +23,7 @@ def _trace_and_raise(stage: str, exc: Exception) -> None:
     raise exc
 
 
-def handle_finish(
+def apply_finish(
     config: AgentConfig,
     tool_request: ToolRequest,
 ) -> FinishResult:

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from minixx.finish_handler import handle_finish
+from minixx.finish_handler import apply_finish
 from minixx.inputs import AgentConfig
 from minixx.models import ModelConfig
 from minixx.protocol import ToolRequest
@@ -40,7 +40,7 @@ def test_handle_finish_runs_post_apply_tests_for_bug_fix(monkeypatch, tmp_path: 
     monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", lambda *_args: (True, "1 passed"))
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
-    result = handle_finish(context, tool_request)
+    result = apply_finish(context, tool_request)
 
     assert result.status == "applied"
     assert result.request is tool_request
@@ -68,7 +68,7 @@ def test_handle_finish_runs_post_apply_tests_for_feature_task(monkeypatch, tmp_p
     monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", fake_run_tests)
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
-    result = handle_finish(context, tool_request)
+    result = apply_finish(context, tool_request)
 
     assert result.status == "applied"
     assert result.request is tool_request
@@ -99,7 +99,7 @@ def test_handle_finish_runs_post_apply_tests_for_bugfix_without_keywords(monkeyp
     monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", fake_run_tests)
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
-    result = handle_finish(context, tool_request)
+    result = apply_finish(context, tool_request)
 
     assert result.status == "applied"
     assert result.request is tool_request
@@ -122,7 +122,7 @@ def test_handle_finish_raises_when_post_apply_tests_fail(monkeypatch, tmp_path: 
     finish_events: list[tuple[str, str, str | None]] = []
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
-    result = handle_finish(context, tool_request)
+    result = apply_finish(context, tool_request)
 
     assert result.status == "post_apply_tests_failed"
     assert result.request is tool_request
@@ -150,7 +150,7 @@ def test_handle_finish_runs_post_apply_tests_for_readme_patch(monkeypatch, tmp_p
     monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", fake_run_tests)
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
-    result = handle_finish(context, tool_request)
+    result = apply_finish(context, tool_request)
 
     assert result.status == "applied"
     assert result.request is tool_request
@@ -191,7 +191,7 @@ def test_handle_finish_repairs_patch_when_request_args_looks_like_patch(monkeypa
     monkeypatch.setattr("minixx.finish_handler.run_tests_with_status", lambda *_args: (True, "1 passed"))
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *_args: None)
 
-    result = handle_finish(context, tool_request)
+    result = apply_finish(context, tool_request)
 
     assert result.status == "applied"
     assert result.request is tool_request
@@ -217,7 +217,7 @@ def test_handle_finish_rejects_mixed_output_when_tests_failed(monkeypatch, tmp_p
     )
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
-    result = handle_finish(context, tool_request)
+    result = apply_finish(context, tool_request)
 
     assert result.status == "post_apply_tests_failed"
     assert result.test_output == "1 failed, 5 passed"
@@ -240,7 +240,7 @@ def test_handle_finish_traces_patch_validation_failures(monkeypatch, tmp_path: P
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
     with pytest.raises(ValueError, match="corrupt patch"):
-        handle_finish(context, tool_request)
+        apply_finish(context, tool_request)
 
     assert finish_events == [("failed", "patch_validation", "corrupt patch")]
 
@@ -257,7 +257,7 @@ def test_handle_finish_rejects_non_patch_finish_output(monkeypatch, tmp_path: Pa
     monkeypatch.setattr("minixx.finish_handler.trace_finish_event", lambda *args: finish_events.append(args))
 
     with pytest.raises(ValueError, match="Finish output must be a unified diff patch."):
-        handle_finish(context, tool_request)
+        apply_finish(context, tool_request)
 
     assert finish_events == [
         ("failed", "finish_validation", "Finish output must be a unified diff patch."),

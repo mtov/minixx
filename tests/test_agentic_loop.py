@@ -130,7 +130,7 @@ def test_agentic_loop_retries_after_invalid_finish(monkeypatch, capsys) -> None:
 
     monkeypatch.setattr("minixx.agentic_loop.get_next_tool_request", fake_get_next_tool_request)
     monkeypatch.setattr(
-        "minixx.agentic_loop.handle_finish",
+        "minixx.agentic_loop.apply_finish",
         lambda _context, tool_request: FinishResult(status="applied", request=tool_request),
     )
 
@@ -170,7 +170,7 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
         seen_histories.append(history.to_text())
         return next(responses)
 
-    def fake_handle_finish(_context: AgentConfig, tool_request: ToolRequest) -> FinishResult:
+    def fake_apply_finish(_context: AgentConfig, tool_request: ToolRequest) -> FinishResult:
         nonlocal finish_attempts
         finish_attempts += 1
         if finish_attempts == 1:
@@ -187,7 +187,7 @@ def test_agentic_loop_retries_after_post_apply_test_failure(monkeypatch, capsys)
         runtime_context.post_apply_tests_passed = False
 
     monkeypatch.setattr("minixx.agentic_loop.get_next_tool_request", fake_get_next_tool_request)
-    monkeypatch.setattr("minixx.agentic_loop.handle_finish", fake_handle_finish)
+    monkeypatch.setattr("minixx.agentic_loop.apply_finish", fake_apply_finish)
     monkeypatch.setattr("minixx.agentic_loop.reset_runtime_workspace", fake_reset_runtime_workspace)
     monkeypatch.setattr("minixx.agentic_loop.run_tool", lambda _tool_request, _context: "file contents")
 
