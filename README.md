@@ -90,7 +90,7 @@ Each workspace should contain:
 
 It may also contain:
 
-- `AGENTS.md`, which is appended to the system prompt as workspace-specific guidance
+- `AGENTS.md`, which is appended to the user-side workspace context as workspace-specific guidance
 
 Example `prompt.txt`:
 
@@ -197,7 +197,7 @@ git apply patch.txt
 1. Minixx loads `config/config.json` and `config/system_prompt.txt`.
 2. Minixx resolves the source workspace passed on the command line.
 3. Minixx recreates `minixx-workspace` as a copy of that source workspace.
-4. Minixx loads `prompt.txt` and optional `AGENTS.md` from the copied workspace.
+4. Minixx loads `prompt.txt` and optional `AGENTS.md` from the copied workspace and builds the user-side workspace context.
 5. `agentic_loop.py` asks the configured model for the next action.
 6. `tools.py` executes the selected tool inside `minixx-workspace`.
 7. When the model returns `finish`, `finish_handler.py` validates the output and routes patch application through `patches.py`.
