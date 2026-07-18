@@ -30,3 +30,4 @@ Use real unified diff hunk headers with line ranges, for example:
 
 Use `find_text` with this format: search text | relative/or-known/workspace/path
 Use `run_tests` when the task asks you to validate behavior, fix behavior, or confirm a change.
+If workspace instructions are provided in the user prompt, follow them as local guidance for that workspace.
