@@ -220,11 +220,14 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[Agent Loop and Memory] --> B[Setup and Config]
-    A --> C[Model Protocol]
-    A --> D[Tools]
-    A --> E[Patch]
-    A --> F[Observability]
+    A["Setup and Config<br/>inputs.py"] --> B["Agent Loop and Memory<br/>agentic_loop.py"]
+    B --> C["Model Protocol<br/>models.py + protocol.py"]
+    B --> D["Tools<br/>tools.py + guards.py"]
+    B --> E["Patch<br/>finish_handler.py + patches.py + test_failures.py"]
+    A --> D
+    C --> F["Observability<br/>cli_output.py + traces.py"]
+    D --> F
+    E --> F
 ```
 
 The codebase is intentionally small and can be read as six main modules:
